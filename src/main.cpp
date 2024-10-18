@@ -8,6 +8,7 @@ using namespace geode::prelude;
 #include <Geode/modify/EditorUI.hpp>
 
 #include <string>
+#include <cmath>
 
 // colors: 1-green, 2-blue, 3-pink, 4-gray, 5-darker gray, 6-red
 #define ITEM_COLOR 4
@@ -22,6 +23,7 @@ struct {
 // parameters for group buttons
 struct GroupInfo : CCObject {
 	Group m_group;
+	Ref<CCNode> m_existingMenu = nullptr;
 	GroupInfo(Group group) : m_group(group) {
 		this->autorelease();
 	}
@@ -37,8 +39,10 @@ struct ItemInfo : CCObject {
 
 // default parameters for group items
 struct GroupItemInfo : CCObject {
+	CreateMenuItem* m_groupButton;
 	SEL_MenuHandler m_defaultSelector;
-	GroupItemInfo(SEL_MenuHandler defaultSelector) : m_defaultSelector(defaultSelector) {
+	GroupItemInfo(CreateMenuItem* groupButton, SEL_MenuHandler defaultSelector) : 
+		m_defaultSelector(defaultSelector), m_groupButton(groupButton) {
 		this->autorelease();
 	}
 };
@@ -49,6 +53,9 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	struct Fields {
 		CCNode* m_menuNode = nullptr;
 		CreateMenuItem* m_buttonWithGroupOpened = nullptr;
+		struct {
+			int m_maxMenuHeight = 4; // todo
+		} m_settings;
 	};
 
 	void removeOldMenuIfExists() {
@@ -73,7 +80,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 						// gg! found game object in children
 						if (categoryByFirstObjectId.contains(gameObj->m_objectID)) {
 							short category = (*categoryByFirstObjectId.find(gameObj->m_objectID)).second;
-							barCreated = createCustomBarForCategory(category, p1, p2, p3);
+							barCreated = createCustomBarForCategory(p0, category, p1, p2, p3);
 							log::debug("Category: {}; done: {}", category, barCreated);
 						}
 						break;
@@ -87,8 +94,14 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		}
 	};
 
-	bool createCustomBarForCategory(short category, int p1, int p2, bool p3) {
+	bool createCustomBarForCategory(CCArray* oldButtons, short category, int p1, int p2, bool p3) {
 		if (!CONFIG.contains(category)) return false;
+
+		std::set<int> allOldIds;
+		for (unsigned i = 0; i < oldButtons->count(); i++) {
+			auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(i));
+			allOldIds.insert(btn->m_objectID);
+		}
 
 		auto buttons = CCArray::create();
 		auto groups = (*CONFIG.find(category)).second;
@@ -101,6 +114,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 					btn->setUserObject(new ItemInfo(btn->m_pfnSelector));
 					btn->m_pfnSelector = menu_selector(MyEditButtonBar::onItemClick); 
 					btn->m_objectID = group.m_objectIds.at(0);
+					allOldIds.erase(btn->m_objectID);
 
 					buttons->addObject(btn);
 					break;
@@ -111,12 +125,24 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 					btn->setUserObject(new GroupInfo(group));
 					btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupClick); 
 
+					for (auto objId : group.m_objectIds) {
+						allOldIds.erase(objId);
+					}
+
 					buttons->addObject(btn);
 					break;
 				}
 			}
 		}
-		// todo: add objects, that were not used in any of the groups
+		// add objects, that were not used in any of the groups
+		for (auto objId : allOldIds) {
+			auto btn = GLOBAL.editorUI->getCreateBtn(objId, ITEM_COLOR);
+			btn->setUserObject(new ItemInfo(btn->m_pfnSelector));
+			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onItemClick); 
+			allOldIds.erase(btn->m_objectID);
+
+			buttons->addObject(btn);
+		}
 		EditButtonBar::loadFromItems(buttons, p1, p2, p3);
 		return true;
 	}
@@ -126,9 +152,12 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		auto defaultInfo = static_cast<ItemInfo*>(btn->getUserObject());
 		auto method = static_cast<void (CCObject::*)(CCObject*)>(defaultInfo->m_defaultSelector);
 
-		bool wasActive = isButtonActivated(btn);
+		// bool wasActive = isButtonActivated(btn);
 		(this->*method)(sender); // call original selector
-		if (!wasActive) {
+
+		bool thisIsNowSelected = btn->m_objectID == GLOBAL.editorUI->m_selectedObjectIndex;
+
+		if (!isButtonActivated(btn) && thisIsNowSelected) {
 			activateButton(btn); // for some reason it does not change color itself
 		}
 		removeOldMenuIfExists();
@@ -143,7 +172,10 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		removeOldMenuIfExists();
 		if (onlyClose) return;
 
-		auto menu = createMenu(&groupInfo->m_group, btn->getScale());
+		if (!groupInfo->m_existingMenu)  {
+			groupInfo->m_existingMenu = createMenu(&groupInfo->m_group, btn, btn->getScale());
+		}
+		auto menu = groupInfo->m_existingMenu;
 
 		// menu->setScale(1 / btn->getScale());
 		m_fields->m_menuNode = menu;
@@ -157,94 +189,132 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		auto groupItemInfo = static_cast<GroupItemInfo*>(btn->getUserObject());
 		auto method = static_cast<void (CCObject::*)(CCObject*)>(groupItemInfo->m_defaultSelector);
 
+		bool wasActive = isButtonActivated(btn);
 		(this->*method)(sender); // call original selector
 
+		bool thisIsNowSelected = btn->m_objectID == GLOBAL.editorUI->m_selectedObjectIndex;
+
+		// if (!wasActive) {
+		if (thisIsNowSelected) {
+			if (!wasActive)
+				activateButton(btn); // for some reason it does not change color itself
+			if (!isButtonActivated(groupItemInfo->m_groupButton))
+				activateButton(groupItemInfo->m_groupButton);
+		} else {
+			if (isButtonActivated(groupItemInfo->m_groupButton)) {
+				activateButton(groupItemInfo->m_groupButton, true);
+			}
+		}
 		removeOldMenuIfExists();
 	}
-
 
 	bool isButtonActivated(CreateMenuItem* cmi) {
 		auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0));
 		if (!btnSpr) return false;
 		auto btnChildren = btnSpr->getChildren();
-		return (static_cast<CCSprite*>(btnChildren->objectAtIndex(1))->getColor().r < 128);
+		return (static_cast<CCSprite*>(btnChildren->objectAtIndex(0))->getColor().r < 128);
 	}
 
-	void activateButton(CreateMenuItem* cmi) {
+	void activateButton(CreateMenuItem* cmi, bool deactivate=false) {
+		float ratio = deactivate ? 2.0 : 0.5;
 		auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0));
 		if (!btnSpr) return;
-		auto btnChildren = btnSpr->getChildren();
+
+		if (auto btnChildren = btnSpr->getChildren())
 		for (unsigned i = 0; i < btnChildren->count(); i++) {
 			auto child = static_cast<CCSprite*>(btnChildren->objectAtIndex(i));
 			auto oldColor = child->getColor();
-			uint8_t newR = oldColor.r * 0.5;
-			uint8_t newG = oldColor.g * 0.5;
-			uint8_t newB = oldColor.b * 0.5;
+			uint8_t newR = oldColor.r * ratio;
+			uint8_t newG = oldColor.g * ratio;
+			uint8_t newB = oldColor.b * ratio;
 			child->setColor(ccc3(newR, newG, newB));
+
+			if (auto children2 = child->getChildren())
+			for (unsigned j = 0; j < children2->count(); j++) {
+				child = static_cast<CCSprite*>(children2->objectAtIndex(j));
+				oldColor = child->getColor();
+				newR = oldColor.r * ratio;
+				newG = oldColor.g * ratio;
+				newB = oldColor.b * ratio;
+				child->setColor(ccc3(newR, newG, newB));
+			}
 		}
 	}
 
-	CCNode* createMenu(Group* group, float controlScale, bool useBackground=true) {
+	CCNode* createMenu(Group* group, CreateMenuItem* groupButton, float controlScale, bool useBackground=true) {
 		auto baseNode = CCNode::create();
 		auto groupSize = group->m_objectIds.size();
 
 		auto buttonArray = CCArray::create();
 		for (unsigned i = 0; i < groupSize; i++) {
 			auto btn = GLOBAL.editorUI->getCreateBtn(group->m_objectIds.at(i), GROUP_ITEM_COLOR);
-			btn->setUserObject(new GroupItemInfo(btn->m_pfnSelector));
+			btn->setUserObject(new GroupItemInfo(groupButton, btn->m_pfnSelector));
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupItemClick); 
 			buttonArray->addObject(btn);
 		}
 
 		auto bar = EditButtonBar::create(buttonArray, ccp(0,0), 0, true, 1, groupSize); // buttons, shift, ?, ?, columns, rows
 		baseNode->addChild(bar);
+		auto firstButton = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
 
 		// fix all scaling and positioning issues
 		float scale = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0))->getScale();
 		float barScale = controlScale / scale;
 		bar->setScale(barScale);
 
-		auto firstButton = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
 		float firstY = firstButton->getPositionY();
 		float shiftUp =  (firstButton->getContentHeight() + 5) * scale * 1.5;
 		float zeroPosition = firstY + shiftUp; // zero point
 		float oneDistance = (firstButton->getContentHeight() + 5) * scale; // distance between two button centers
+
+		int columnCount = ceil(groupSize / (double) m_fields->m_settings.m_maxMenuHeight);
+		int rowCount = ceil(groupSize / (double) columnCount);
+		float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
+
+		int rowIter = 0;
+		int columnIter = 0;
+
 		for (unsigned i = 0; i < groupSize; i++) {
 			auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
-			btn->setPositionY(zeroPosition + i * oneDistance);
+			btn->setPositionY(zeroPosition + rowIter * oneDistance);
+			btn->setPositionX(btn->getPositionX() + columnIter * oneDistance - centerShiftX);
+			rowIter++;
+			if (rowIter == rowCount) {
+				columnIter++;
+				rowIter = 0;
+			}
 		}
 		// log::debug("scale = {} / {} = {}", controlScale, scale,  barScale);
 
 		// create background
-		
-
+		if (useBackground) {
+			float top, bottom, left, right;
+			left = right = firstButton->getPositionX();
+			top = bottom = firstButton->getPositionY();
+			for (unsigned i = 1; i < groupSize; i++) {
+				auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
+				float posX = btn->getPositionX();
+				float posY = btn->getPositionY();
+				if (posY > top) top = posY;
+				else if (posY < bottom) bottom = posY;
+				if (posX > right) right = posX;
+				else if (posX < left) left = posX;
+			}
+			const float scaleFactor = 10; // for CCScale9Sprite not to be destroyed 
+			auto bg = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
+			bar->addChild(bg);
+			bg->setOpacity(140);
+			bg->setZOrder(-10);
+			bg->setContentSize({((right - left) + 1.5f * oneDistance) * scaleFactor, 
+				((top - bottom) + 1.5f * oneDistance) * scaleFactor});
+			bg->setPosition({0, (top + bottom) / 2 + firstButton->getParent()->getPositionY()});
+			bg->setScale(1 / scaleFactor);
+		}
 		baseNode->setID("RaZooM");
 		return baseNode;
 	}
-
-	void createMenuBG(CCMenu * menu) { // todo 
-		auto buttons = menu->getChildren();
-		float firstBtnY;
-		float lastBtnY;
-		float maxBtnWidth = 0;
-		for (unsigned i = 0; i < buttons->count(); i++) {
-			auto btn = static_cast<CCMenuItemSpriteExtra*>(buttons->objectAtIndex(i));
-			if (i == 0) firstBtnY = btn->getPositionY();
-			lastBtnY = btn->getPositionY();
-			if (btn->getContentWidth() > maxBtnWidth) maxBtnWidth = btn->getContentWidth();
-		}
-		// add base
-		const float scaleFactor = 5; // for CCScale9Sprite not to be destroyed 
-		auto base = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
-		menu->addChild(base);
-		base->setOpacity(140);
-		base->setContentSize({(maxBtnWidth + 14) * scaleFactor, (abs(firstBtnY - lastBtnY) + 15) * scaleFactor});
-		base->setPositionY((firstBtnY + lastBtnY) / 2 - 1);
-		base->setPositionX(menu->getContentSize().width / 2 + 5);
-		base->setScale(1 / scaleFactor);
-		base->setZOrder(-10);
-	}
 };
+
 
 
 class $modify(MyEditorUI, EditorUI) {
@@ -255,39 +325,4 @@ class $modify(MyEditorUI, EditorUI) {
 		this->getChildByID("build-tabs-menu")->setZOrder(6); // prevent overlapping with my menus
 		return true;
 	}
-
-	// CreateMenuItem* getCreateBtn(int id, int bg) {
-	// 	log::debug("id={}, bg={}", id, bg);
-	// 	return EditorUI::getCreateBtn(id, bg);
-	// }
-
-	// void onMyButton(CCObject*) {
-	// 	short objIds[] = {83, 69, 3, 4, 5, 502, 6, 7};
-	// 	int btnWidth = 40;
-	// 	auto myNode = CCNode::create();
-	// 	myNode->setID("RaZooM");
-	// 	LevelEditorLayer::get()->getChildByID("main-node")->addChild(myNode);
-	// 	myNode->setPosition(CCDirector::sharedDirector()->getWinSize() / 2);
-
-	// 	auto buttonArray = CCArray::create();
-	// 	for (unsigned i = 0; i < 8; i++) {
-	// 		auto obj = GameObject::createWithKey(objIds[i]);
-	// 		auto btn = ButtonSprite::create(CCSprite::create(), btnWidth, false, btnWidth, "GJ_button_04.png", .5f);
-
-	// 		btn->addChild(obj, 2);
-	// 		obj->setPosition(ccp(btnWidth, btnWidth) / 2);
-
-	// 		auto cmi = CreateMenuItem::create(btn, nullptr, this, menu_selector(
-	// 			MyEditorUI::onCreateButton)); // sprite, disabledSprite, target, callback
-	// 		cmi->m_objectID = objIds[i];
-
-	// 		buttonArray->addObject(cmi);
-	// 	}
-
-	// 	auto bar = EditButtonBar::create(buttonArray, ccp(0,0), 0, true, 2, 3); // buttons, ?, ?, ?, columns, rows
-		
-	// 	myNode->addChild(bar);
-	// }
-
-	
 };
