@@ -1,47 +1,39 @@
 #pragma once
+
 #include <vector>
 #include <map>
+#include <cmath>
+#include <fstream>
+#include <format>
+#include <string>
+
+// objects that should have darker button background
+const std::set<short> darkerButtonBgObjIds = {
+    146, 147, 204, 206, 673, 674, 1340, 1340, 1341, 1342, 1343, 1344, 1345,
+    144, 145, 205, 459, 
+    498, 499, 500, 501, 277, 278, 719, 721, 990, 992, 1120, 1122, 1123, 1124, 1125, 1126, 1127, 1132, 1133,
+    1134, 1135, 1136, 1137, 1138, 1139, 1241, 1242, 1243, 1244, 1245, 1246,
+    1292, 1010, 1009, 1271, 1272, 1760, 1761, 1887, 1011, 1012, 1013, 1269, 1270, 1293, 1762, 1763, 1888,
+    740, 741, 742
+};
+
+//      <categoryId, groups>
+const std::map<short, short> categoryByFirstObjectId = {
+    {1, 1},     {35, 6},    {41, 11},
+    {467, 2},   {2065, 7},  {1705, 12},
+    {1743, 3},  {2083, 8},  {31, 13},
+    {8, 4},     {1329, 9},
+    {506, 5},   {3801, 10},
+};
 
 struct Group {
-    const char* m_groupName;
+    std::string m_groupName;
     short m_thumbnailObjectId;
     std::vector<short> m_objectIds;
 };
 
-//      <objId, categoryId>
-std::map<short, short> categoryByFirstObjectId = {
-    {1, 1},
-    {467, 2},
-    {1743, 3},
-    {8, 4},
-    {506, 5},
-    {35, 6},
-    {2065, 7},
-    {2083, 8},
-    {1329, 9},
-    {3801, 10},
-    {41, 11},
-    {1705, 12},
-    {31, 13},
-};
+std::map<short, std::vector<Group>> * getCONFIG();
 
-//      <categoryId, groups>
-std::map<short, std::vector<Group>> CONFIG = {
-    {1, { 
-        {"regular-blocks",          1, {1}},
-        {"regular-blocks",          83, {83}}, // todo
-        {"regular-blocks",          2, {2}}, // todo
-        {"grid-blocks",             83, {83, 2, 3, 4, 5, 502, 6, 7}},
-        {"tile-blocks",             69, {69, 70, 71, 72, 73, 74, 75}},
-        {"chipped-blocks",          76, {76, 77, 78, 80, 81, 82}},
-        {"black-blocks",            90, {90, 91, 92, 93, 94, 95, 96}},
-        {"brick-blocks",            116, {116, 117, 118, 119, 120, 121, 122}},
+bool writeConfigToJson(std::string filename);
 
-        {"colored-regular-blocks",  207, {207, 208, 209, 210, 211, 212, 213}},
-        {"colored-grid-blocks",     1820, {1820, 1821, 1823, 1824, 1825, 1826, 1827, 1828}},
-        {"colored-tile-blocks",     255, {255, 256, 257, 258, 259, 260, 261}},
-        {"colored-chipped-blocks",  263, {263, 264, 265, 266, 267, 268}},
-        {"colored-brick-blocks",    269, {269, 270, 271, 272, 273, 274, 275}},
-    }},
-};
-
+bool readFromJson(std::string filename, std::vector<std::string> * errList);
