@@ -16,7 +16,25 @@ using namespace geode::prelude;
 // global variables
 struct {
 	EditorUI* editorUI = nullptr;
+	struct {
+		int m_maxMenuHeight = 4;
+		bool m_showBg = true;
+		std::string m_customConfig = "";
+		std::string m_defaultConfig = "";
+	} m_settings;
+
+	void updateSettings() {
+		m_settings.m_maxMenuHeight = Mod::get()->getSettingValue<int64_t>("max-rows");
+		m_settings.m_showBg = Mod::get()->getSettingValue<bool>("show-bg");
+		m_settings.m_customConfig = Mod::get()->getSettingValue<std::filesystem::path>("config-path").string();
+		m_settings.m_defaultConfig = Mod::get()->getSettingValue<std::filesystem::path>("default-config-path").string();
+	}
 } GLOBAL;
+
+$on_mod(Loaded) {
+	GLOBAL.updateSettings();
+	//todo: update default config file here
+}
 
 // parameters for group buttons
 struct GroupInfo : CCObject {
@@ -51,9 +69,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	struct Fields {
 		CCNode* m_menuNode = nullptr;
 		CreateMenuItem* m_buttonWithGroupOpened = nullptr;
-		struct {
-			int m_maxMenuHeight = 4; // todo
-		} m_settings;
 	};
 
 	void removeOldMenuIfExists() {
@@ -184,6 +199,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (!groupInfo->m_existingMenu)  {
 			groupInfo->m_existingMenu = createMenu(&groupInfo->m_group, btn, btn->getScale());
+			GLOBAL.editorUI->updateCreateMenu(false); // fix color bug (false - no jump to another page)
 		}
 		auto menu = groupInfo->m_existingMenu;
 
@@ -255,18 +271,26 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 	CCNode* createMenu(Group* group, CreateMenuItem* groupButton, float controlScale, bool useBackground=true) {
 		auto baseNode = CCNode::create();
+		baseNode->setID("RaZooM");
 		auto groupSize = group->m_objectIds.size();
 
 		auto buttonArray = CCArray::create();
 		for (unsigned i = 0; i < groupSize; i++) {
-			auto btn = GLOBAL.editorUI->getCreateBtn(group->m_objectIds.at(i), GROUP_ITEM_COLOR);
+			auto objId = group->m_objectIds.at(i);
+			auto btnCol = darkerButtonBgObjIds.contains(objId) ? DARKER_ITEM_COLOR : GROUP_ITEM_COLOR;
+			auto btn = GLOBAL.editorUI->getCreateBtn(objId, btnCol);
 			btn->setUserObject(new GroupItemInfo(groupButton, btn->m_pfnSelector));
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupItemClick); 
 			buttonArray->addObject(btn);
 		}
 
-		auto bar = EditButtonBar::create(buttonArray, ccp(0,0), 0, true, 1, groupSize); // buttons, shift, ?, ?, columns, rows
+		auto bar = CCMenu::create();
+		bar->setContentSize({0,0});
+		// auto bar = EditButtonBar::create(buttonArray, ccp(0,0), 0, true, 1, groupSize); // buttons, shift, ?, ?, columns, rows
 		baseNode->addChild(bar);
+		bar->setPosition({0,0});
+
+		if (!buttonArray->count()) return baseNode; // empty
 		auto firstButton = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
 
 		// fix all scaling and positioning issues
@@ -279,7 +303,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		float zeroPosition = firstY + shiftUp; // zero point
 		float oneDistance = (firstButton->getContentHeight() + 5) * scale; // distance between two button centers
 
-		int columnCount = ceil(groupSize / (double) m_fields->m_settings.m_maxMenuHeight);
+		int columnCount = ceil(groupSize / (double) GLOBAL.m_settings.m_maxMenuHeight);
 		int rowCount = ceil(groupSize / (double) columnCount);
 		float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
 
@@ -288,7 +312,8 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		for (unsigned i = 0; i < groupSize; i++) {
 			auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
-			btn->setPositionY(zeroPosition + rowIter * oneDistance);
+			bar->addChild(btn);
+			btn->setPositionY(zeroPosition + rowIter * oneDistance - 10);
 			btn->setPositionX(btn->getPositionX() + columnIter * oneDistance - centerShiftX);
 			rowIter++;
 			if (rowIter == rowCount) {
@@ -299,7 +324,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		// log::debug("scale = {} / {} = {}", controlScale, scale,  barScale);
 
 		// create background
-		if (useBackground) {
+		if (GLOBAL.m_settings.m_showBg) {
 			float top, bottom, left, right;
 			left = right = firstButton->getPositionX();
 			top = bottom = firstButton->getPositionY();
@@ -312,17 +337,16 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 				if (posX > right) right = posX;
 				else if (posX < left) left = posX;
 			}
-			const float scaleFactor = 10; // for CCScale9Sprite not to be destroyed 
+			const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed 
 			auto bg = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
 			bar->addChild(bg);
 			bg->setOpacity(140);
 			bg->setZOrder(-10);
 			bg->setContentSize({((right - left) + 1.5f * oneDistance) * scaleFactor, 
 				((top - bottom) + 1.5f * oneDistance) * scaleFactor});
-			bg->setPosition({0, (top + bottom) / 2 + firstButton->getParent()->getPositionY()});
+			bg->setPosition({0, (top + bottom) / 2});
 			bg->setScale(1 / scaleFactor);
 		}
-		baseNode->setID("RaZooM");
 		return baseNode;
 	}
 };
@@ -332,6 +356,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 class $modify(MyEditorUI, EditorUI) {
 	bool init(LevelEditorLayer *editorLayer) {
 		GLOBAL.editorUI = this;
+		GLOBAL.updateSettings();
 		if(!EditorUI::init(editorLayer)) return false;
 
 		// prevent overlapping with my menus

@@ -10,5 +10,63 @@
 	"name": "Object Groups",
 	"version": "v1.0.0",
 	"developer": "RaZooM",
-	"description": "later"
+	"description": "later",
+	"dependencies": [
+		{
+			"id": "geode.node-ids",
+			"importance": "required",
+			"version": ">=1.11.0"
+		}
+	],
+	"settings": {
+		"max-rows": {
+			"type": "int",
+			"name": "Max rows",
+			"description": "The maximum number of rows in the menu",
+			"default": 4,
+			"min": 1,
+			"max": 20,
+			"control": {
+				"arrows": true,
+				"arrow-step": 1,
+				"input": true
+			}
+		},
+		"show-bg": {
+			"type": "bool",
+			"name": "Show background in menu",
+			"description": "Adds background to the menu for better contrast",
+			"default": true
+		}, 
+		"config-path": {
+			"type": "file",
+			"name": "Custom config",
+			"description": "Path to your custom config file",
+			"default": "{mod_config_dir}/custom_config.json",
+			"control": {
+				"dialog": "open",
+				"filters": [
+					{
+						"files": ["*.json"],
+						"description": "JSON file"
+					}
+				]
+			}
+		},
+		"default-config-path": {
+			"type": "file",
+			"name": "Default config",
+			"description": "Path to your default config file.\nThis file stores the <cy>default configuration</c> for the mod. Changes in this file <cr>do not</c> affect anything! The only point of this file is to store the default configuration, so that if you mess up a part of the <cg>custom configuration</c>, you could replace that part with the default one\n\nAlso, all changes to this file reset on every game startup",
+			"default": "{mod_config_dir}/default_config.json",
+			"control": {
+				"dialog": "open",
+				"filters": [
+					{
+						"files": ["*.json"],
+						"description": "JSON file"
+					}
+				]
+			}
+		}
+	}
 }
