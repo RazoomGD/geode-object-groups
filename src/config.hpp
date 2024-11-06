@@ -26,14 +26,18 @@ const std::map<short, short> categoryByFirstObjectId = {
     {506, 5},   {3801, 10},
 };
 
+#define GROUP_HIDE (short) 0x1
+#define GROUP_UNGROUP (short) 0x2
+
 struct Group {
     std::string m_groupName;
     short m_thumbnailObjectId;
     std::vector<short> m_objectIds;
+    short m_properties = 0;
 };
 
 std::map<short, std::vector<Group>> * getCONFIG();
 
 bool writeConfigToJson(std::string filename);
 
-bool readFromJson(std::string filename, std::vector<std::string> * errList);
+bool readConfigFromJson(std::string filename, std::vector<std::string> * errList);

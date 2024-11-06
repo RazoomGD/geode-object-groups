@@ -13,6 +13,12 @@ bool writeConfigToJson(std::string filename) {
             auto jsonGroup = json::Object();
             jsonGroup["group_name"] = group.m_groupName;
             jsonGroup["thumbnail_object_id"] = group.m_thumbnailObjectId;
+            if (group.m_properties & GROUP_HIDE) {
+                jsonGroup["hide_group"] = true;
+            }
+            if (group.m_properties & GROUP_UNGROUP) {
+                jsonGroup["ungroup"] = true;
+            }
             
             auto objectIds = json::Array();
             for (auto id : group.m_objectIds) {
@@ -38,8 +44,11 @@ bool writeConfigToJson(std::string filename) {
     }
 }
 
-bool readFromJson(std::string filename, std::vector<std::string> * errList) {
+bool readConfigFromJson(std::string filename, std::vector<std::string> * errList) {
     auto oldErrListSize = errList->size();
+
+    getCONFIG()->clear();
+
     std::ifstream jsonFile(filename);
     if (!jsonFile.is_open()) {
         errList->push_back(std::format("Error: Unable to open '{}' file", filename));
@@ -52,14 +61,12 @@ bool readFromJson(std::string filename, std::vector<std::string> * errList) {
         jsonContent += tmpString;
     }
     jsonFile.close();
-    
+
     auto jsonObj = json::JSON::Load(jsonContent, errList);
     if (oldErrListSize != errList->size()) {
         errList->push_back("Error: Unable to parse json file!");
         return false;
     }
-
-    getCONFIG()->clear();
     
     auto jsonConfig = jsonObj["config"];
     if (jsonConfig.IsNull()) { errList->push_back("The required 'config' key was not found"); return false;}
@@ -77,7 +84,7 @@ bool readFromJson(std::string filename, std::vector<std::string> * errList) {
         int tabIndexInt = tabIndex.ToInt();
         const int tabIndexMin = 1, tabIndexMax = 13;
         if (tabIndexInt > tabIndexMax || tabIndexInt < tabIndexMin) { 
-            errList->push_back(std::format("Tab index {} is out of bounds ({} <= index <= {})", tabIndexMin, tabIndexInt, tabIndexMax)); 
+            errList->push_back(std::format("Tab index {} is out of bounds ({} <= index <= {})", tabIndexInt, tabIndexMin, tabIndexMax)); 
             continue;
         }
         auto groups = tab["object_groups"];
@@ -114,6 +121,15 @@ bool readFromJson(std::string filename, std::vector<std::string> * errList) {
                 errList->push_back(std::format("Illegal 'thumbnail_object_id' for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
                 continue;
             }
+            short groupProps = 0;
+            auto hideGroup = group["hide_group"];
+            if (!hideGroup.IsNull() && hideGroup.ToBool()) {
+                groupProps |= GROUP_HIDE;
+            }
+            auto ungroupGroup = group["ungroup"];
+            if (!ungroupGroup.IsNull() && ungroupGroup.ToBool()) {
+                groupProps |= GROUP_UNGROUP;
+            }
             bool allObjectsLoaded = true;
             std::vector<short> vecObjectIds;
             for (auto& objId : objectIds.ArrayRange()) {
@@ -127,7 +143,7 @@ bool readFromJson(std::string filename, std::vector<std::string> * errList) {
             if (!allObjectsLoaded) {
                 errList->push_back(std::format("Some objects appear to have illegal ids in the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
             }
-            Group aGroup = {groupNameStr, (short) thumbnailObjIdInt, vecObjectIds};
+            Group aGroup = {groupNameStr, (short) thumbnailObjIdInt, vecObjectIds, groupProps};
             vecGroups.push_back(aGroup);
         }
         getCONFIG()->insert({ (short) tabIndexInt, vecGroups});

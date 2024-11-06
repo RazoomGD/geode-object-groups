@@ -10,8 +10,8 @@ using namespace geode::prelude;
 // colors: 1-green, 2-blue, 3-pink, 4-gray, 5-darker gray, 6-red
 #define ITEM_COLOR 4
 #define DARKER_ITEM_COLOR 5
-#define GROUP_COLOR 1
 #define GROUP_ITEM_COLOR 4
+
 
 // global variables
 struct {
@@ -21,6 +21,8 @@ struct {
 		bool m_showBg = true;
 		std::string m_customConfig = "";
 		std::string m_defaultConfig = "";
+		ccColor4B m_bgColor = ccc4(0, 0, 0, 140);
+		short m_groupColor = 1;
 	} m_settings;
 
 	void updateSettings() {
@@ -28,13 +30,26 @@ struct {
 		m_settings.m_showBg = Mod::get()->getSettingValue<bool>("show-bg");
 		m_settings.m_customConfig = Mod::get()->getSettingValue<std::filesystem::path>("config-path").string();
 		m_settings.m_defaultConfig = Mod::get()->getSettingValue<std::filesystem::path>("default-config-path").string();
-	}
+		m_settings.m_bgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color");
+		int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color").c_str());
+		m_settings.m_groupColor = (col >= 1 && col <= 6) ? col : 1;
+	};
 } GLOBAL;
+
 
 $on_mod(Loaded) {
 	GLOBAL.updateSettings();
-	//todo: update default config file here
+	Mod::get()->getConfigDir(true); // create config dir if not exists
+	// write default config
+	if(!writeConfigToJson(GLOBAL.m_settings.m_defaultConfig)) {
+		log::error("Default config: FAILED to write file: {}", GLOBAL.m_settings.m_defaultConfig);
+	}
+	// check if custom config exists and if it is not, then create it and init with default config
+	if (!std::filesystem::exists(GLOBAL.m_settings.m_customConfig)) {
+		writeConfigToJson(GLOBAL.m_settings.m_customConfig);
+	}
 }
+
 
 // parameters for group buttons
 struct GroupInfo : CCObject {
@@ -69,6 +84,8 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	struct Fields {
 		CCNode* m_menuNode = nullptr;
 		CreateMenuItem* m_buttonWithGroupOpened = nullptr;
+		CreateMenuItem* m_maybeActiveItemBtn = nullptr;
+		CreateMenuItem* m_maybeActiveGroupBtn = nullptr;
 	};
 
 	void removeOldMenuIfExists() {
@@ -79,18 +96,27 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		}
 	}
 
+	void registerButtons(CCArray* buttons) {
+		for (unsigned i = 0; i < buttons->count(); i++) {
+			auto obj = buttons->objectAtIndex(i);
+			GLOBAL.editorUI->m_createButtonArray->addObject(obj);
+		}
+	}
+
 	$override 
 	void loadFromItems(CCArray* p0, int p1, int p2, bool p3) {
 		if (p0->count() == 0) return EditButtonBar::loadFromItems(p0, p1, p2, p3);
 		
 		// check first object to find out what category we are building now
 		bool barCreated = false;
+		bool isGameObjectTab = false;
 		if (auto cmi = typeinfo_cast<CreateMenuItem*>(p0->objectAtIndex(0))) {
 			if (auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0))) {
 				auto btnChildren = btnSpr->getChildren();
 				for (unsigned i = 0; i < btnChildren->count(); i++) {
 					if (auto gameObj = typeinfo_cast<GameObject*>(btnChildren->objectAtIndex(i))) {
 						// gg! found game object in children
+						isGameObjectTab = true;
 						if (categoryByFirstObjectId.contains(gameObj->m_objectID)) {
 							short category = (*categoryByFirstObjectId.find(gameObj->m_objectID)).second;
 							barCreated = createCustomBarForCategory(p0, category, p1, p2, p3);
@@ -104,6 +130,9 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (!barCreated) {
 			EditButtonBar::loadFromItems(p0, p1, p2, p3);
+			if (isGameObjectTab) {
+				registerButtons(p0);
+			}
 		} else {
 			// fix overlapping with arrows
 			auto myChildren = this->getChildren();
@@ -128,34 +157,38 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		auto buttons = CCArray::create();
 		auto groups = (*getCONFIG()->find(category)).second;
+		
 		for (auto& group : groups) {
-			switch (group.m_objectIds.size()) {
-				case 0: break;
-				case 1: {
-					// make simple item
-					auto btnCol = darkerButtonBgObjIds.contains(group.m_thumbnailObjectId) ? DARKER_ITEM_COLOR : ITEM_COLOR;
-					auto btn = GLOBAL.editorUI->getCreateBtn(group.m_thumbnailObjectId, btnCol);
+			if ((group.m_properties & GROUP_HIDE) || group.m_objectIds.size() == 0) {
+				for (auto objId : group.m_objectIds) {
+					clearedIds.insert(objId);
+				}
+				continue;
+			}
+			if ((group.m_properties & GROUP_UNGROUP) || group.m_objectIds.size() == 1) {
+				// make simple item(s)
+				for (auto objId : group.m_objectIds) {
+					auto btnCol = darkerButtonBgObjIds.contains(objId) ? DARKER_ITEM_COLOR : ITEM_COLOR;
+					auto btn = GLOBAL.editorUI->getCreateBtn(objId, btnCol);
+
 					btn->setUserObject(new ItemInfo(btn->m_pfnSelector));
 					btn->m_pfnSelector = menu_selector(MyEditButtonBar::onItemClick); 
-					btn->m_objectID = group.m_objectIds.at(0);
-					clearedIds.insert(btn->m_objectID);
+					btn->m_objectID = objId;
 
+					clearedIds.insert(objId);
 					buttons->addObject(btn);
-					break;
 				}
-				default: {
-					// make group
-					auto btn = GLOBAL.editorUI->getCreateBtn(group.m_thumbnailObjectId, GROUP_COLOR);
-					btn->setUserObject(new GroupInfo(group));
-					btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupClick); 
+			} else {
+				// make a group
+				auto btn = GLOBAL.editorUI->getCreateBtn(group.m_thumbnailObjectId, GLOBAL.m_settings.m_groupColor);
+				btn->setUserObject(new GroupInfo(group));
+				btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupClick); 
 
-					for (auto objId : group.m_objectIds) {
-						clearedIds.insert(objId);
-					}
-
-					buttons->addObject(btn);
-					break;
+				for (auto objId : group.m_objectIds) {
+					clearedIds.insert(objId);
 				}
+
+				buttons->addObject(btn);
 			}
 		}
 		// add objects, that were not used in any of the groups
@@ -168,7 +201,9 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 			buttons->addObject(btn);
 		}
+		
 		EditButtonBar::loadFromItems(buttons, p1, p2, p3);
+		registerButtons(buttons);
 		return true;
 	}
 
@@ -184,6 +219,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (!isButtonActivated(btn) && thisIsNowSelected) {
 			activateButton(btn); // for some reason it does not change color itself
+			m_fields->m_maybeActiveItemBtn = btn;
 		}
 		removeOldMenuIfExists();
 	}
@@ -199,7 +235,16 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (!groupInfo->m_existingMenu)  {
 			groupInfo->m_existingMenu = createMenu(&groupInfo->m_group, btn, btn->getScale());
+			bool activeItemBtn = (m_fields->m_maybeActiveItemBtn && isButtonActivated(m_fields->m_maybeActiveItemBtn));
+			bool activeGroupBtn = (m_fields->m_maybeActiveGroupBtn && isButtonActivated(m_fields->m_maybeActiveGroupBtn));
 			GLOBAL.editorUI->updateCreateMenu(false); // fix color bug (false - no jump to another page)
+			// fix custom buttons deactivating on update
+			if (activeItemBtn && !isButtonActivated(m_fields->m_maybeActiveItemBtn)) {
+				activateButton(m_fields->m_maybeActiveItemBtn);
+			}
+			if (activeGroupBtn && !isButtonActivated(m_fields->m_maybeActiveGroupBtn)) {
+				activateButton(m_fields->m_maybeActiveGroupBtn);
+			}
 		}
 		auto menu = groupInfo->m_existingMenu;
 
@@ -220,15 +265,19 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		bool thisIsNowSelected = btn->m_objectID == GLOBAL.editorUI->m_selectedObjectIndex;
 
-		// if (!wasActive) {
 		if (thisIsNowSelected) {
-			if (!wasActive)
-				activateButton(btn); // for some reason it does not change color itself
-			if (!isButtonActivated(groupItemInfo->m_groupButton))
+			if (!wasActive) {
+				if (!isButtonActivated(btn)) activateButton(btn);
+				m_fields->m_maybeActiveItemBtn = btn;
+			}
+			if (!isButtonActivated(groupItemInfo->m_groupButton)) {
 				activateButton(groupItemInfo->m_groupButton);
+				m_fields->m_maybeActiveGroupBtn = groupItemInfo->m_groupButton;
+			}
 		} else {
 			if (isButtonActivated(groupItemInfo->m_groupButton)) {
-				activateButton(groupItemInfo->m_groupButton, true);
+				activateButton(groupItemInfo->m_groupButton, true); // deactivate
+				m_fields->m_maybeActiveItemBtn = nullptr;
 			}
 		}
 		removeOldMenuIfExists();
@@ -283,6 +332,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupItemClick); 
 			buttonArray->addObject(btn);
 		}
+		registerButtons(buttonArray);
 
 		auto bar = CCMenu::create();
 		bar->setContentSize({0,0});
@@ -338,9 +388,11 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 				else if (posX < left) left = posX;
 			}
 			const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed 
-			auto bg = CCScale9Sprite::create("square02_001.png", {0, 0, 80, 80});
+			auto bg = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
+			auto col = GLOBAL.m_settings.m_bgColor;
 			bar->addChild(bg);
-			bg->setOpacity(140);
+			bg->setColor(ccc3(col.r, col.g, col.b));
+			bg->setOpacity(col.a);
 			bg->setZOrder(-10);
 			bg->setContentSize({((right - left) + 1.5f * oneDistance) * scaleFactor, 
 				((top - bottom) + 1.5f * oneDistance) * scaleFactor});
@@ -354,9 +406,35 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 
 class $modify(MyEditorUI, EditorUI) {
+	struct Fields {
+		std::string m_loadErrorText;
+	};
+
+	void showErrorAfterTransition(float) {
+		auto scene = CCScene::get();
+		if (typeinfo_cast<CCTransitionScene*>(scene)) {
+			// means we are in transition scene now
+			return;
+		}
+		auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
+		geode::createQuickPopup(
+			"Object Groups load config errors",
+			m_fields->m_loadErrorText,
+			"Close", nullptr, winWidth * .95,
+			nullptr, true, true
+		);
+
+		this->unschedule(schedule_selector(MyEditorUI::showErrorAfterTransition));
+	}
+
+	$override 
 	bool init(LevelEditorLayer *editorLayer) {
 		GLOBAL.editorUI = this;
 		GLOBAL.updateSettings();
+
+		std::vector<std::string> loadConfigErrors;
+		bool loadConfigSuccess = readConfigFromJson(GLOBAL.m_settings.m_customConfig, &loadConfigErrors);
+		
 		if(!EditorUI::init(editorLayer)) return false;
 
 		// prevent overlapping with my menus
@@ -365,6 +443,25 @@ class $modify(MyEditorUI, EditorUI) {
 		this->getChildByID("editor-buttons-menu")->setZOrder(6);
 		this->getChildByID("layer-menu")->setZOrder(6);
 
+		if (!loadConfigSuccess) {
+			std::string text = "<co>Errors occurred</c> while loading the <cg>custom configuration</c> for \"<cl>Object Groups</c>\" mod:\n";
+			text += "<cr>";
+			for (auto& err : loadConfigErrors) text += err + "\n";
+			text += "</c>";
+			text += "<cy>Tip:</c> Fix configuration file, than re-enter the editor for config re-load. Or delete this file and restart the game - the new file will be created and initialized with the default configuration.\n";
+			text += "<cp>Config file path:</c> ";
+			text += GLOBAL.m_settings.m_customConfig;
+			m_fields->m_loadErrorText = text;
+			this->schedule(schedule_selector(MyEditorUI::showErrorAfterTransition), 0);
+		}
+		log::debug("total items: {}", this->m_createButtonArray->count());
 		return true;
+	}
+
+	$override
+	CreateMenuItem* getCreateBtn(int id, int bg) {
+		auto ret = EditorUI::getCreateBtn(id, bg);
+		if (ret) this->m_createButtonArray->removeLastObject();
+		return ret;
 	}
 };

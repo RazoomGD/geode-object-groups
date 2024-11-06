@@ -19,6 +19,10 @@
 		}
 	],
 	"settings": {
+		"title-1": {
+			"type": "title",
+			"name": "Customization"
+		},
 		"max-rows": {
 			"type": "int",
 			"name": "Max rows",
@@ -32,12 +36,30 @@
 				"input": true
 			}
 		},
+		"group-button-color": {
+			"type": "string",
+			"name": "Button color",
+			"description": "The color that all group buttons will have",
+			"default": "1: green",
+			"one-of": ["1: green", "2: blue", "3: pink", "4: gray", "5: dark gray", "6: red"]
+		},
 		"show-bg": {
 			"type": "bool",
-			"name": "Show background in menu",
+			"name": "Show background the in menu",
 			"description": "Adds background to the menu for better contrast",
 			"default": true
 		}, 
+		"bg-color": {
+			"type": "rgba",
+			"name": "Background color",
+			"enable-if": "show-bg",
+			"description": "Color and opacity of menu background",
+			"default": [0, 0, 0, 140]
+		},
+		"title-2": {
+			"type": "title",
+			"name": "Configuration files"
+		},
 		"config-path": {
 			"type": "file",
 			"name": "Custom config",
@@ -56,7 +78,7 @@
 		"default-config-path": {
 			"type": "file",
 			"name": "Default config",
-			"description": "Path to your default config file.\nThis file stores the <cy>default configuration</c> for the mod. Changes in this file <cr>do not</c> affect anything! The only point of this file is to store the default configuration, so that if you mess up a part of the <cg>custom configuration</c>, you could replace that part with the default one\n\nAlso, all changes to this file reset on every game startup",
+			"description": "Path to your default config file.\nThis file stores the <cy>default configuration</c> for the mod. Changes in this file <cr>do not</c> affect anything! The only point of this file is to store the default configuration, so that if you mess up a part of the <cg>custom configuration</c>, you could replace that part with the default one\n\nAlso, all changes to this file are reset on every game startup",
 			"default": "{mod_config_dir}/default_config.json",
 			"control": {
 				"dialog": "open",
