@@ -15,7 +15,10 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 if(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=13.3")
+    add_compile_options("-mmacosx-version-min=13.3")
+    set(EXTRA_CFLAGS "${EXTRA_CFLAGS} -mmacosx-version-min=13.3")
+    set(EXTRA_CXXFLAGS "${EXTRA_CXXFLAGS} -mmacosx-version-min=13.3")
+    set(EXTRA_LDFLAGS "${EXTRA_LDFLAGS} -mmacosx-version-min=13.3")
 endif()
 
 if (NOT DEFINED ENV{GEODE_SDK})
