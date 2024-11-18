@@ -37,6 +37,7 @@ jobs:
         with:
           bindings: geode-sdk/bindings
           bindings-ref: main
+          build-args: '-mmacosx-version-min=13.3'
           combine: true
           target: ${{ matrix.config.target }}
 
