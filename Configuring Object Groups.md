@@ -82,7 +82,7 @@ The above code block shows the default configuration for the first three groups 
 ![1730065718219](assets/ConfiguringObjectGroups/1730065718219.png)
   
 > [!IMPORTANT]
-> By default, objects from the current tab that have not been added to any group are placed to the end of this tab (after all groups). Using `ungroup` or `hide_group` you can make them appear among the groups or not appear at all.
+> By default, objects from the current tab that haven't been added to any group are placed to the end of this tab (after all groups). Using `ungroup` or `hide_group` you can make them appear among groups or not appear at all.
 
 `hide_group` and `ungroup` syntax example: 
 ```js

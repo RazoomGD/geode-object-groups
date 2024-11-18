@@ -1,4 +1,4 @@
-# Gallery
+# Object Groups. Gallery
 ---
 Group selection menu:
 

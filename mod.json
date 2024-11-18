@@ -8,9 +8,14 @@
 	},
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
+	"description": "A mod for grouping objects in the editor tabs",
 	"version": "v1.0.0",
 	"developer": "RaZooM",
-	"description": "later",
+	"tags": ["editor", "enhancement", "utility", "customization", "interface"],
+	"links": {
+		"source": "https://github.com/RazoomGD/geode-object-groups",
+		"community": "https://discord.gg/wcWvtKHP8n"
+	},
 	"dependencies": [
 		{
 			"id": "geode.node-ids",
