@@ -30,10 +30,10 @@ const std::map<short, short> categoryByFirstObjectId = {
 #define GROUP_UNGROUP (short) 0x2
 
 struct Group {
-    std::string m_groupName;
-    short m_thumbnailObjectId;
-    std::vector<short> m_objectIds;
-    short m_properties = 0;
+    const std::string m_groupName;
+    const short m_thumbnailObjectId;
+    const std::vector<short> m_objectIds;
+    const short m_properties = 0;
 };
 
 std::map<short, std::vector<Group>> * getCONFIG();
