@@ -19,6 +19,7 @@ if(APPLE)
     set(EXTRA_CFLAGS "${EXTRA_CFLAGS} -mmacosx-version-min=13.3")
     set(EXTRA_CXXFLAGS "${EXTRA_CXXFLAGS} -mmacosx-version-min=13.3")
     set(EXTRA_LDFLAGS "${EXTRA_LDFLAGS} -mmacosx-version-min=13.3")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 13.3)
 endif()
 
 if (NOT DEFINED ENV{GEODE_SDK})
