@@ -14,13 +14,13 @@ Both of these files are created automatically when the mod is first launched and
 
 - `default_config.json` - this file stores the default configuration for the mod. **Changes to this file do not affect anything**. The only point of this file is to store the default configuration, so that if you mess up a part of the custom configuration, you could replace that part with the default one. Also, if you delete this file or make changes to it, they will be restored on the next game startup.
 
-- `custom_config.json` - this file is used to configure the mod. **All changes in this file affect how objects are displayed in the GD editor tabs**. By default, the default configuration is written to the file and you can see its effect in the editor:
+- `custom_config.json` - this file is used to configure the mod. **All changes to this file affect GD editor tabs**. After the very first mod loading, the default configuration is written to the file and you can see its effect in the editor:
 ![1730056497548](assets/ConfiguringObjectGroups/1730056497548.png)
 
 
 ## File format
 The `custom-config.json` file has the following structure:
-```json
+```js
 {
     "config" : [{
         "build_tab_index" : 1,
@@ -47,7 +47,7 @@ Here are the indexes of the editor build tabs:
 
 Let's look at `object_groups` in detail:
 
-```json
+```js
 "object_groups" : [{
         "group_name" : "regular blocks",
         "object_ids" : [1],
@@ -85,7 +85,7 @@ The above code block shows the default configuration for the first three groups 
 > By default, objects from the current tab that have not been added to any group are placed to the end of this tab (after all groups). Using `ungroup` or `hide_group` you can make them appear among the groups or not appear at all.
 
 `hide_group` and `ungroup` syntax example: 
-```json
+```js
 {
     "group_name" : "tile blocks",
     "object_ids" : [69, 70, 71, 72, 73, 74, 75],
