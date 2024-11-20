@@ -18,6 +18,12 @@ Both of these files are created automatically when the mod is first launched and
 ![1730056497548](assets/ConfiguringObjectGroups/1730056497548.png)
 
 
+## File paths
+`<path to geode>\config\razoom.object_groups\*.json`  
+Path to geode is specific for the platform:
+- on Win: `C:\Program Files (x86)\Steam\steamapps\common\Geometry Dash\geode\` 
+- on Android: `/storage/emulated/0/Android/media/com.geode.launcher/`
+
 ## File format
 The `custom-config.json` file has the following structure:
 ```js
