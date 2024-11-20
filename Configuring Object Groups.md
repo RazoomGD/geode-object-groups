@@ -19,6 +19,7 @@ Both of these files are created automatically when the mod is first launched and
 
 
 ## File paths
+Path to the config files is:
 `<path to geode>\config\razoom.object_groups\*.json`  
 Path to geode is specific for the platform:
 - on Win: `C:\Program Files (x86)\Steam\steamapps\common\Geometry Dash\geode\` 
