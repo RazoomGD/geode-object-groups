@@ -336,7 +336,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		auto bar = CCMenu::create();
 		bar->setContentSize({0,0});
-		// auto bar = EditButtonBar::create(buttonArray, ccp(0,0), 0, true, 1, groupSize); // buttons, shift, ?, ?, columns, rows
+		bar->setTouchPriority(-502);
 		baseNode->addChild(bar);
 		bar->setPosition({0,0});
 
@@ -438,10 +438,10 @@ class $modify(MyEditorUI, EditorUI) {
 		if(!EditorUI::init(editorLayer)) return false;
 
 		// prevent overlapping with my menus
-		this->getChildByID("build-tabs-menu")->setZOrder(6); 
+		if (auto ch = this->getChildByID("build-tabs-menu")) ch->setZOrder(6); 
 
-		this->getChildByID("editor-buttons-menu")->setZOrder(6);
-		this->getChildByID("layer-menu")->setZOrder(6);
+		if(auto ch = this->getChildByID("editor-buttons-menu")) ch->setZOrder(6);
+		if(auto ch = this->getChildByID("layer-menu")) ch->setZOrder(6);
 
 		if (!loadConfigSuccess) {
 			std::string text = "<co>Errors occurred</c> while loading the <cg>custom configuration</c> for \"<cl>Object Groups</c>\" mod:\n";

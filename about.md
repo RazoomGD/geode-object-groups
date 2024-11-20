@@ -17,11 +17,11 @@ Should be compatible with all other mods. But If you are using mods that also af
 Information on individual mods:
 - <cg>Better Edit</c> - completely compatible
 - <cg>ObjectIDDisplay</c> - completely compatible
-- <cg>SkipEditorObjects</c> - compatible and includes its functionality 
+- <cg>SkipEditorObjects</c> - completely compatible and includes its functionality 
+- <cg>Unlisted Objects</c> - completely compatible
 
 ## Known issues
 
-- After Better Edit "update popup" group buttons may become non-clickable. Solution: re-enter the editor.
 
 ## Contribution
 
