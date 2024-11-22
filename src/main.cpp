@@ -42,11 +42,13 @@ $on_mod(Loaded) {
 	Mod::get()->getConfigDir(true); // create config dir if not exists
 	// write default config
 	if(!writeConfigToJson(GLOBAL.m_settings.m_defaultConfig)) {
-		log::error("Default config: FAILED to write file: {}", GLOBAL.m_settings.m_defaultConfig);
+		log::error("Default config: FAILED to write default config to file: {}", GLOBAL.m_settings.m_defaultConfig);
 	}
 	// check if custom config exists and if it is not, then create it and init with default config
 	if (!std::filesystem::exists(GLOBAL.m_settings.m_customConfig)) {
-		writeConfigToJson(GLOBAL.m_settings.m_customConfig);
+		if(!writeConfigToJson(GLOBAL.m_settings.m_customConfig)) {
+			log::error("Custom config: FAILED to write default config to file: {}", GLOBAL.m_settings.m_customConfig);
+		}
 	}
 }
 
@@ -96,57 +98,45 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		}
 	}
 
-	void registerButtons(CCArray* buttons) {
-		for (unsigned i = 0; i < buttons->count(); i++) {
-			auto obj = buttons->objectAtIndex(i);
-			GLOBAL.editorUI->m_createButtonArray->addObject(obj);
-		}
-	}
-
 	$override 
 	void loadFromItems(CCArray* p0, int p1, int p2, bool p3) {
 		if (p0->count() == 0) return EditButtonBar::loadFromItems(p0, p1, p2, p3);
-		
-		// check first object to find out what category we are building now
-		bool barCreated = false;
-		bool isGameObjectTab = false;
-		if (auto cmi = typeinfo_cast<CreateMenuItem*>(p0->objectAtIndex(0))) {
-			if (auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0))) {
-				auto btnChildren = btnSpr->getChildren();
-				for (unsigned i = 0; i < btnChildren->count(); i++) {
-					if (auto gameObj = typeinfo_cast<GameObject*>(btnChildren->objectAtIndex(i))) {
-						// gg! found game object in children
-						isGameObjectTab = true;
-						if (categoryByFirstObjectId.contains(gameObj->m_objectID)) {
-							short category = (*categoryByFirstObjectId.find(gameObj->m_objectID)).second;
-							barCreated = createCustomBarForCategory(p0, category, p1, p2, p3);
-							log::debug("Category: {}; done: {}", category, barCreated);
-						}
-						break;
-					}
-				}
-			}
+
+		int tabIndex = this->m_unknown + 1;
+		auto cmi = typeinfo_cast<CreateMenuItem*>(p0->objectAtIndex(0)); // to check if this is create menu
+		if (cmi && 1 <= tabIndex && tabIndex <= 13) {
+			createCustomBarForCategory(p0, tabIndex, p1, p2, p3);
+			log::debug("Category: {} done", tabIndex);
+		} else {
+			EditButtonBar::loadFromItems(p0, p1, p2, p3);
 		}
 
-		if (!barCreated) {
-			EditButtonBar::loadFromItems(p0, p1, p2, p3);
-			if (isGameObjectTab) {
-				registerButtons(p0);
-			}
-		} else {
-			// fix overlapping with arrows
-			auto myChildren = this->getChildren();
-			for (unsigned i = 0; i < myChildren->count(); i++) {
-				if (auto bsl = typeinfo_cast<BoomScrollLayer*>(myChildren->objectAtIndex(i))) {
-					bsl->setZOrder(bsl->getZOrder() + 1);
-					break;
-				}
+		// fix overlapping with arrows // todo:
+		if (auto myChildren = this->getChildren())
+		for (unsigned i = 0; i < myChildren->count(); i++) {
+			if (auto bsl = typeinfo_cast<BoomScrollLayer*>(myChildren->objectAtIndex(i))) {
+				bsl->setZOrder(bsl->getZOrder() + 2);
+				log::debug("Z-ORDER SET TO {}", bsl->getZOrder());
+				break;
 			}
 		}
 	};
 
-	bool createCustomBarForCategory(CCArray* oldButtons, short category, int p1, int p2, bool p3) {
-		if (!getCONFIG()->contains(category)) return false;
+	CreateMenuItem* getCreateBtnMy(int id, int bg) {
+		auto btn = GLOBAL.editorUI->getCreateBtn(id, bg);
+		if (btn) GLOBAL.editorUI->m_createButtonArray->removeLastObject();
+		return btn;
+	}
+
+	// creates custom bar if configuration for it exists. Otherwise creates standard bar
+	void createCustomBarForCategory(CCArray* oldButtons, short category, int p1, int p2, bool p3) {
+		if (!getCONFIG()->contains(category)) {
+			EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
+			// registerButtons(oldButtons);
+			return;
+		}
+		
+		GLOBAL.editorUI->m_createButtonArray->removeObjectsInArray(oldButtons); // we dont need these buttons anymore
 
 		std::vector<short> allOldIdsOrdered;
 		std::set<short> clearedIds;
@@ -154,9 +144,8 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 			auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(i));
 			allOldIdsOrdered.push_back(btn->m_objectID);
 		}
-
 		auto buttons = CCArray::create();
-		auto groups = (*getCONFIG()->find(category)).second;
+		auto& groups = (*getCONFIG()->find(category)).second;
 		
 		for (auto& group : groups) {
 			if ((group.m_properties & GROUP_HIDE) || group.m_objectIds.size() == 0) {
@@ -203,8 +192,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		}
 		
 		EditButtonBar::loadFromItems(buttons, p1, p2, p3);
-		registerButtons(buttons);
-		return true;
 	}
 
 	void onItemClick(CCObject* sender) {
@@ -332,7 +319,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupItemClick); 
 			buttonArray->addObject(btn);
 		}
-		registerButtons(buttonArray);
 
 		auto bar = CCMenu::create();
 		bar->setContentSize({0,0});
@@ -456,12 +442,5 @@ class $modify(MyEditorUI, EditorUI) {
 		}
 		log::debug("total items: {}", this->m_createButtonArray->count());
 		return true;
-	}
-
-	$override
-	CreateMenuItem* getCreateBtn(int id, int bg) {
-		auto ret = EditorUI::getCreateBtn(id, bg);
-		if (ret) this->m_createButtonArray->removeLastObject();
-		return ret;
 	}
 };

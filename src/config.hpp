@@ -17,14 +17,6 @@ const std::set<short> darkerButtonBgObjIds = {
     740, 741, 742
 };
 
-//      <categoryId, groups>
-const std::map<short, short> categoryByFirstObjectId = {
-    {1, 1},     {35, 6},    {41, 11},
-    {467, 2},   {2065, 7},  {1705, 12},
-    {1743, 3},  {2083, 8},  {31, 13},
-    {8, 4},     {1329, 9},
-    {506, 5},   {3801, 10},
-};
 
 #define GROUP_HIDE (short) 0x1
 #define GROUP_UNGROUP (short) 0x2
