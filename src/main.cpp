@@ -111,12 +111,11 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 			EditButtonBar::loadFromItems(p0, p1, p2, p3);
 		}
 
-		// fix overlapping with arrows // todo:
+		// fix overlapping with arrows
 		if (auto myChildren = this->getChildren())
 		for (unsigned i = 0; i < myChildren->count(); i++) {
 			if (auto bsl = typeinfo_cast<BoomScrollLayer*>(myChildren->objectAtIndex(i))) {
 				bsl->setZOrder(bsl->getZOrder() + 2);
-				log::debug("Z-ORDER SET TO {}", bsl->getZOrder());
 				break;
 			}
 		}
@@ -142,6 +141,10 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		std::set<short> clearedIds;
 		for (unsigned i = 0; i < oldButtons->count(); i++) {
 			auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(i));
+			if (btn->m_pfnSelector == menu_selector(MyEditButtonBar::onGroupClick)) {
+				// detect a group button and not include it
+				continue;
+			}
 			allOldIdsOrdered.push_back(btn->m_objectID);
 		}
 		auto buttons = CCArray::create();
@@ -199,13 +202,12 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		auto defaultInfo = static_cast<ItemInfo*>(btn->getUserObject());
 		auto method = static_cast<void (CCObject::*)(CCObject*)>(defaultInfo->m_defaultSelector);
 
-		// bool wasActive = isButtonActivated(btn);
 		(this->*method)(sender); // call original selector
 
 		bool thisIsNowSelected = btn->m_objectID == GLOBAL.editorUI->m_selectedObjectIndex;
 
-		if (!isButtonActivated(btn) && thisIsNowSelected) {
-			activateButton(btn); // for some reason it does not change color itself
+		if (thisIsNowSelected) {
+			toggleButton(btn, true);
 			m_fields->m_maybeActiveItemBtn = btn;
 		}
 		removeOldMenuIfExists();
@@ -214,28 +216,24 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	void onGroupClick(CCObject* sender) {
 		auto btn = static_cast<CreateMenuItem*>(sender);
 		auto groupInfo = static_cast<GroupInfo*>(btn->getUserObject());
-		// FLAlertLayer::create("title", groupInfo->m_group.m_groupName, "ok")->show();
 		bool onlyClose = (btn == m_fields->m_buttonWithGroupOpened);
 
 		removeOldMenuIfExists();
 		if (onlyClose) return;
 
-		if (!groupInfo->m_existingMenu)  {
+		if (!groupInfo->m_existingMenu) {
 			groupInfo->m_existingMenu = createMenu(&groupInfo->m_group, btn, btn->getScale());
 			bool activeItemBtn = (m_fields->m_maybeActiveItemBtn && isButtonActivated(m_fields->m_maybeActiveItemBtn));
 			bool activeGroupBtn = (m_fields->m_maybeActiveGroupBtn && isButtonActivated(m_fields->m_maybeActiveGroupBtn));
+			
 			GLOBAL.editorUI->updateCreateMenu(false); // fix color bug (false - no jump to another page)
+			
 			// fix custom buttons deactivating on update
-			if (activeItemBtn && !isButtonActivated(m_fields->m_maybeActiveItemBtn)) {
-				activateButton(m_fields->m_maybeActiveItemBtn);
-			}
-			if (activeGroupBtn && !isButtonActivated(m_fields->m_maybeActiveGroupBtn)) {
-				activateButton(m_fields->m_maybeActiveGroupBtn);
-			}
+			if (activeItemBtn) toggleButton(m_fields->m_maybeActiveItemBtn, true);
+			if (activeGroupBtn) toggleButton(m_fields->m_maybeActiveGroupBtn, true);
 		}
 		auto menu = groupInfo->m_existingMenu;
 
-		// menu->setScale(1 / btn->getScale());
 		m_fields->m_menuNode = menu;
 		m_fields->m_buttonWithGroupOpened = btn;
 		btn->getParent()->addChild(menu);
@@ -254,16 +252,16 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (thisIsNowSelected) {
 			if (!wasActive) {
-				if (!isButtonActivated(btn)) activateButton(btn);
+				toggleButton(btn, true);
 				m_fields->m_maybeActiveItemBtn = btn;
 			}
 			if (!isButtonActivated(groupItemInfo->m_groupButton)) {
-				activateButton(groupItemInfo->m_groupButton);
+				toggleButton(groupItemInfo->m_groupButton, true);
 				m_fields->m_maybeActiveGroupBtn = groupItemInfo->m_groupButton;
 			}
 		} else {
 			if (isButtonActivated(groupItemInfo->m_groupButton)) {
-				activateButton(groupItemInfo->m_groupButton, true); // deactivate
+				toggleButton(groupItemInfo->m_groupButton, false); // deactivate
 				m_fields->m_maybeActiveItemBtn = nullptr;
 			}
 		}
@@ -271,38 +269,38 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	}
 
 	bool isButtonActivated(CreateMenuItem* cmi) {
+		if (!cmi || !cmi->getChildren()) return false;
 		auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0));
 		if (!btnSpr) return false;
 		auto btnChildren = btnSpr->getChildren();
 		return (static_cast<CCSprite*>(btnChildren->objectAtIndex(0))->getColor().r < 128);
 	}
 
-	void activateButton(CreateMenuItem* cmi, bool deactivate=false) {
-		float ratio = deactivate ? 2.0 : 0.5;
-		auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0));
-		if (!btnSpr) return;
-
-		if (auto btnChildren = btnSpr->getChildren())
-		for (unsigned i = 0; i < btnChildren->count(); i++) {
-			auto child = typeinfo_cast<CCSprite*>(btnChildren->objectAtIndex(i));
+	void recursiveSetChildrenColor(float ratio, CCArray* array) {
+		for (unsigned i = 0; i < array->count(); i++) {
+			auto child = typeinfo_cast<CCSprite*>(array->objectAtIndex(i));
 			if (!child) continue;
-			auto oldColor = child->getColor();
-			uint8_t newR = oldColor.r * ratio;
-			uint8_t newG = oldColor.g * ratio;
-			uint8_t newB = oldColor.b * ratio;
-			child->setColor(ccc3(newR, newG, newB));
-
-			if (auto children2 = child->getChildren())
-			for (unsigned j = 0; j < children2->count(); j++) {
-				child = typeinfo_cast<CCSprite*>(children2->objectAtIndex(j));
-				if (!child) continue;
-				oldColor = child->getColor();
-				newR = oldColor.r * ratio;
-				newG = oldColor.g * ratio;
-				newB = oldColor.b * ratio;
-				child->setColor(ccc3(newR, newG, newB));
-			}
+			auto c = child->getColor();
+			if (ratio < 1) child->setColor(ccc3(
+				(uint8_t) (c.r < 128 ? c.r : c.r * ratio), 
+				(uint8_t) (c.g < 128 ? c.g : c.g * ratio), 
+				(uint8_t) (c.b < 128 ? c.b : c.b * ratio)
+			));
+			else child->setColor(ccc3(
+				(uint8_t) (c.r < 128 ? c.r * ratio : c.r), 
+				(uint8_t) (c.g < 128 ? c.g * ratio : c.g), 
+				(uint8_t) (c.b < 128 ? c.b * ratio : c.b)
+			));
+			if (auto ch = child->getChildren()) recursiveSetChildrenColor(ratio, ch);
 		}
+	}
+
+	// activated button is darker then others
+	void toggleButton(CreateMenuItem* cmi, bool activate) {
+		float ratio = activate ? .5f : 2.f;
+		auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0));
+		if (!btnSpr) return; 
+		if (auto ch = btnSpr->getChildren()) recursiveSetChildrenColor(ratio, ch);
 	}
 
 	CCNode* createMenu(Group* group, CreateMenuItem* groupButton, float controlScale, bool useBackground=true) {
@@ -357,7 +355,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 				rowIter = 0;
 			}
 		}
-		// log::debug("scale = {} / {} = {}", controlScale, scale,  barScale);
 
 		// create background
 		if (GLOBAL.m_settings.m_showBg) {
@@ -434,7 +431,8 @@ class $modify(MyEditorUI, EditorUI) {
 			text += "<cr>";
 			for (auto& err : loadConfigErrors) text += err + "\n";
 			text += "</c>";
-			text += "<cy>Tip:</c> Fix configuration file, than re-enter the editor for config re-load. Or delete this file and restart the game - the new file will be created and initialized with the default configuration.\n";
+			text += "<cy>Tip:</c> Fix configuration file, than re-enter the editor for config re-load. Or delete this file and restart the "; 
+			text += "game - the new file will be created and initialized with the default configuration.\n";
 			text += "<cp>Config file path:</c> ";
 			text += GLOBAL.m_settings.m_customConfig;
 			m_fields->m_loadErrorText = text;
