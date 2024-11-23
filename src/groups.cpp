@@ -199,7 +199,7 @@ std::map<short, std::vector<Group>> CONFIG = {
 
         {"pixel fire animations",       2223, {2223, 2246, 2629, 2630, 3303, 3304, 3482, 3483, 3484}},
         {"pixel liquid animations",     2694, {2605, 2606, 2694, 4211}},
-        {"pixel wave animations",       3419, {3119, 3120, 3121, 3219}},
+        {"pixel wave animations",       3119, {3119, 3120, 3121, 3219}},
         {"pixel static objects",        2222, {2222, 2245, 2695, 3202, 3485, 3486, 3487, 3488, 3489, 3490, 3491, 3302, 3305}},
     }},
     {8, {
