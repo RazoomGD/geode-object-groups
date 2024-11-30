@@ -104,7 +104,21 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		int tabIndex = this->m_unknown + 1;
 		auto cmi = typeinfo_cast<CreateMenuItem*>(p0->objectAtIndex(0)); // to check if this is create menu
-		if (cmi && 1 <= tabIndex && tabIndex <= 13) {
+
+		bool isActualFirstBuildTab = false;  // fix bug when tab index is not set
+		if (cmi && tabIndex == 1)
+		if (auto btnSpr = typeinfo_cast<ButtonSprite*>(cmi->getChildren()->objectAtIndex(0))) {
+			auto btnChildren = btnSpr->getChildren();
+			for (unsigned i = 0; i < btnChildren->count(); i++) {
+				if (auto gameObj = typeinfo_cast<GameObject*>(btnChildren->objectAtIndex(i))) {
+					// found game object in children
+					if (gameObj->m_objectID == 1) isActualFirstBuildTab = true;
+					break;
+				}
+			}
+		}
+
+		if (cmi && ((2 <= tabIndex && tabIndex <= 13) || (tabIndex == 1 && isActualFirstBuildTab))) {
 			createCustomBarForCategory(p0, tabIndex, p1, p2, p3);
 			log::debug("Category: {} done", tabIndex);
 		} else {
