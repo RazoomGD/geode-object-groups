@@ -84,10 +84,10 @@ struct GroupItemInfo : CCObject {
 
 class $modify(MyEditButtonBar, EditButtonBar) {
 	struct Fields {
-		CCNode* m_menuNode = nullptr;
-		CreateMenuItem* m_buttonWithGroupOpened = nullptr;
-		CreateMenuItem* m_maybeActiveItemBtn = nullptr;
-		CreateMenuItem* m_maybeActiveGroupBtn = nullptr;
+		Ref<CCNode> m_menuNode = nullptr;
+		Ref<CreateMenuItem> m_buttonWithGroupOpened = nullptr;
+		Ref<CreateMenuItem> m_maybeActiveItemBtn = nullptr;
+		Ref<CreateMenuItem> m_maybeActiveGroupBtn = nullptr;
 	};
 
 	void removeOldMenuIfExists() {

@@ -9,7 +9,7 @@
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
 	"description": "A mod for grouping objects in the editor tabs",
-	"version": "v1.0.1",
+	"version": "v1.0.2",
 	"developer": "RaZooM",
 	"tags": ["editor", "enhancement", "utility", "customization", "interface"],
 	"links": {
