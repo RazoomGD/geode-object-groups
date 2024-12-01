@@ -9,7 +9,7 @@
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
 	"description": "A mod for grouping objects in the editor tabs",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developer": "RaZooM",
 	"tags": ["editor", "enhancement", "utility", "customization", "interface"],
 	"links": {
@@ -23,6 +23,14 @@
 			"version": ">=1.17.0"
 		}
 	],
+	"resources": {
+        "sprites": [
+            "resources/OG_button_07.png",
+            "resources/OG_button_08.png",
+            "resources/OG_button_09.png",
+            "resources/OG_button_10.png"
+        ]
+    },
 	"settings": {
 		"title-1": {
 			"type": "title",
@@ -44,9 +52,9 @@
 		"group-button-color": {
 			"type": "string",
 			"name": "Button color",
-			"description": "The color that all group buttons will have",
-			"default": "1: green",
-			"one-of": ["1: green", "2: blue", "3: pink", "4: gray", "5: dark gray", "6: red"]
+			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast",
+			"default": "7: violet",
+			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink"]
 		},
 		"show-bg": {
 			"type": "bool",

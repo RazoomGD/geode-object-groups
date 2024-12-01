@@ -32,7 +32,7 @@ struct {
 		m_settings.m_defaultConfig = Mod::get()->getSettingValue<std::filesystem::path>("default-config-path").string();
 		m_settings.m_bgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color");
 		int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color").c_str());
-		m_settings.m_groupColor = (col >= 1 && col <= 6) ? col : 1;
+		m_settings.m_groupColor = (col >= 1 && col <= 10) ? col : 1;
 	};
 } GLOBAL;
 
@@ -135,9 +135,30 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		}
 	};
 
-	CreateMenuItem* getCreateBtnMy(int id, int bg) {
-		auto btn = GLOBAL.editorUI->getCreateBtn(id, bg);
-		if (btn) GLOBAL.editorUI->m_createButtonArray->removeLastObject();
+	CreateMenuItem* getCustomCreateBtn(int id, int bg) {
+		CreateMenuItem* btn;
+		if (bg <= 6) {
+			btn = GLOBAL.editorUI->getCreateBtn(id, bg);
+		} else {
+			btn = GLOBAL.editorUI->getCreateBtn(id, 1);
+			if (btn && btn->getChildren()) 
+			if (auto btnSpr = typeinfo_cast<ButtonSprite*>(btn->getChildren()->objectAtIndex(0)))
+			switch (bg) {
+				case 7: 
+					btnSpr->updateBGImage("OG_button_07.png"_spr);
+					break;
+				case 8: 
+					btnSpr->updateBGImage("OG_button_08.png"_spr);
+					break;
+				case 9: 
+					btnSpr->updateBGImage("OG_button_09.png"_spr);
+					break;
+				case 10: 
+					btnSpr->updateBGImage("OG_button_10.png"_spr);
+					break;
+				default: break;
+			}
+		}
 		return btn;
 	}
 
@@ -145,7 +166,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 	void createCustomBarForCategory(CCArray* oldButtons, short category, int p1, int p2, bool p3) {
 		if (!getCONFIG()->contains(category)) {
 			EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
-			// registerButtons(oldButtons);
 			return;
 		}
 		
@@ -175,7 +195,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 				// make simple item(s)
 				for (auto objId : group.m_objectIds) {
 					auto btnCol = darkerButtonBgObjIds.contains(objId) ? DARKER_ITEM_COLOR : ITEM_COLOR;
-					auto btn = GLOBAL.editorUI->getCreateBtn(objId, btnCol);
+					auto btn = getCustomCreateBtn(objId, btnCol);
 
 					btn->setUserObject(new ItemInfo(btn->m_pfnSelector));
 					btn->m_pfnSelector = menu_selector(MyEditButtonBar::onItemClick); 
@@ -186,7 +206,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 				}
 			} else {
 				// make a group
-				auto btn = GLOBAL.editorUI->getCreateBtn(group.m_thumbnailObjectId, GLOBAL.m_settings.m_groupColor);
+				auto btn = getCustomCreateBtn(group.m_thumbnailObjectId, GLOBAL.m_settings.m_groupColor);
 				btn->setUserObject(new GroupInfo(group));
 				btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupClick); 
 
@@ -201,7 +221,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		for (auto objId : allOldIdsOrdered) {
 			if (clearedIds.contains(objId)) continue;
 			auto btnCol = darkerButtonBgObjIds.contains(objId) ? DARKER_ITEM_COLOR : ITEM_COLOR;
-			auto btn = GLOBAL.editorUI->getCreateBtn(objId, btnCol);
+			auto btn = getCustomCreateBtn(objId, btnCol);
 			btn->setUserObject(new ItemInfo(btn->m_pfnSelector));
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onItemClick);
 
@@ -326,7 +346,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		for (unsigned i = 0; i < groupSize; i++) {
 			auto objId = group->m_objectIds.at(i);
 			auto btnCol = darkerButtonBgObjIds.contains(objId) ? DARKER_ITEM_COLOR : GROUP_ITEM_COLOR;
-			auto btn = GLOBAL.editorUI->getCreateBtn(objId, btnCol);
+			auto btn = getCustomCreateBtn(objId, btnCol);
 			btn->setUserObject(new GroupItemInfo(groupButton, btn->m_pfnSelector));
 			btn->m_pfnSelector = menu_selector(MyEditButtonBar::onGroupItemClick); 
 			buttonArray->addObject(btn);
