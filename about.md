@@ -19,10 +19,8 @@ Information on individual mods:
 - <cg>ObjectIDDisplay</c> - completely compatible
 - <cg>SkipEditorObjects</c> - completely compatible and includes its functionality 
 - <cg>Unlisted Objects</c> - completely compatible
+- <cr>Retro Edit</c> - causes some interface bugs, may cause a crash on Mac OS when both mods are enabled
 
-## Known issues
-
-will appear soon...
 
 ## Contribution
 
