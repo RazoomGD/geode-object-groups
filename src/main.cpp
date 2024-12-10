@@ -18,6 +18,7 @@ struct {
 	EditorUI* editorUI = nullptr;
 	struct {
 		int m_maxMenuHeight = 4;
+		int m_groupOrder = 1;
 		bool m_showBg = true;
 		std::string m_customConfig = "";
 		std::string m_defaultConfig = "";
@@ -27,6 +28,8 @@ struct {
 
 	void updateSettings() {
 		m_settings.m_maxMenuHeight = Mod::get()->getSettingValue<int64_t>("max-rows");
+		int grOrd = std::atoi(Mod::get()->getSettingValue<std::string>("group-items-order").c_str());
+		m_settings.m_groupOrder = (grOrd >= 1 && grOrd <= 2) ? grOrd : 1;
 		m_settings.m_showBg = Mod::get()->getSettingValue<bool>("show-bg");
 		m_settings.m_customConfig = Mod::get()->getSettingValue<std::filesystem::path>("config-path").string();
 		m_settings.m_defaultConfig = Mod::get()->getSettingValue<std::filesystem::path>("default-config-path").string();
@@ -371,22 +374,67 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 		float zeroPosition = firstY + shiftUp; // zero point
 		float oneDistance = (firstButton->getContentHeight() + 5) * scale; // distance between two button centers
 
-		int columnCount = ceil(groupSize / (double) GLOBAL.m_settings.m_maxMenuHeight);
-		int rowCount = ceil(groupSize / (double) columnCount);
-		float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
+		// the next 80 lines are mathematical code, so it doesn't meant to be understandable
+		// this code calculates rowCount and columnCount and places the buttons
+		if (GLOBAL.m_settings.m_groupOrder == 1) {
+			// from bottom left by columns
+			int columnCount = ceil(groupSize / (double) GLOBAL.m_settings.m_maxMenuHeight);
+			int rowCount = ceil(groupSize / (double) columnCount);
+			float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
 
-		int rowIter = 0;
-		int columnIter = 0;
+			int rowIter = 0;
+			int columnIter = 0;
 
-		for (unsigned i = 0; i < groupSize; i++) {
-			auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
-			bar->addChild(btn);
-			btn->setPositionY(zeroPosition + rowIter * oneDistance - 10);
-			btn->setPositionX(btn->getPositionX() + columnIter * oneDistance - centerShiftX);
-			rowIter++;
-			if (rowIter == rowCount) {
+			for (unsigned i = 0; i < groupSize; i++) {
+				auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
+				bar->addChild(btn);
+				btn->setPositionY(zeroPosition + rowIter * oneDistance - 10);
+				btn->setPositionX(btn->getPositionX() + columnIter * oneDistance - centerShiftX);
+				rowIter++;
+				if (rowIter == rowCount) {
+					columnIter++;
+					rowIter = 0;
+				}
+			}
+		} else {
+			// from top left by rows
+			int rowCount, columnCount;
+			if (groupSize <= GLOBAL.m_settings.m_maxMenuHeight) {
+				rowCount = groupSize;
+				columnCount = 1;
+			} else {
+				rowCount = GLOBAL.m_settings.m_maxMenuHeight;
+				columnCount = ceil(groupSize / (double) rowCount);
+				rowCount = ceil(groupSize / (double) columnCount);
+				float lastRowFreeRatio = rowCount - groupSize / (float) columnCount;
+
+				if (GLOBAL.m_settings.m_maxMenuHeight >= 3 && lastRowFreeRatio > 0.6) { // 60%
+					int rowCount2 = GLOBAL.m_settings.m_maxMenuHeight - 1;
+					int columnCount2 = ceil(groupSize / (double) rowCount2);
+					rowCount2 = ceil(groupSize / (double) columnCount2);
+					float lastRowFreeRatio2 = rowCount2 - groupSize / (float) columnCount2;
+
+					if (lastRowFreeRatio > lastRowFreeRatio2) {
+						columnCount = columnCount2;
+						rowCount = rowCount2;
+					}
+				}
+			}
+			float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
+
+			int rowIter = rowCount - 1;
+			int columnIter = 0;
+
+			for (unsigned i = 0; i < groupSize; i++) {
+				auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
+				bar->addChild(btn);
+				btn->setPositionY(zeroPosition + rowIter * oneDistance - 10);
+				btn->setPositionX(btn->getPositionX() + columnIter * oneDistance - centerShiftX);
 				columnIter++;
-				rowIter = 0;
+				if (columnIter == columnCount) {
+					rowIter--;
+					columnIter = 0;
+				}
 			}
 		}
 

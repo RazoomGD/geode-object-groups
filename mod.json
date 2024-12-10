@@ -49,6 +49,13 @@
 				"input": true
 			}
 		},
+		"group-items-order": {
+			"type": "string",
+			"name": "Objects order",
+			"description": "The way objects are arranged in a group. \n<cy>1: by columns -</c> The first object is on the bottom left, the following objects are placed above it until they fill the column, then they start a new column.\n<cy>2: by rows -</c> The first object is at the top left, the objects go line by line.\n<cp>2-nd option is recommended</c>",
+			"default": "1: by columns",
+			"one-of": ["1: by columns", "2: by rows"]
+		},
 		"group-button-color": {
 			"type": "string",
 			"name": "Button color",
