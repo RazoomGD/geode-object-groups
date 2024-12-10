@@ -120,7 +120,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
 		if (cmi && ((2 <= tabIndex && tabIndex <= 13) || (tabIndex == 1 && isActualFirstBuildTab))) {
 			createCustomBarForCategory(p0, tabIndex, p1, p2, p3);
-			log::debug("Category: {} done", tabIndex);
+			// log::debug("Category: {} done", tabIndex);
 		} else {
 			EditButtonBar::loadFromItems(p0, p1, p2, p3);
 		}
@@ -472,7 +472,7 @@ class $modify(MyEditorUI, EditorUI) {
 			m_fields->m_loadErrorText = text;
 			this->schedule(schedule_selector(MyEditorUI::showErrorAfterTransition), 0);
 		}
-		log::debug("total items: {}", this->m_createButtonArray->count());
+		// log::debug("total items: {}", this->m_createButtonArray->count());
 		return true;
 	}
 };
