@@ -51,7 +51,7 @@ bool readConfigFromJson(std::string filename, std::vector<std::string> * errList
 
     std::ifstream jsonFile(filename);
     if (!jsonFile.is_open()) {
-        errList->push_back(std::format("Error: Unable to open '{}' file", filename));
+        errList->push_back(fmt::format("Error: Unable to open '{}' file", filename));
         return false;
     }
 
@@ -84,12 +84,12 @@ bool readConfigFromJson(std::string filename, std::vector<std::string> * errList
         int tabIndexInt = tabIndex.ToInt();
         const int tabIndexMin = 1, tabIndexMax = 13;
         if (tabIndexInt > tabIndexMax || tabIndexInt < tabIndexMin) { 
-            errList->push_back(std::format("Tab index {} is out of bounds ({} <= index <= {})", tabIndexInt, tabIndexMin, tabIndexMax)); 
+            errList->push_back(fmt::format("Tab index {} is out of bounds ({} <= index <= {})", tabIndexInt, tabIndexMin, tabIndexMax)); 
             continue;
         }
         auto groups = tab["object_groups"];
         if (groups.IsNull()) { 
-            errList->push_back(std::format("The required 'object_groups' key was not found in #{} build tab", tabIndexInt)); 
+            errList->push_back(fmt::format("The required 'object_groups' key was not found in #{} build tab", tabIndexInt)); 
             continue;
         }
         int iter = 0;
@@ -97,28 +97,28 @@ bool readConfigFromJson(std::string filename, std::vector<std::string> * errList
         for (auto& group : groups.ArrayRange()) {
             iter++;
             if (group.IsNull()) { 
-                errList->push_back(std::format("Error loading the #{} group in the #{} build tab", iter, tabIndexInt));
+                errList->push_back(fmt::format("Error loading the #{} group in the #{} build tab", iter, tabIndexInt));
                 continue;
             }
             auto groupName = group["group_name"];
             if (groupName.IsNull()) { 
-                errList->push_back(std::format("The required 'group_name' key was not found for the #{} group in the #{} build tab", iter, tabIndexInt));
+                errList->push_back(fmt::format("The required 'group_name' key was not found for the #{} group in the #{} build tab", iter, tabIndexInt));
                 continue;
             }
             auto groupNameStr = groupName.ToString();
             auto objectIds = group["object_ids"];
             if (objectIds.IsNull()) { 
-                errList->push_back(std::format("The required 'object_ids' key was not found for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
+                errList->push_back(fmt::format("The required 'object_ids' key was not found for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
                 continue;
             }
             auto thumbnailObjId = group["thumbnail_object_id"];
             if (thumbnailObjId.IsNull()) { 
-                errList->push_back(std::format("The required 'thumbnail_object_id' key was not found for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
+                errList->push_back(fmt::format("The required 'thumbnail_object_id' key was not found for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
                 continue;
             }
             auto thumbnailObjIdInt = thumbnailObjId.ToInt();
             if (thumbnailObjIdInt <= 0) { 
-                errList->push_back(std::format("Illegal 'thumbnail_object_id' for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
+                errList->push_back(fmt::format("Illegal 'thumbnail_object_id' for the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
                 continue;
             }
             short groupProps = 0;
@@ -141,7 +141,7 @@ bool readConfigFromJson(std::string filename, std::vector<std::string> * errList
                 vecObjectIds.push_back((short) objIdInt);
             }
             if (!allObjectsLoaded) {
-                errList->push_back(std::format("Some objects appear to have illegal ids in the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
+                errList->push_back(fmt::format("Some objects appear to have illegal ids in the '{}' group in the #{} build tab", groupNameStr, tabIndexInt));
             }
             Group aGroup = {groupNameStr, (short) thumbnailObjIdInt, vecObjectIds, groupProps};
             vecGroups.push_back(aGroup);

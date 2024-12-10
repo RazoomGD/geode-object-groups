@@ -457,7 +457,7 @@ namespace {
             JSON Key = parse_next( str, offset, err_list );
             consume_ws( str, offset );
             if( str[offset] != ':' ) {
-                if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Object: Expected colon, found '{}'", str[offset]));
+                if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Object: Expected colon, found '{}'", str[offset]));
                 break;
             }
             consume_ws( str, ++offset );
@@ -472,7 +472,7 @@ namespace {
                 ++offset; break;
             }
             else {
-                if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Object: Expected comma, found '{}'", str[offset]));
+                if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Object: Expected comma, found '{}'", str[offset]));
                 break;
             }
         }
@@ -501,7 +501,7 @@ namespace {
                 ++offset; break;
             }
             else {
-                if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Array: Expected ',' or ']', found '{}'", str[offset]));
+                if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Array: Expected ',' or ']', found '{}'", str[offset]));
                 return std::move( JSON::Make( JSON::Class::Array ) );
             }
         }
@@ -530,7 +530,7 @@ namespace {
                         if( (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') )
                             val += c;
                         else {
-                            if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: String: Expected hex character in unicode escape, found '{}'", c));
+                            if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: String: Expected hex character in unicode escape, found '{}'", c));
                             return std::move( JSON::Make( JSON::Class::String ) );
                         }
                     }
@@ -572,7 +572,7 @@ namespace {
                 if( c >= '0' && c <= '9' )
                     exp_str += c;
                 else if( !isspace( c ) && c != ',' && c != ']' && c != '}' ) {
-                    if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Number: Expected a number for exponent, found '{}'", c));
+                    if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Number: Expected a number for exponent, found '{}'", c));
                     return std::move( JSON::Make( JSON::Class::Null ) );
                 }
                 else
@@ -581,7 +581,7 @@ namespace {
             exp = std::stol( exp_str );
         }
         else if( !isspace( c ) && c != ',' && c != ']' && c != '}' ) {
-            if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Number: unexpected character '{}'", c));
+            if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Number: unexpected character '{}'", c));
             return std::move( JSON::Make( JSON::Class::Null ) );
         }
         --offset;
@@ -604,7 +604,7 @@ namespace {
         else if( str.substr( offset, 5 ) == "false" )
             Bool = false;
         else {
-            if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Bool: Expected 'true' or 'false', found '{}'", str.substr( offset, 5 )));
+            if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Bool: Expected 'true' or 'false', found '{}'", str.substr( offset, 5 )));
             return std::move( JSON::Make( JSON::Class::Null ) );
         }
         offset += (Bool.ToBool() ? 4 : 5);
@@ -614,7 +614,7 @@ namespace {
     JSON parse_null( const string &str, size_t &offset, std::vector<std::string> * const err_list ) {
         JSON Null;
         if( str.substr( offset, 4 ) != "null" ) {
-            if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Null: Expected 'null', found '{}'", str.substr( offset, 4 )));
+            if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Null: Expected 'null', found '{}'", str.substr( offset, 4 )));
             return std::move( JSON::Make( JSON::Class::Null ) );
         }
         offset += 4;
@@ -635,7 +635,7 @@ namespace {
             default  : if( ( value <= '9' && value >= '0' ) || value == '-' )
                            return std::move( parse_number( str, offset, err_list ) );
         }
-        if (err_list) err_list->push_back(std::format("PARSE JSON ERROR: Parse: Unknown starting character '{}'", value));
+        if (err_list) err_list->push_back(fmt::format("PARSE JSON ERROR: Parse: Unknown starting character '{}'", value));
         return JSON();
     }
 }
