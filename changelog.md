@@ -6,3 +6,8 @@
 
 # 1.0.3
 - add new contrast button sprites
+
+# 1.0.4
+- tiny tweaks in default group config
+- no more log spam (for other mod developers)
+- add incompatibility info
