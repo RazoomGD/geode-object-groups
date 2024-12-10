@@ -11,3 +11,6 @@
 - tiny tweaks in default group config
 - no more log spam (for other mod developers)
 - add incompatibility info
+
+# 1.0.5
+- add "Objects order" option (check mod settings)
