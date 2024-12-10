@@ -4,7 +4,11 @@ This mod gives you the ability to group objects in the editor tabs.
 
 ## How it looks
 
-Check [gallery.](https://github.com/RazoomGD/geode-object-groups/blob/main/gallery.md) Or just install it and open the editor :)
+![screenshot1](razoom.object_groups/screenshot-1.png)
+
+![screenshot2](razoom.object_groups/screenshot-2.png)
+
+Check [gallery](https://github.com/RazoomGD/geode-object-groups/blob/main/gallery.md) for more pictures. Or just install it and open the editor :)
 
 ## Configuring groups
 

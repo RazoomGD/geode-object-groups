@@ -28,7 +28,10 @@
             "resources/OG_button_07.png",
             "resources/OG_button_08.png",
             "resources/OG_button_09.png",
-            "resources/OG_button_10.png"
+            "resources/OG_button_10.png",
+
+			"razoom.object_groups/screenshot-1.png",
+			"razoom.object_groups/screenshot-2.png"
         ]
     },
 	"settings": {
