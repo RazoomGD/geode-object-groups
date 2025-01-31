@@ -1,5 +1,5 @@
 {
-	"geode": "4.0.0",
+	"geode": "4.2.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -9,7 +9,7 @@
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
 	"description": "A mod for grouping objects in the editor tabs",
-	"version": "v1.0.5",
+	"version": "v2.0.0",
 	"developer": "RaZooM",
 	"tags": ["editor", "enhancement", "utility", "customization", "interface"],
 	"links": {
@@ -28,90 +28,7 @@
             "resources/OG_button_07.png",
             "resources/OG_button_08.png",
             "resources/OG_button_09.png",
-            "resources/OG_button_10.png",
-
-			"razoom.object_groups/screenshot-1.png",
-			"razoom.object_groups/screenshot-2.png"
+            "resources/OG_button_10.png"
         ]
-    },
-	"settings": {
-		"title-1": {
-			"type": "title",
-			"name": "Customization"
-		},
-		"max-rows": {
-			"type": "int",
-			"name": "Max rows",
-			"description": "The maximum number of rows in the menu",
-			"default": 4,
-			"min": 1,
-			"max": 20,
-			"control": {
-				"arrows": true,
-				"arrow-step": 1,
-				"input": true
-			}
-		},
-		"group-items-order": {
-			"type": "string",
-			"name": "Objects order",
-			"description": "The way objects are arranged in a group. \n<cy>1: by columns -</c> The first object is on the bottom left, the following objects are placed above it until they fill the column, then they start a new column.\n<cy>2: by rows -</c> The first object is at the top left, the objects go line by line.\n<cp>2-nd option is recommended</c>",
-			"default": "1: by columns",
-			"one-of": ["1: by columns", "2: by rows"]
-		},
-		"group-button-color": {
-			"type": "string",
-			"name": "Button color",
-			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast",
-			"default": "7: violet",
-			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink"]
-		},
-		"show-bg": {
-			"type": "bool",
-			"name": "Show background the in menu",
-			"description": "Adds background to the menu for better contrast",
-			"default": true
-		}, 
-		"bg-color": {
-			"type": "rgba",
-			"name": "Background color",
-			"enable-if": "show-bg",
-			"description": "Color and opacity of menu background",
-			"default": [0, 0, 0, 140]
-		},
-		"title-2": {
-			"type": "title",
-			"name": "Configuration files"
-		},
-		"config-path": {
-			"type": "file",
-			"name": "Custom config",
-			"description": "Path to your custom config file",
-			"default": "{mod_config_dir}/custom_config.json",
-			"control": {
-				"dialog": "open",
-				"filters": [
-					{
-						"files": ["*.json"],
-						"description": "JSON file"
-					}
-				]
-			}
-		},
-		"default-config-path": {
-			"type": "file",
-			"name": "Default config",
-			"description": "Path to your default config file.\nThis file stores the <cy>default configuration</c> for the mod. Changes in this file <cr>do not</c> affect anything! The only point of this file is to store the default configuration, so that if you mess up a part of the <cg>custom configuration</c>, you could replace that part with the default one\n\nAlso, all changes to this file are reset on every game startup",
-			"default": "{mod_config_dir}/default_config.json",
-			"control": {
-				"dialog": "open",
-				"filters": [
-					{
-						"files": ["*.json"],
-						"description": "JSON file"
-					}
-				]
-			}
-		}
-	}
+    }
 }
