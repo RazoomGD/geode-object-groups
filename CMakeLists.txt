@@ -11,6 +11,8 @@ add_library(${PROJECT_NAME} SHARED
     src/ButtonInfo.cpp
     src/EditButtonBar.cpp
     src/EditorUI.cpp
+    src/Group.cpp
+    src/Utils.cpp
     # Add any extra C++ source files here
 )
 

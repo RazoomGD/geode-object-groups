@@ -6,4 +6,41 @@
 class $modify(MyEditButtonBar, EditButtonBar) {
 
 
+    $override 
+    void loadFromItems(CCArray* buttonArray, int p1, int p2, bool p3) {
+        int tabIndex = this->m_tabIndex;
+
+        if (buttonArray->count() == 0 || tabIndex < 0 || tabIndex >= 13) {
+            return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
+        }
+
+        // validate that this is the build tab and make a special check for the 1st tab
+        auto cmi = typeinfo_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
+        if (!cmi || tabIndex == 0 && (cmi->m_objectID != 1 || buttonArray->count() < 400)) {
+            return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
+        }
+
+        createCustomBarForCategory(buttonArray, tabIndex + 1, p1, p2, p3);
+        Global::get().m_controlledBars[tabIndex] = this;
+        log::debug("load from items {}", tabIndex);
+
+        // fix overlapping with arrows
+        if (auto myChildren = this->getChildren())
+        for (int i = 0; i < myChildren->count(); i++) {
+            if (auto bsl = typeinfo_cast<BoomScrollLayer*>(myChildren->objectAtIndex(i))) {
+                bsl->setZOrder(2);
+                break;
+            }
+        }
+    }
+
+
+    // create bar according to object groups config (category = tabIndex + 1)
+    void createCustomBarForCategory(CCArray* oldButtons, short category, int p1, int p2, bool p3) {
+        
+
+        EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
+    }
+
+
 };
