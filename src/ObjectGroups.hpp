@@ -5,6 +5,8 @@
 #include <Geode/modify/EditButtonBar.hpp>
 #include <Geode/modify/BoomScrollLayer.hpp>
 
+#include <alphalaneous.editortab_api/include/EditorTabs.hpp>
+
 #include <string>
 #include <vector>
 
@@ -17,7 +19,8 @@ using namespace geode::prelude;
 #define DARKER_ITEM_COLOR 5
 #define GROUP_ITEM_COLOR 4
 
-#define MAX_CONTROLLED_BARS 20
+// for marking EditButtonBars
+#define BAR_USER_OBJ_ID "OG-bar"
 
 
 
@@ -29,11 +32,11 @@ struct Global {
     }
 
     EditorUI* m_editorUI;
-    std::array<EditButtonBar*, MAX_CONTROLLED_BARS> m_controlledBars;
     
     struct {
+        uint8_t m_extraTabsCount;
         void update() {
-
+            m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
         }
     } m_settings;
 };
@@ -42,17 +45,6 @@ struct Global {
 
 
 enum class BtnType {Item, Group, GroupItem};
-
-// each button in EditButtonBar must have this object
-struct BtnInfo : CCObject {
-	SEL_MenuHandler m_itemSelector;
-	BtnType m_btnType;
-	int* m_groupObj;
-
-	BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, int* groupObj=nullptr);
-
-	void onClick(CCObject* sender);
-};
 
 class Group : public CCNode {
 private:
@@ -68,6 +60,17 @@ public:
 };
 
 
+// each button in EditButtonBar must have this object
+struct BtnInfo : CCObject {
+	SEL_MenuHandler m_itemSelector;
+	BtnType m_btnType;
+	Ref<Group> m_groupObj;
+
+	BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, Group* groupObj=nullptr);
+
+	void onClick(CCObject* sender);
+};
+
 
 
 // --------------------------- utils --------------------------- 
@@ -79,6 +82,8 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 // set color to CreateMenuItem
 void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col);
 
+// return number of rows and columns on editButtonBar
+void getBarSize(int* rows, int* cols);
 
 
 // --------------------------- other --------------------------- 

@@ -1,7 +1,7 @@
 #include "ObjectGroups.hpp"
 
 
-BtnInfo::BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, int* groupObj) {
+BtnInfo::BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, Group* groupObj) {
     m_itemSelector = defaultSelector;
     m_btnType = type;
     m_groupObj = groupObj;

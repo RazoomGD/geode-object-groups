@@ -7,7 +7,12 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> rowMenu = nullptr;
 		Ref<CCMenu> toggleMenu = nullptr;
 		bool isEditGroupsMode = false;
+		Ref<CCNode> buttonFrame = nullptr;
 	};
+
+	void alert(const char* text) {
+		FLAlertLayer::create("Object Groups", text, "Ok")->show();
+	}
 
 	// support for BetterEdit scale factor
 	float getBetterEditInterfaceScale() {
@@ -35,12 +40,12 @@ class $modify(MyEditorUI, EditorUI) {
 			menu_selector(MyEditorUI::onNewObjectButton)
 		);
 		auto btn2 = CCMenuItemSpriteExtra::create(
-			ButtonSprite::create("Button\n2"), this, 
-			menu_selector(MyEditorUI::onButton2)
+			ButtonSprite::create("Move\n -->"), this, 
+			menu_selector(MyEditorUI::onMoveForwardButton)
 		);
 		auto btn3 = CCMenuItemSpriteExtra::create(
-			ButtonSprite::create("Button\n3"), this, 
-			menu_selector(MyEditorUI::onButton3)
+			ButtonSprite::create("Move\n <--"), this, 
+			menu_selector(MyEditorUI::onMoveBackwardButton)
 		);
 		auto btn4 = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("Button\n4"), this, 
@@ -77,18 +82,52 @@ class $modify(MyEditorUI, EditorUI) {
 		return tMenu;
 	}
 
+	void setupExtraTabs(int count) {
+		for (int i = 0; i < count; i++) {
+			EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}", i+1),
+				// is called once on first create
+				[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
+					auto icon = CCLabelBMFont::create(std::to_string(i+1).c_str(), "bigFont.fnt");
+					icon->setScale(0.4f);
+					EditorTabUtils::setTabIcon(toggler, icon);
+
+					auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
+
+					int rows, cols;
+					getBarSize(&rows, &cols);
+
+					// set user obj and call my hook
+					ret->setUserObject(BAR_USER_OBJ_ID, CCInteger::create(13+i));
+					ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
+					return ret;
+				},
+				// is called on every tab click
+				[](EditorUI*, bool state, CCNode*) {
+					log::info("tab toggle");
+				}
+			);
+		}
+	}
+
 	$override
 	bool init(LevelEditorLayer* editorLayer) {
 		Global::get().m_editorUI = this;
-		Global::get().m_controlledBars.fill(nullptr);
 		Global::get().m_settings.update();
 		
 		if (!EditorUI::init(editorLayer)) return false;
+
+		setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
 
 		const float scale = getBetterEditInterfaceScale();
 
 		m_fields->rowMenu = setupRowMenu(scale);
 		m_fields->toggleMenu = setupToggleMenu(scale);
+
+		auto frame = CCSprite::create("OG_button_frame.png"_spr);
+		frame->setAnchorPoint({0,0});
+		m_fields->buttonFrame = CCNode::create();
+		m_fields->buttonFrame->addChild(frame);
+		m_fields->buttonFrame->setID("razoom.object-groups.frame");
 
 		toggleEditGroupsMode(nullptr);
 		// toggleEditGroupsMode(nullptr); // todo: uncomment so that edit mode was disabled by default 
@@ -107,21 +146,39 @@ class $modify(MyEditorUI, EditorUI) {
 
 	$override
 	void updateCreateMenu(bool p0) {
-		int oldId = m_selectedObjectIndex;
 		EditorUI::updateCreateMenu(p0);
-		int newId = m_selectedObjectIndex;
-		if (newId == oldId) return;
 		
-		CCArrayExt<CreateMenuItem*> buttons = m_createButtonArray;
-
 		// darken all buttons with the selected object 
-		// (as we now can have more than 1)
-		if (newId > 0) {
+		// (as we now can have more buttons of type than 1)
+		int indx = m_selectedObjectIndex;
+		if (indx > 0) {
+			CCArrayExt<CreateMenuItem*> buttons = m_createButtonArray;
 			for (auto* btn : buttons) {
-				if (btn->m_objectID == newId) {
+				if (btn->m_objectID == indx) {
 					setColorToCreateBtn(btn, ccc3(127, 127, 127));
 				}
 			}
+		}
+	}
+
+	// helper function that sets a frame to given cmi (cmi can be nullptr)
+	void setSelectedCmi(CreateMenuItem* cmi) {
+		m_fields->buttonFrame->removeFromParent();
+		if (cmi) cmi->addChild(m_fields->buttonFrame);
+	}
+
+	CreateMenuItem* getSelectedCmi() {
+		return typeinfo_cast<CreateMenuItem*>(m_fields->buttonFrame->getParent());
+	}
+
+	$override
+	void onCreateButton(CCObject* sender) {
+		EditorUI::onCreateButton(sender);
+		auto cmi = typeinfo_cast<CreateMenuItem*>(sender);
+		if (cmi && m_selectedObjectIndex == cmi->m_objectID) {
+			setSelectedCmi(cmi);
+		} else {
+			setSelectedCmi(nullptr);
 		}
 	}
 
@@ -134,23 +191,26 @@ class $modify(MyEditorUI, EditorUI) {
 		}
 	}
 
-	// handlers of rowMenu
+	// helper function to find out whether my tab is opened now
+	bool isMyTab(EditButtonBar* tab) {
+		return tab->getUserObject(BAR_USER_OBJ_ID) != nullptr;
+	}
+
+
+	// ------------------------------- handlers of rowMenu ------------------------------- 
 	void onNewObjectButton(CCObject*) {
-		// make sure this is my tab
-		int tabIndex = m_createButtonBar->m_tabIndex; // current bar is editor->m_createButtonBar
-		if (tabIndex < 0 || tabIndex >= Global::get().m_controlledBars.size() || 
-					Global::get().m_controlledBars[tabIndex] != m_createButtonBar) {
-			FLAlertLayer::create("Object Groups", "Can't create an object in this tab", "Ok")->show();
-			return;
-		}
 		
 		// get selected object
 		if (!m_selectedObject) {
 			int selCount = m_selectedObjects ? m_selectedObjects->count() : 0;
-			FLAlertLayer::create("Object Groups", 
-				fmt::format("You must select exactly <cy>one</c> object to create \
-new object button.\n(now selected: <cy>{}</c>)", selCount), "Ok"
-			)->show();
+			alert(fmt::format("You must select exactly <cy>one</c> object to create \
+new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
+			return;
+		}
+
+		// make sure this is my tab (current bar is editor->m_createButtonBar)
+		if (!isMyTab(m_createButtonBar)) {
+			alert("Can't create an object in this tab");
 			return;
 		}
 
@@ -161,8 +221,8 @@ new object button.\n(now selected: <cy>{}</c>)", selCount), "Ok"
 		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
 								m_createButtonBar->m_scrollLayer->getTotalPages());
 
-		int cols = GameManager::sharedState()->getIntGameVariable("0049");
-		int rows = GameManager::sharedState()->getIntGameVariable("0050");
+		int rows, cols;
+		getBarSize(&rows, &cols);
 		int firstIndex = cols * rows * currentPage; // index the first obj on current page
 
 		m_createButtonBar->m_buttonArray->insertObject(newBtn, firstIndex);
@@ -174,20 +234,65 @@ new object button.\n(now selected: <cy>{}</c>)", selCount), "Ok"
 			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
 		}
 
+		// set frame to newly created button
 		if (m_selectedObjectIndex == newObjId) {
 			setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
+			setSelectedCmi(newBtn);
+		} else {
+			onCreateButton(newBtn);
+		}
+	}
+
+	void onMoveForwardButton(CCObject*) {
+		moveSelectedButton(true);
+	}
+
+	void onMoveBackwardButton(CCObject*) {
+		moveSelectedButton(false);
+	}
+
+	// move selected button in create editButtonBar forward or backward
+	void moveSelectedButton(bool forward) {
+		// make sure this is my tab
+		if (!isMyTab(m_createButtonBar)) {
+			alert("Can't edit this tab");
+			return;
 		}
 
-		
-	}
+		auto btn = getSelectedCmi();
 
-	void onButton2(CCObject*) {
-		log::debug("button 2");
-		
-	}
+		// make sure the button is selected
+		if (btn == nullptr) {
+			alert("Button is not selected");
+			return;
+		}
 
-	void onButton3(CCObject*) {
-		log::debug("button 3");
+		// make sure that button is in this tab
+		uint32_t index = m_createButtonBar->m_buttonArray->indexOfObject(btn);
+		if (index == UINT_MAX) {
+			alert("Button is not selected or selected in another tab");
+			return;
+		}
+
+		// make sure this is not the first nor the last button
+		if ((forward && index + 1 >= m_createButtonBar->m_buttonArray->count()) || 
+					(!forward && index == 0)) {
+			return;
+		}
+		m_createButtonBar->m_buttonArray->exchangeObjectAtIndex(index, index + (forward ? 1 : -1));
+
+		int rows, cols;
+		getBarSize(&rows, &cols);
+
+		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
+			m_createButtonBar->m_scrollLayer->getTotalPages());
+		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+
+		// preserve the page
+		if (currentPage > 0) {
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
+		}
 	}
 
 	void onButton4(CCObject*) {

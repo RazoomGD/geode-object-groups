@@ -37,14 +37,17 @@ void recursiveSetChildrenColor(CCSprite* parent, ccColor3B col) {
 
 void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col) {
     if (auto children = cmi->getChildren()) {
-        if (children->count() > 0) {
+        for (int i = 0; i < children->count(); i++) {
             // recursively set color starting from ButtonSprite children
-            if (auto btnSpr = typeinfo_cast<ButtonSprite*>(children->objectAtIndex(0))) {
+            if (auto btnSpr = typeinfo_cast<ButtonSprite*>(children->objectAtIndex(i))) {
                 recursiveSetChildrenColor(btnSpr, col);
+                break;
             }
         }
     }
 }
 
-
-
+void getBarSize(int* rows, int* cols) {
+    *cols = GameManager::sharedState()->getIntGameVariable("0049");
+    *rows = GameManager::sharedState()->getIntGameVariable("0050");
+}
