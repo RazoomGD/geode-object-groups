@@ -8,9 +8,22 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> toggleMenu = nullptr;
 		bool isEditGroupsMode = false;
 		Ref<CCNode> buttonFrame = nullptr;
+		Fields() {
+			// init global config and load data from json
+			for (int i = 0; i < Global::get().m_groups.size(); i++) {
+				Global::get().m_groups[i] = CCArray::create();
+			}
+			auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
+			readConfigFromJson(file.string()); // todo: move the file to save directory
+		}
+		~Fields() {
+			for (int i = 0; i < Global::get().m_groups.size(); i++) {
+				Global::get().m_groups[i] = nullptr;
+			}
+		}
 	};
 
-	void alert(const char* text) {
+	inline void alert(const char* text) {
 		FLAlertLayer::create("Object Groups", text, "Ok")->show();
 	}
 
@@ -35,27 +48,33 @@ class $modify(MyEditorUI, EditorUI) {
 		rowMenu->setScale(scale * 0.5);
 		rowMenu->setID("razoom.object_groups.row_menu");
 
-		auto newEmptyGroupBtn = CCMenuItemSpriteExtra::create(
+		auto newObjectBtn = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("New\nobject"), this, 
 			menu_selector(MyEditorUI::onNewObjectButton)
 		);
-		auto btn2 = CCMenuItemSpriteExtra::create(
+		auto moveForwardBtn = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("Move\n -->"), this, 
 			menu_selector(MyEditorUI::onMoveForwardButton)
 		);
-		auto btn3 = CCMenuItemSpriteExtra::create(
+		auto moveBackwardBtn = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("Move\n <--"), this, 
 			menu_selector(MyEditorUI::onMoveBackwardButton)
 		);
-		auto btn4 = CCMenuItemSpriteExtra::create(
-			ButtonSprite::create("Button\n4"), this, 
-			menu_selector(MyEditorUI::onButton4)
+		auto saveMeBtn = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("Save\n "), this, 
+			menu_selector(MyEditorUI::onSaveButton)
+		);
+		auto newGroupBtn = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("New\ngroup"), this, 
+			menu_selector(MyEditorUI::onNewGroupButton)
 		);
 
-		rowMenu->addChild(newEmptyGroupBtn);
-		rowMenu->addChild(btn2);
-		rowMenu->addChild(btn3);
-		rowMenu->addChild(btn4);
+		rowMenu->addChild(newObjectBtn);
+		rowMenu->addChild(moveForwardBtn);
+		rowMenu->addChild(moveBackwardBtn);
+		rowMenu->addChild(saveMeBtn);
+		rowMenu->addChild(newGroupBtn);
+		
 		rowMenu->updateLayout();
 
 		return rowMenu;
@@ -88,7 +107,7 @@ class $modify(MyEditorUI, EditorUI) {
 				// is called once on first create
 				[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 					auto icon = CCLabelBMFont::create(std::to_string(i+1).c_str(), "bigFont.fnt");
-					icon->setScale(0.4f);
+					icon->setScale(0.5f);
 					EditorTabUtils::setTabIcon(toggler, icon);
 
 					auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
@@ -97,13 +116,13 @@ class $modify(MyEditorUI, EditorUI) {
 					getBarSize(&rows, &cols);
 
 					// set user obj and call my hook
-					ret->setUserObject(BAR_USER_OBJ_ID, CCInteger::create(13+i));
+					ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i, false));
 					ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
 					return ret;
 				},
 				// is called on every tab click
 				[](EditorUI*, bool state, CCNode*) {
-					log::info("tab toggle");
+					// log::info("tab toggle");
 				}
 			);
 		}
@@ -192,7 +211,7 @@ class $modify(MyEditorUI, EditorUI) {
 	}
 
 	// helper function to find out whether my tab is opened now
-	bool isMyTab(EditButtonBar* tab) {
+	inline bool isMyTab(EditButtonBar* tab) {
 		return tab->getUserObject(BAR_USER_OBJ_ID) != nullptr;
 	}
 
@@ -255,7 +274,7 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 	void moveSelectedButton(bool forward) {
 		// make sure this is my tab
 		if (!isMyTab(m_createButtonBar)) {
-			alert("Can't edit this tab");
+			alert("You can't edit this tab");
 			return;
 		}
 
@@ -295,8 +314,65 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 		}
 	}
 
-	void onButton4(CCObject*) {
-		log::debug("button 4");
+	void onSaveButton(CCObject*) {
+		// auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
+		// // update arrays of groups first
+		// for (int i = 0; i < m_createButtonBars->count(); i++) {
+		// 	auto bar = static_cast<EditButtonBar*>(m_createButtonBars->objectAtIndex(i));
+		// 	// is my bar
+		// 	if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
+		// 		auto myArray = Global::get().m_groups[obj->m_tabIndx].data();
+		// 		// myArray contains objects from previous load. Buttons may be added or deleted from that time
+		// 		myArray->removeAllObjects();
+		// 		for (int j = 0; j < bar->m_buttonArray->count(); j++) {
+		// 			auto cmi = typeinfo_cast<CreateMenuItem*>(bar->m_buttonArray->objectAtIndex(j));
+		// 			if (cmi == nullptr || cmi->m_objectID <= 0) continue;
+		// 			if (auto btnInfo = static_cast<BtnInfo*>(bar->getUserObject(CMI_USER_OBJ_ID))) {
+						
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// writeConfigToJson(file.string());
+	}
+
+	void onNewGroupButton(CCObject*) {
+
+		// make sure this is my tab (current bar is editor->m_createButtonBar)
+		if (!isMyTab(m_createButtonBar)) {
+			alert("You can not create a group in this tab");
+			return;
+		}
+
+		auto group = Group::createDefault();
+		auto newBtn = group->getCmi();
+
+		// create item on EditButtonBar for this obj
+		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
+								m_createButtonBar->m_scrollLayer->getTotalPages());
+
+		int rows, cols;
+		getBarSize(&rows, &cols);
+		int firstIndex = cols * rows * currentPage; // index the first obj on current page
+
+		m_createButtonBar->m_buttonArray->insertObject(newBtn, firstIndex);
+		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+
+		// preserve the page
+		if (currentPage > 0) {
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
+		}
+
+		// select and set frame to newly created button
+		// if (m_selectedObjectIndex == newObjId) {
+		// 	setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
+		// 	setSelectedCmi(newBtn);
+		// } else {
+		// 	onCreateButton(newBtn);
+		// }
+	
+
 	}
 };
 

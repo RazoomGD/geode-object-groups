@@ -9,18 +9,17 @@
 
 #include <string>
 #include <vector>
+#include <list>
+#include <set>
+#include <map>
 
 using namespace geode::prelude;
 
 
 
-// colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
-#define ITEM_COLOR 4
-#define DARKER_ITEM_COLOR 5
-#define GROUP_ITEM_COLOR 4
-
 // for marking EditButtonBars
 #define BAR_USER_OBJ_ID "OG-bar"
+#define CMI_USER_OBJ_ID "OG-cmi"
 
 
 
@@ -32,45 +31,84 @@ struct Global {
     }
 
     EditorUI* m_editorUI;
-    
+
+    // Group Config (index in array is a build tab index)
+    std::array<Ref<CCArray>, 20> m_groups; 
+
     struct {
         uint8_t m_extraTabsCount;
+        int m_groupColor;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
+            int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color").c_str());
+            m_groupColor = (col >= 1 && col <= 10) ? col : 1;
         }
     } m_settings;
 };
 
 
 
-
-enum class BtnType {Item, Group, GroupItem};
-
 class Group : public CCNode {
 private:
     std::string m_groupName;
-    short m_thumbnailObjId;
+    short m_objectId;
     std::vector<std::vector<short>> m_matrix;
+    bool m_isSingle;
+    bool m_isUserCreated;
+
+    CCMenu* m_buttons;
+    CCScale9Sprite* m_bgSprite;
+
+    bool exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 
 public:
-    // todo: как я понял matrix - это rvalue ссылка и ее надо передавать через std::move() 
-    // (std move превращает lvalue в rvalue, при этом обнуляя данные объекта в месте, где его передавали)
-    static Group* create(std::string name, short thumbnailObjId, std::vector<std::vector<short>>&& matrix);
-    
+    static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
+    static Group* createSingle(short objId, bool isUserCreated);
+    static Group* createDefault();
+    static Group* create() = delete;
+
+    CreateMenuItem* getCmi();
+    void updateMenu();
+    void onClick(CCObject*);
+
+    void moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY);
+    void addColumn(uint8_t index);
+    void addRow(uint8_t index);
+
+    // getters
+    std::string getName() const {return m_groupName;}
+    short getObjId() const {return m_objectId;}
+    bool isUserCreated() const {return m_isUserCreated;}
+    bool isSingle() const {return m_isSingle;}
+    const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
 };
 
+// // types of the buttons in the EditButtonBar
+// enum class BtnType {
+//     UserItem,       // added by user
+//     DefaultItem,    // added by RobTop (by default)
+//     Group           // group
+// };
 
-// each button in EditButtonBar must have this object
-struct BtnInfo : CCObject {
-	SEL_MenuHandler m_itemSelector;
-	BtnType m_btnType;
-	Ref<Group> m_groupObj;
+// // each button in EditButtonBar added by user must have this object
+// struct BtnInfo : CCObject {
+// 	SEL_MenuHandler m_itemSelector;
+// 	BtnType m_btnType;
+// 	Ref<Group> m_groupObj;
 
-	BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, Group* groupObj=nullptr);
+// 	BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, Group* groupObj=nullptr);
 
-	void onClick(CCObject* sender);
+// 	void onClickDefault(CCObject* sender);
+// };
+
+
+struct BarInfo : public CCObject {
+    bool m_isLoaded;
+    uint8_t m_tabIndx;
+    BarInfo(uint8_t tabIndex, bool loaded) : m_tabIndx(tabIndex), m_isLoaded(loaded) {
+        this->autorelease();
+    }
 };
-
 
 
 // --------------------------- utils --------------------------- 
@@ -85,6 +123,13 @@ void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col);
 // return number of rows and columns on editButtonBar
 void getBarSize(int* rows, int* cols);
 
+int getItemBtnColor(short objId);
+int getGroupBtnColor();
+
+
+// --------------------------- file --------------------------
+bool readConfigFromJson(std::string filename);
+bool writeConfigToJson(std::string filename);
 
 // --------------------------- other --------------------------- 
 

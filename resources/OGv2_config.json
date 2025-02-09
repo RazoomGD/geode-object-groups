@@ -1,0 +1,30 @@
+{
+    "comment": "Please, don't edit this manually!",
+    "config": {
+        "0": [
+            {
+                "name": "test1",
+                "obj": 83,
+                "group": [
+                    [83, 2, 3],
+                    [4, 0, 0],
+                    [5, 502, 6],
+                    [0, 7, 0]
+                ]
+            },
+            {
+                "obj": 1,
+                "isUsr": true
+            },
+            {
+                "obj": 1
+            },
+            {
+                "obj": 1
+            }
+        ],
+        "1": [
+
+        ]
+    }
+}
