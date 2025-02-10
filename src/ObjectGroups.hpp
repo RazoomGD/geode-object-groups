@@ -56,10 +56,11 @@ private:
     bool m_isSingle;
     bool m_isUserCreated;
 
-    CCMenu* m_buttons;
+    CCMenu* m_menu;
     CCScale9Sprite* m_bgSprite;
 
     bool exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
+    void updateButtonPositionsAndBackground();
 
 public:
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);

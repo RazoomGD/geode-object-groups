@@ -137,6 +137,11 @@ class $modify(MyEditorUI, EditorUI) {
 		
 		if (!EditorUI::init(editorLayer)) return false;
 
+		// prevent overlapping with my menus
+		if (auto ch = this->getChildByID("build-tabs-menu")) ch->setZOrder(6); 
+		if (auto ch = this->getChildByID("editor-buttons-menu")) ch->setZOrder(6);
+		if (auto ch = this->getChildByID("layer-menu")) ch->setZOrder(6);
+
 		setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
 
 		const float scale = getBetterEditInterfaceScale();
