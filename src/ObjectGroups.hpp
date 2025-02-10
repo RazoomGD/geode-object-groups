@@ -120,7 +120,8 @@ struct BarInfo : public CCObject {
 CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 
 // set color to CreateMenuItem
-void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col);
+// void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col);
+void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright); // decompiled
 
 // return number of rows and columns on editButtonBar
 void getBarSize(int* rows, int* cols);

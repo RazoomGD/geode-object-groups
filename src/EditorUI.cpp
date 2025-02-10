@@ -181,7 +181,8 @@ class $modify(MyEditorUI, EditorUI) {
 			CCArrayExt<CreateMenuItem*> buttons = m_createButtonArray;
 			for (auto* btn : buttons) {
 				if (btn->m_objectID == indx) {
-					setColorToCreateBtn(btn, ccc3(127, 127, 127));
+					// setColorToCreateBtn(btn, ccc3(127, 127, 127));
+					setColorToCreateBtnNew(btn, false);
 				}
 			}
 		}
@@ -262,7 +263,8 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 
 		// set frame to newly created button
 		if (m_selectedObjectIndex == newObjId) {
-			setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
+			// setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
+			setColorToCreateBtnNew(newBtn, false);
 			setSelectedCmi(newBtn);
 		} else {
 			onCreateButton(newBtn);

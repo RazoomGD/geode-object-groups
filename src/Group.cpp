@@ -67,16 +67,16 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 }
 
 CreateMenuItem* Group::getCmi() {
+    CreateMenuItem* ret;
     if (m_isSingle) { // get classic cmi but with set userObject
-        auto ret = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
-        ret->setUserObject(CMI_USER_OBJ_ID, this);
-        return ret;
+        ret = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
     } else { // get cmi with set userObject and custom selector
-        auto ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
-        ret->setUserObject(CMI_USER_OBJ_ID, this);
+        ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
         ret->m_pfnSelector = menu_selector(Group::onOpen);
-        return ret;
     }
+    ret->setUserObject(CMI_USER_OBJ_ID, this);
+    setColorToCreateBtnNew(ret, true);
+    return ret;
 }
 
 // selector for group button (not for single object)
