@@ -8,6 +8,7 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> toggleMenu = nullptr;
 		bool isEditGroupsMode = false;
 		Ref<CCNode> buttonFrame = nullptr;
+
 		Fields() {
 			// init global config and load data from json
 			for (int i = 0; i < Global::get().m_groups.size(); i++) {
@@ -26,6 +27,7 @@ class $modify(MyEditorUI, EditorUI) {
 	inline void alert(const char* text) {
 		FLAlertLayer::create("Object Groups", text, "Ok")->show();
 	}
+
 
 	// support for BetterEdit scale factor
 	float getBetterEditInterfaceScale() {

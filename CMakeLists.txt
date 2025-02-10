@@ -8,7 +8,6 @@ project(ObjectGroups VERSION 1.0.0)
 
 # Set up the mod binary
 add_library(${PROJECT_NAME} SHARED
-    src/ButtonInfo.cpp
     src/EditButtonBar.cpp
     src/EditorUI.cpp
     src/FileUtils.cpp

@@ -5,6 +5,26 @@
 
 using namespace matjson;
 
+$on_mod(Loaded) {
+    // make sure config file exists
+    auto path = Mod::get()->getConfigDir(true).append("OGv2_config.json");
+    if (!std::filesystem::exists(path)) {
+        auto pathDefault = Mod::get()->getResourcesDir().append("OGv2_config_default.json");
+        log::info("User config file ({}) not found!", path.string());
+        if (!std::filesystem::exists(pathDefault)) {
+            // no way to get config
+            log::error("DEFAULT CONFIG FILE NOT FOUND! YOU SHOULD NOT HAVE DELETED IT!");
+            log::error("PATH: {}", pathDefault.string());
+        } else {
+            std::ifstream src(pathDefault, std::ios::binary);
+            std::ofstream dst(path, std::ios::binary);
+            dst << src.rdbuf();
+            log::info("Config file updated from the default config");
+        }
+    }
+}
+
+
 bool writeConfigToJson(std::string filename) {
     Value config;
     for (int i = 0; i < Global::get().m_groups.size(); i++) { // foreach tab

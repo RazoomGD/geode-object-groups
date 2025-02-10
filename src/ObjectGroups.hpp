@@ -40,7 +40,7 @@ struct Global {
         int m_groupColor;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
-            int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color").c_str());
+            int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupColor = (col >= 1 && col <= 10) ? col : 1;
         }
     } m_settings;
@@ -69,7 +69,8 @@ public:
 
     CreateMenuItem* getCmi();
     void updateMenu();
-    void onClick(CCObject*);
+    void onOpen(CCObject*);
+    void onPlusButton(CCObject*);
 
     void moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY);
     void addColumn(uint8_t index);

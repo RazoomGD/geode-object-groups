@@ -14,7 +14,9 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_isUserCreated = true;
 
     ret->m_buttons = CCMenu::create();
+    ret->m_buttons->setID("RaZooM");
     ret->addChild(ret->m_buttons);
+    ret->updateMenu();
 
     ret->autorelease();
     return ret;
@@ -59,13 +61,28 @@ CreateMenuItem* Group::getCmi() {
     } else { // get cmi with set userObject and custom selector
         auto ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
         ret->setUserObject(CMI_USER_OBJ_ID, this);
-        ret->m_pfnSelector = menu_selector(Group::onClick);
+        ret->m_pfnSelector = menu_selector(Group::onOpen);
         return ret;
     }
 }
 
-void Group::onClick(CCObject*) {
-    log::debug("group clicked bruh");
+// selector for group button (not for single object)
+void Group::onOpen(CCObject* sender) {
+    auto cmi = static_cast<CreateMenuItem*>(sender);
+    auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
+    if (!group) return;
+
+    cmi->getParent()->addChild(group);
+    group->setPosition(cmi->getPosition());
+}
+
+// selector for plus button (adding new object)
+void Group::onPlusButton(CCObject* sender) {
+    auto cmi = static_cast<CreateMenuItem*>(sender);
+    auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
+    if (!group) return;
+
+    log::debug("plus pressed");
 }
 
 bool Group::exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
@@ -111,6 +128,7 @@ CreateMenuItem* getPlusButton() {
     spr->updateBGImage("OG_button_plus.png"_spr);
     spr->getChildByType<GameObject>(0)->removeFromParent();
     btn->m_objectID = 0;
+    btn->m_pfnSelector = menu_selector(Group::onPlusButton);
     return btn;
 }
 
@@ -118,7 +136,49 @@ CreateMenuItem* getPlusButton() {
 void Group::updateMenu() {
     int szY = m_matrix.size();
     int szX = m_matrix[0].size();
-    // todo: finish the code
+
+    auto oldButtons = m_buttons->getChildren();
+    if (oldButtons == nullptr) {
+        log::debug("oldButtons nullptr");
+        oldButtons = CCArray::create();
+    }
+    m_buttons->removeAllChildren(); // remove old buttons
+        
+    for (int i = 0; i < szY; i++) {
+        for (int j = 0; j < szX; j++) {
+            short id = m_matrix[i][j];
+
+            // reuse old buttons when possible
+            bool found = false;
+            for (int k = 0; k < oldButtons->count(); k++) {
+                auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
+                if (btn->m_objectID == id) {
+                    m_buttons->addChild(btn);
+                    oldButtons->fastRemoveObjectAtIndex(k);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                auto btn = (id == 0) ? getPlusButton() : getCustomCreateBtn(id, getItemBtnColor(id));
+                m_buttons->addChild(btn);
+            }
+        }
+    }
+
+    // get rid of the buttons that we don't need anymore
+    auto registeredButtons = Global::get().m_editorUI->m_createButtonArray;
+    for (int k = 0; k < oldButtons->count(); k++) {
+        auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
+        if (btn->m_objectID != 0) {
+            registeredButtons->removeObject(btn);
+        }
+    }
+
+    // todo: control buttons
+
+    m_buttons->alignItemsInRows(szY);
+
 
 }
 
