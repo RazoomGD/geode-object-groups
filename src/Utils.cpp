@@ -132,118 +132,83 @@ int getGroupBtnColor() {
     return Global::get().m_settings.m_groupColor;
 }
 
-bool divideGridAlignedObjects(CCArrayExt<GameObject*> objects, std::vector<std::vector<short>>* result) {
+std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {
     const float minGap = 15.0;
     const float maxWidth = 30.0;
 
+    std::vector<std::vector<short>> result;
+    const std::vector<std::vector<short>> emptyVector;
+    std::map<GameObject*, std::pair<int, int>> objInfo; // <obj, <rowIdx, columnIdx>>
+
+    // divide into rows
     std::sort(objects.begin(), objects.end(), [](GameObject* a, GameObject* b) {
         return a->getPositionY() > b->getPositionY(); // descending
     });
 
-    // divide into rows
-    std::vector<GameObject*> row;
-    std::vector<std::vector<GameObject*>> matrix;
     float rowBegin = objects[0]->getPositionY();
     float rowLast = rowBegin;
+    int rowIdx = 0;
 
     for (auto& obj : objects) {
         if (obj->getPositionY() < rowLast - minGap) {
             // found a gap => start a new row from this object
-            matrix.push_back(std::move(row));
-            row.clear();
+            rowIdx++;
             rowBegin = obj->getPositionY();
             rowLast = rowBegin;
-            row.push_back(obj);
+            objInfo.insert({obj, {rowIdx, 0}});
         } else {
             if (obj->getPositionY() < rowBegin - maxWidth) {
                 // row is too wide, so we assume that objects are not grid-aligned
-                result->clear();
-                return false;
+                return emptyVector;
             } else {
                 rowLast = obj->getPositionY();
-                row.push_back(obj);
+                objInfo.insert({obj, {rowIdx, 0}});
             }
         }
     }
 
     // divide into columns
-    result->clear();
-    std::vector<std::vector<GameObject*>::iterator> iters; // iterators for each row
-    int rowCount = matrix.size();
+    std::sort(objects.begin(), objects.end(), [](GameObject* a, GameObject* b) {
+        return a->getPositionX() < b->getPositionX(); // ascending
+    });
 
-    for (int i = 0; i < rowCount; i++) {
-        std::sort(matrix[i].begin(), matrix[i].end(), [](GameObject* a, GameObject* b) {
-            return a->getPositionX() < b->getPositionX(); // ascending
-        });
-        result->push_back({});
-        iters.push_back(matrix[i].begin());
-    }
-
-    float columnBegin = -1e15f;
-    float columnLast = -1e15f;
-
-    for (;;) {
-        std::vector<std::pair<GameObject*, int>> maybeColumn;
-        int objCount = 0;
-        for (int i = 0; i < rowCount; i++) {
-            if (iters[i] != matrix[i].end()) {
-                maybeColumn.push_back({*iters[i], i});
-                objCount++;
-            } else {
-                maybeColumn.push_back({nullptr, i});
-            }
-        }
-
-        if (objCount == 0) break; // no more objects
-
-        std::sort(maybeColumn.begin(), maybeColumn.end(), 
-            [](std::pair<GameObject*, int>* a, std::pair<GameObject*, int>* b) {
-                float xA = (a->first == nullptr) ? 1e15f : a->first->getPositionX();
-                float xB = (b->first == nullptr) ? 1e15f : b->first->getPositionX();
-                return xA < xB; // ascending, nullptr-s at the end
-            }
-        );
-
-        // build actual column
-        columnBegin = maybeColumn[0].first->getPositionX();
-        if (columnBegin - columnLast < minGap) {
-            // columns are too close, so we assume that objects are not grid-aligned
-            result->clear();
-            return false;
-        }
-        columnLast = columnBegin;
-
-        std::vector<GameObject*> column(rowCount, nullptr);
-
-        for (int i = 0; i < rowCount; i++) {
-            auto obj = maybeColumn[i].first;
-
-            if (obj == nullptr || obj->getPositionX() > columnLast + minGap) {
-                // found a gap or ran out of objects => finish this column
-                break;
-            } else {
-                if (obj->getPositionX() > columnBegin + maxWidth) {
-                    // column is too wide, so we assume that objects are not grid-aligned
-                    result->clear();
-                    return false;
-                } else {
-                    columnLast = obj->getPositionX();
-                    int realIndex = maybeColumn[i].second;
-                    column[realIndex] = obj;
-                    iters[realIndex]++;
-                }
-            }
-        }
-
-        // write changes
-        for (int i = 0; i < rowCount; i++) {
-            if (column[i] != nullptr) {
-                result->at(i).push_back(column[i]->m_objectID);
-            } else {
-                result->at(i).push_back(0);
-            }
-        }
-    }
+    float columnBegin = objects[0]->getPositionX();
+    float columnLast = columnBegin;
+    int columnIdx = 0;
     
-    return true; // tomorrow I will have no idea how it works
+    for (auto& obj : objects) {
+        if (obj->getPositionX() > columnLast + minGap) {
+            // found a gap => start a new column from this object
+            columnIdx++;
+            columnBegin = obj->getPositionX();
+            columnLast = columnBegin;
+            objInfo.at(obj).second = columnIdx;
+        } else {
+            if (obj->getPositionX() > columnBegin + maxWidth) {
+                // column is too wide, so we assume that objects are not grid-aligned
+                return emptyVector;
+            } else {
+                columnLast = obj->getPositionX();
+                objInfo.at(obj).second = columnIdx;
+            }
+        }
+    }
+
+    // find intersections => put into matrix
+    for (int i = 0; i < rowIdx+1; i++) {
+        std::vector<short> newRow(columnIdx+1, 0);
+        result.push_back(newRow);
+    }
+
+    for (auto& el : objInfo) {
+        int row = el.second.first;
+        int col = el.second.second;
+        if (result[row][col] != 0) {
+            // two distinct objects in one cell => assume objects are not grid-aligned
+            return emptyVector;
+        }
+        result[row][col] = el.first->m_objectID;
+    }
+
+    return result; // tomorrow I will have no idea how it works
 }

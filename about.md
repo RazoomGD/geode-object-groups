@@ -30,3 +30,8 @@ Information on individual mods:
 
 - You can report a bug or suggest a feature on my [Discord server](https://discord.gg/wcWvtKHP8n)
 - You can contribute to the code on [GitHub](https://github.com/RazoomGD/geode-object-groups)
+
+
+## Credits
+
+ - Thanks for many people, who suggested that idea. I don't claim the idea as my own. I just implemented it in GD.

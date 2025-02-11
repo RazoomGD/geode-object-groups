@@ -13,6 +13,21 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_isSingle = false;
     ret->m_isUserCreated = true;
 
+    // in case of empty matrix (it shouldn't be passed here though)
+    if (ret->m_matrix.size() == 0) {
+        ret->m_matrix.push_back({objId});
+    }
+
+    // fix issue when inner vectors have different sizes
+    size_t maxSz = 0;
+    for (int i = 0; i < ret->m_matrix.size(); i++) {
+        auto sz = ret->m_matrix[i].size();
+        if (sz > maxSz) maxSz = sz;
+    }
+    for (int i = 0; i < ret->m_matrix.size(); i++) {
+        ret->m_matrix[i].resize(maxSz, 0);
+    }
+
     // bg sprite
     ret->m_bgSprite = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     ret->addChild(ret->m_bgSprite);
@@ -155,7 +170,7 @@ void Group::updateMenu() {
 
     auto oldButtons = m_menu->getChildren();
     if (oldButtons == nullptr) {
-        log::debug("oldButtons nullptr");
+        // log::debug("oldButtons nullptr");
         oldButtons = CCArray::create();
     }
     m_menu->removeAllChildren(); // remove old buttons
@@ -233,11 +248,11 @@ void Group::updateButtonPositionsAndBackground() {
         const float bottom = btn->getPositionY();
         const float right = btn->getPositionX();
         const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed
-        const float border = 1.5f * oneDistance;
+        const float border = 1.4f * oneDistance;
         m_bgSprite->setContentSize({((right - left) + border) * scaleFactor, 
             ((top - bottom) + border) * scaleFactor});
         m_bgSprite->setPosition({0, (top + bottom) / (2 * scale)});
-        m_bgSprite->setScale(1 / scaleFactor);
+        m_bgSprite->setScale(1 / (scaleFactor * scale));
     }
 }
 

@@ -358,44 +358,42 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 
 		Group* group;
 		auto const selected = getSelectedObjects();
-		int const selectedCount = selected->count();
+		int const selCount = selected->count();
 
-		if (selectedCount == 0) {
+		if (selCount == 0) {
 			group = Group::createDefault();
-			auto newBtn = group->getCmi();
-			addButtonsToCurrentBar(CCArray::createWithObject(newBtn));
-		} else {
-			std::vector<std::vector<short>> res;
-			bool success = divideGridAlignedObjects(selected, &res);
 
-			if (success) {
-				short id = res[0][0];
-				group = Group::createGroup("new group", id, std::move(res));
+		} else {
+			// try to detect the grid-alignment
+			auto res = divideGridAlignedObjects(selected);
+			short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+
+			if (!res.empty()) {
+				group = Group::createGroup("new group", firstId, std::move(res));
+				log::debug("grid group created");
 
 			} else {
-				int rowCount = selectedCount;
-				rowCount = (rowCount < 5) ? rowCount : (
-					(rowCount < 7 || rowCount == 9) ? 3 : 4
-				);
-				int columnCount = ceil((float)selectedCount / (float)rowCount);
+				int rowCount = (selCount < 5) ? selCount : ((selCount < 7 || selCount == 9) ? 3 : 4);
+				int columnCount = ceil((float)selCount / (float)rowCount);
 
-				res.clear();
-
-				int objIter = 0;
-				for (int i = 0;; i++) {
-					res.push_back({});
+				for (int objIter = 0; objIter < selCount;) {
+					std::vector<short> newRow;
 					for (int j = 0; j < columnCount; j++) {
 						auto obj = static_cast<GameObject*>(selected->objectAtIndex(objIter++));
-						res[i].push_back(obj->m_objectID);
-						if (objIter == selectedCount) break;
+						newRow.push_back(obj->m_objectID);
+						if (objIter == selCount) break;
 					}
-					if (objIter == selectedCount) break;
+					res.push_back(newRow);
 				}
+				log::debug("vector {}", res);
+				group = Group::createGroup("new group", firstId, std::move(res));
 
-				short id = res[0][0];
-				group = Group::createGroup("new group", id, std::move(res));
+				log::debug("non-grid group created");
 			}
 		}
+
+		auto newBtn = group->getCmi();
+		addButtonsToCurrentBar(CCArray::createWithObject(newBtn));
 
 
 

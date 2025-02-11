@@ -128,7 +128,7 @@ void getBarSize(int* rows, int* cols);
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
 
-bool divideGridAlignedObjects(CCArrayExt<GameObject*> objects, std::vector<std::vector<short>>* result);
+std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 
 // --------------------------- file --------------------------
 bool readConfigFromJson(std::string filename);
