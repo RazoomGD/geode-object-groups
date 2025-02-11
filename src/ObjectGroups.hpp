@@ -119,9 +119,8 @@ struct BarInfo : public CCObject {
 // this supports custom colors and can remove button from editor->m_createButtonArray
 CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 
-// set color to CreateMenuItem
-// void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col);
-void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright); // decompiled
+// brighten or darken the CreateMenuItem (decompiled function)
+void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);
 
 // return number of rows and columns on editButtonBar
 void getBarSize(int* rows, int* cols);
@@ -129,12 +128,10 @@ void getBarSize(int* rows, int* cols);
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
 
+bool divideGridAlignedObjects(CCArrayExt<GameObject*> objects, std::vector<std::vector<short>>* result);
 
 // --------------------------- file --------------------------
 bool readConfigFromJson(std::string filename);
 bool writeConfigToJson(std::string filename);
 
-// --------------------------- other --------------------------- 
 
-// mathematically correct a % b
-inline int mod(int a, int b) {return (a % b + b) % b;}

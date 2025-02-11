@@ -50,7 +50,7 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
 
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright) {
     // ! mostly decompiled code of EditorUI::updateCreateMenu() that sets the color
-    
+
     ccColor3B color = isBright ? ccc3(255, 255, 255) : ccc3(127, 127, 127);
     if (auto spr = cmi->getChildByType<ButtonSprite>(0)) {
         if (spr->m_subBGSprite) {
@@ -99,7 +99,7 @@ LAB_14010da89:
                 }
 LAB_14010daad:
                 // color = ccc3(0, 0, 0);
-                color = isBright ? ccc3(0, 0, 0) : ccc3(127, 127, 127); // not sure
+                color = isBright ? ccc3(0, 0, 0) : ccc3(127, 127, 127);
             }
 LAB_14010dac2:
             gameObj->setObjectColor(color);
@@ -130,4 +130,120 @@ int getItemBtnColor(short objId) {
 
 int getGroupBtnColor() {
     return Global::get().m_settings.m_groupColor;
+}
+
+bool divideGridAlignedObjects(CCArrayExt<GameObject*> objects, std::vector<std::vector<short>>* result) {
+    const float minGap = 15.0;
+    const float maxWidth = 30.0;
+
+    std::sort(objects.begin(), objects.end(), [](GameObject* a, GameObject* b) {
+        return a->getPositionY() > b->getPositionY(); // descending
+    });
+
+    // divide into rows
+    std::vector<GameObject*> row;
+    std::vector<std::vector<GameObject*>> matrix;
+    float rowBegin = objects[0]->getPositionY();
+    float rowLast = rowBegin;
+
+    for (auto& obj : objects) {
+        if (obj->getPositionY() < rowLast - minGap) {
+            // found a gap => start a new row from this object
+            matrix.push_back(std::move(row));
+            row.clear();
+            rowBegin = obj->getPositionY();
+            rowLast = rowBegin;
+            row.push_back(obj);
+        } else {
+            if (obj->getPositionY() < rowBegin - maxWidth) {
+                // row is too wide, so we assume that objects are not grid-aligned
+                result->clear();
+                return false;
+            } else {
+                rowLast = obj->getPositionY();
+                row.push_back(obj);
+            }
+        }
+    }
+
+    // divide into columns
+    result->clear();
+    std::vector<std::vector<GameObject*>::iterator> iters; // iterators for each row
+    int rowCount = matrix.size();
+
+    for (int i = 0; i < rowCount; i++) {
+        std::sort(matrix[i].begin(), matrix[i].end(), [](GameObject* a, GameObject* b) {
+            return a->getPositionX() < b->getPositionX(); // ascending
+        });
+        result->push_back({});
+        iters.push_back(matrix[i].begin());
+    }
+
+    float columnBegin = -1e15f;
+    float columnLast = -1e15f;
+
+    for (;;) {
+        std::vector<std::pair<GameObject*, int>> maybeColumn;
+        int objCount = 0;
+        for (int i = 0; i < rowCount; i++) {
+            if (iters[i] != matrix[i].end()) {
+                maybeColumn.push_back({*iters[i], i});
+                objCount++;
+            } else {
+                maybeColumn.push_back({nullptr, i});
+            }
+        }
+
+        if (objCount == 0) break; // no more objects
+
+        std::sort(maybeColumn.begin(), maybeColumn.end(), 
+            [](std::pair<GameObject*, int>* a, std::pair<GameObject*, int>* b) {
+                float xA = (a->first == nullptr) ? 1e15f : a->first->getPositionX();
+                float xB = (b->first == nullptr) ? 1e15f : b->first->getPositionX();
+                return xA < xB; // ascending, nullptr-s at the end
+            }
+        );
+
+        // build actual column
+        columnBegin = maybeColumn[0].first->getPositionX();
+        if (columnBegin - columnLast < minGap) {
+            // columns are too close, so we assume that objects are not grid-aligned
+            result->clear();
+            return false;
+        }
+        columnLast = columnBegin;
+
+        std::vector<GameObject*> column(rowCount, nullptr);
+
+        for (int i = 0; i < rowCount; i++) {
+            auto obj = maybeColumn[i].first;
+
+            if (obj == nullptr || obj->getPositionX() > columnLast + minGap) {
+                // found a gap or ran out of objects => finish this column
+                break;
+            } else {
+                if (obj->getPositionX() > columnBegin + maxWidth) {
+                    // column is too wide, so we assume that objects are not grid-aligned
+                    result->clear();
+                    return false;
+                } else {
+                    columnLast = obj->getPositionX();
+                    int realIndex = maybeColumn[i].second;
+                    column[realIndex] = obj;
+                    iters[realIndex]++;
+                }
+            }
+        }
+
+        // write changes
+        for (int i = 0; i < rowCount; i++) {
+            if (column[i] != nullptr) {
+                result->at(i).push_back(column[i]->m_objectID);
+            } else {
+                result->at(i).push_back(0);
+            }
+        }
+    }
+    
+    return true; // tomorrow I will have no idea how it works
 }

@@ -1,6 +1,9 @@
 #include "ObjectGroups.hpp"
 
 
+// mathematically correct a % b
+inline int mod(int a, int b) {return (a % b + b) % b;}
+
 
 class $modify(MyEditorUI, EditorUI) {
 	struct Fields {
@@ -353,25 +356,48 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 			return;
 		}
 
-		auto group = Group::createDefault();
-		auto newBtn = group->getCmi();
+		Group* group;
+		auto const selected = getSelectedObjects();
+		int const selectedCount = selected->count();
 
-		// create item on EditButtonBar for this obj
-		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
-								m_createButtonBar->m_scrollLayer->getTotalPages());
+		if (selectedCount == 0) {
+			group = Group::createDefault();
+			auto newBtn = group->getCmi();
+			addButtonsToCurrentBar(CCArray::createWithObject(newBtn));
+		} else {
+			std::vector<std::vector<short>> res;
+			bool success = divideGridAlignedObjects(selected, &res);
 
-		int rows, cols;
-		getBarSize(&rows, &cols);
-		int firstIndex = cols * rows * currentPage; // index the first obj on current page
+			if (success) {
+				short id = res[0][0];
+				group = Group::createGroup("new group", id, std::move(res));
 
-		m_createButtonBar->m_buttonArray->insertObject(newBtn, firstIndex);
-		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+			} else {
+				int rowCount = selectedCount;
+				rowCount = (rowCount < 5) ? rowCount : (
+					(rowCount < 7 || rowCount == 9) ? 3 : 4
+				);
+				int columnCount = ceil((float)selectedCount / (float)rowCount);
 
-		// preserve the page
-		if (currentPage > 0) {
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
+				res.clear();
+
+				int objIter = 0;
+				for (int i = 0;; i++) {
+					res.push_back({});
+					for (int j = 0; j < columnCount; j++) {
+						auto obj = static_cast<GameObject*>(selected->objectAtIndex(objIter++));
+						res[i].push_back(obj->m_objectID);
+						if (objIter == selectedCount) break;
+					}
+					if (objIter == selectedCount) break;
+				}
+
+				short id = res[0][0];
+				group = Group::createGroup("new group", id, std::move(res));
+			}
 		}
+
+
 
 		// select and set frame to newly created button
 		// if (m_selectedObjectIndex == newObjId) {
@@ -382,6 +408,28 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 		// }
 	
 
+	}
+
+	void addButtonsToCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
+		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
+			m_createButtonBar->m_scrollLayer->getTotalPages());
+
+		int rows, cols;
+		getBarSize(&rows, &cols);
+		int firstIndex = cols * rows * currentPage; // index the first obj on current page
+
+		for (auto* btn : buttons) {
+			m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex);
+			firstIndex++;
+		}
+
+		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+
+		// preserve the page
+		if (currentPage > 0) {
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
+			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
+		}
 	}
 };
 
