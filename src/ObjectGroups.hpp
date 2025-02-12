@@ -38,8 +38,10 @@ struct Global {
     struct {
         uint8_t m_extraTabsCount;
         int m_groupColor;
+        bool m_showNames;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
+            m_showNames = Mod::get()->getSettingValue<bool>("show-names");
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupColor = (col >= 1 && col <= 10) ? col : 1;
         }
@@ -53,11 +55,13 @@ private:
     std::string m_groupName;
     short m_objectId;
     std::vector<std::vector<short>> m_matrix;
-    bool m_isSingle;
+    bool m_isSingle; // single object or group
+    bool m_isInitialized; // used for lazy group load
     bool m_isUserCreated;
 
-    CCMenu* m_menu;
+    CCMenu* m_menu; // there must be only buttons and nothing else
     CCScale9Sprite* m_bgSprite;
+    CCLabelBMFont* m_textNode;
 
     bool exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
     void updateButtonPositionsAndBackground();
@@ -72,10 +76,20 @@ public:
     void updateMenu();
     void onOpen(CCObject*);
     void onPlusButton(CCObject*);
+    void clearAllCreateMenuItems();
 
     void moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY);
     void addColumn(uint8_t index);
     void addRow(uint8_t index);
+
+    // debug
+    Group() {
+        log::debug("group constructed");
+    }
+
+    ~Group() {
+        log::debug("group de-constructed");
+    }
 
     // getters
     std::string getName() const {return m_groupName;}

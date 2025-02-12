@@ -66,12 +66,20 @@ class $modify(MyEditorUI, EditorUI) {
 			menu_selector(MyEditorUI::onMoveBackwardButton)
 		);
 		auto saveMeBtn = CCMenuItemSpriteExtra::create(
-			ButtonSprite::create("Save\n "), this, 
+			ButtonSprite::create("Save\nchanges"), this, 
 			menu_selector(MyEditorUI::onSaveButton)
 		);
 		auto newGroupBtn = CCMenuItemSpriteExtra::create(
 			ButtonSprite::create("New\ngroup"), this, 
 			menu_selector(MyEditorUI::onNewGroupButton)
+		);
+		auto newGroupFromLayoutBtn = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("New group\nfrom layout"), this, 
+			menu_selector(MyEditorUI::onNewGroupFromLayoutButton)
+		);
+		auto deleteItemButton = CCMenuItemSpriteExtra::create(
+			ButtonSprite::create("Delete\nbutton"), this, 
+			menu_selector(MyEditorUI::onDeleteItemButton)
 		);
 
 		rowMenu->addChild(newObjectBtn);
@@ -79,6 +87,8 @@ class $modify(MyEditorUI, EditorUI) {
 		rowMenu->addChild(moveBackwardBtn);
 		rowMenu->addChild(saveMeBtn);
 		rowMenu->addChild(newGroupBtn);
+		rowMenu->addChild(newGroupFromLayoutBtn);
+		rowMenu->addChild(deleteItemButton);
 		
 		rowMenu->updateLayout();
 
@@ -109,7 +119,7 @@ class $modify(MyEditorUI, EditorUI) {
 	void setupExtraTabs(int count) {
 		for (int i = 0; i < count; i++) {
 			EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}", i+1),
-				// is called once on first create
+				// is called once on creation
 				[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 					auto icon = CCLabelBMFont::create(std::to_string(i+1).c_str(), "bigFont.fnt");
 					icon->setScale(0.5f);
@@ -126,9 +136,7 @@ class $modify(MyEditorUI, EditorUI) {
 					return ret;
 				},
 				// is called on every tab click
-				[](EditorUI*, bool state, CCNode*) {
-					// log::info("tab toggle");
-				}
+				[](EditorUI*, bool state, CCNode*) {}
 			);
 		}
 	}
@@ -184,7 +192,6 @@ class $modify(MyEditorUI, EditorUI) {
 			CCArrayExt<CreateMenuItem*> buttons = m_createButtonArray;
 			for (auto* btn : buttons) {
 				if (btn->m_objectID == indx) {
-					// setColorToCreateBtn(btn, ccc3(127, 127, 127));
 					setColorToCreateBtnNew(btn, false);
 				}
 			}
@@ -197,6 +204,7 @@ class $modify(MyEditorUI, EditorUI) {
 		if (cmi) cmi->addChild(m_fields->buttonFrame);
 	}
 
+	// helper function that returns a button on which the frame is set (or nullptr)
 	CreateMenuItem* getSelectedCmi() {
 		return typeinfo_cast<CreateMenuItem*>(m_fields->buttonFrame->getParent());
 	}
@@ -229,24 +237,17 @@ class $modify(MyEditorUI, EditorUI) {
 
 	// ------------------------------- handlers of rowMenu ------------------------------- 
 	void onNewObjectButton(CCObject*) {
-		
-		// get selected object
-		if (!m_selectedObject) {
-			int selCount = m_selectedObjects ? m_selectedObjects->count() : 0;
-			alert(fmt::format("You must select exactly <cy>one</c> object to create \
-new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
-			return;
-		}
-
 		// make sure this is my tab (current bar is editor->m_createButtonBar)
 		if (!isMyTab(m_createButtonBar)) {
-			alert("Can't create an object in this tab");
+			alert("Can't create a button in this tab");
 			return;
 		}
-
-		int newObjId = m_selectedObject->m_objectID;
-		auto newBtn = getCustomCreateBtn(newObjId, 1);
-
+		// get selected object
+		auto selected = getSelectedObjects();
+		if (selected->count() == 0) {
+			alert("You must select at least one object to create a new object button.");
+			return;
+		}
 		// create item on EditButtonBar for this obj
 		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
 								m_createButtonBar->m_scrollLayer->getTotalPages());
@@ -255,23 +256,75 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 		getBarSize(&rows, &cols);
 		int firstIndex = cols * rows * currentPage; // index the first obj on current page
 
-		m_createButtonBar->m_buttonArray->insertObject(newBtn, firstIndex);
-		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+		if (selected->count() == 1) { 
+			int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+			auto newBtn = getCustomCreateBtn(newObjId, getItemBtnColor(newObjId));
+			addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 
-		// preserve the page
-		if (currentPage > 0) {
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
-		}
-
-		// set frame to newly created button
-		if (m_selectedObjectIndex == newObjId) {
-			// setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
-			setColorToCreateBtnNew(newBtn, false);
-			setSelectedCmi(newBtn);
 		} else {
-			onCreateButton(newBtn);
+			std::vector<short> ids;
+			for (int i = 0; i < selected->count(); i++) {
+				ids.push_back(static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID);
+			}
+			createQuickPopup("Object Groups", 
+				fmt::format("Are you sure you want to add buttons for <cy>{}</c> objects?", selected->count()),
+				"Yes", "No",
+				[ids, this] (auto, bool btn2) {
+					if (!btn2) {
+						auto arr = CCArray::create();
+						for (short id : ids) {
+							auto newBtn = getCustomCreateBtn(id, 1);
+							arr->addObject(newBtn);
+						}
+						addButtonsAndReloadCurrentBar(arr);
+					}
+				}
+			);
 		}
+	}
+
+	void onDeleteItemButton(CCObject*) {
+		// make sure this is my tab
+		if (!isMyTab(m_createButtonBar)) {
+			alert("You can't edit this tab");
+			return;
+		}
+
+		// make sure the button is selected
+		auto btn = getSelectedCmi();
+		if (btn == nullptr) {
+			alert("Button is not selected");
+			return;
+		}
+
+		// make sure that button is in this tab
+		uint32_t index = m_createButtonBar->m_buttonArray->indexOfObject(btn);
+		if (index == UINT_MAX) {
+			alert("Button is not selected or selected in another tab");
+			return;
+		}
+		
+		if (auto group = static_cast<Group*>(btn->getUserObject(CMI_USER_OBJ_ID))) {
+			if (group->isSingle()) {
+				group->removeFromParent();
+				m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+				m_createButtonArray->removeObject(btn);
+			} else {
+				// proper group deletion
+				group->clearAllCreateMenuItems();
+				group->removeFromParent();
+				m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+			}
+		} else {
+			// not a group and
+			if (btn->m_objectID == 0) {
+				alert("Can't delete this button");
+				return;
+			}
+			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+			m_createButtonArray->removeObject(btn);
+		}
+		addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 	}
 
 	void onMoveForwardButton(CCObject*) {
@@ -290,9 +343,8 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 			return;
 		}
 
-		auto btn = getSelectedCmi();
-
 		// make sure the button is selected
+		auto btn = getSelectedCmi();
 		if (btn == nullptr) {
 			alert("Button is not selected");
 			return;
@@ -307,23 +359,11 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 
 		// make sure this is not the first nor the last button
 		if ((forward && index + 1 >= m_createButtonBar->m_buttonArray->count()) || 
-					(!forward && index == 0)) {
-			return;
-		}
+					(!forward && index == 0)) return;
+		
 		m_createButtonBar->m_buttonArray->exchangeObjectAtIndex(index, index + (forward ? 1 : -1));
 
-		int rows, cols;
-		getBarSize(&rows, &cols);
-
-		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
-			m_createButtonBar->m_scrollLayer->getTotalPages());
-		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
-
-		// preserve the page
-		if (currentPage > 0) {
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-			m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
-		}
+		addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 	}
 
 	void onSaveButton(CCObject*) {
@@ -364,63 +404,79 @@ new object button.\n(now selected: <cy>{}</c>)", selCount).c_str());
 			group = Group::createDefault();
 
 		} else {
-			// try to detect the grid-alignment
-			auto res = divideGridAlignedObjects(selected);
+			std::vector<std::vector<short>> matrix;
 			short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+			int rowCount = (selCount < 5) ? selCount : ((selCount < 7 || selCount == 9) ? 3 : 4);
+			int columnCount = ceil((float)selCount / (float)rowCount);
 
-			if (!res.empty()) {
-				group = Group::createGroup("new group", firstId, std::move(res));
-				log::debug("grid group created");
-
-			} else {
-				int rowCount = (selCount < 5) ? selCount : ((selCount < 7 || selCount == 9) ? 3 : 4);
-				int columnCount = ceil((float)selCount / (float)rowCount);
-
-				for (int objIter = 0; objIter < selCount;) {
-					std::vector<short> newRow;
-					for (int j = 0; j < columnCount; j++) {
-						auto obj = static_cast<GameObject*>(selected->objectAtIndex(objIter++));
-						newRow.push_back(obj->m_objectID);
-						if (objIter == selCount) break;
-					}
-					res.push_back(newRow);
+			for (int objIter = 0; objIter < selCount;) {
+				std::vector<short> newRow;
+				for (int j = 0; j < columnCount; j++) {
+					auto obj = static_cast<GameObject*>(selected->objectAtIndex(objIter++));
+					newRow.push_back(obj->m_objectID);
+					if (objIter == selCount) break;
 				}
-				log::debug("vector {}", res);
-				group = Group::createGroup("new group", firstId, std::move(res));
-
-				log::debug("non-grid group created");
+				matrix.push_back(newRow);
 			}
+			group = Group::createGroup("New Group", firstId, std::move(matrix));
 		}
 
 		auto newBtn = group->getCmi();
-		addButtonsToCurrentBar(CCArray::createWithObject(newBtn));
-
-
-
-		// select and set frame to newly created button
-		// if (m_selectedObjectIndex == newObjId) {
-		// 	setColorToCreateBtn(newBtn, ccc3(127, 127, 127));
-		// 	setSelectedCmi(newBtn);
-		// } else {
-		// 	onCreateButton(newBtn);
-		// }
-	
-
+		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 	}
 
-	void addButtonsToCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
+	void onNewGroupFromLayoutButton(CCObject*) {
+		// make sure this is my tab (current bar is editor->m_createButtonBar)
+		if (!isMyTab(m_createButtonBar)) {
+			alert("You can not create a group in this tab");
+			return;
+		}
+
+		auto const selected = getSelectedObjects();
+
+		if (selected->count() == 0) {
+			alert("You must select at least <cy>one</c> object to create a group from layout");
+			return;
+		}
+		// try to detect the grid-alignment
+		auto res = divideGridAlignedObjects(selected);
+		short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+
+		if (!res.empty()) {
+			auto group = Group::createGroup("New Group", firstId, std::move(res));
+			log::debug("grid group created");
+			auto newBtn = group->getCmi();
+			addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+		} else {
+			alert("<co>Layout not detected</c>: Selected objects cannot be arranged while \
+preserving their relative positions. Check that there are no multiple objects at the same spot");
+		}
+	}
+
+	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
 		int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
 			m_createButtonBar->m_scrollLayer->getTotalPages());
 
 		int rows, cols;
 		getBarSize(&rows, &cols);
 		int firstIndex = cols * rows * currentPage; // index the first obj on current page
-
+		
 		for (auto* btn : buttons) {
-			m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex);
-			firstIndex++;
-		}
+			m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex++);
 
+			// select (or set frame to) newly created button
+			if (btn->m_objectID > 0) {
+				if (m_selectedObjectIndex == btn->m_objectID) {
+					setColorToCreateBtnNew(btn, false);
+					setSelectedCmi(btn);
+				} else {
+					if (btn == buttons.inner()->lastObject()) {
+						onCreateButton(btn); // makes sense only for last obj
+					}
+				}
+			}
+		}
+		
 		m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
 
 		// preserve the page

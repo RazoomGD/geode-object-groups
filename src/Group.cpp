@@ -35,13 +35,20 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_bgSprite->setOpacity(170);
     ret->m_bgSprite->setZOrder(-10);
 
+    // text node
+    ret->m_textNode = CCLabelBMFont::create("", "goldFont.fnt");
+    ret->addChild(ret->m_textNode);
+    ret->m_textNode->setZOrder(-9);
+    ret->m_textNode->setAnchorPoint({0.5, 0});
+
     // menu for buttons
     ret->m_menu = CCMenu::create();
     ret->addChild(ret->m_menu);
     ret->m_menu->setPosition({0,0});
     ret->m_menu->setContentSize({0,0});
     ret->m_menu->setTouchPriority(-502);
-    ret->updateMenu(); // initial setup
+    ret->m_isInitialized = false; // lazy init
+    // ret->updateMenu(); // initial setup <-- is now lazy
     
     ret->setID("RaZooM");
     ret->autorelease();
@@ -54,16 +61,16 @@ Group* Group::createDefault() {
     short id = 3823; // :)
     
     // (feature) set thumbnail and the first object depending on the current tab
-    if (auto bar = Global::get().m_editorUI->m_createButtonBar) {
-        if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-            if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
-                id = defaultObjectForTab[obj->m_tabIndx];
-            }
-        }
+    if (auto bar = Global::get().m_editorUI->m_createButtonBar)
+    if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID)))
+    if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
+        id = defaultObjectForTab[obj->m_tabIndx];
     }
-    std::vector<std::vector<short>> matrix = {{id, 0}, {0, 0}};
-    return Group::createGroup("new group", id, std::move(matrix));
+
+    std::vector<std::vector<short>> matrix = {{0, 0}, {0, 0}};
+    return Group::createGroup("New Group", id, std::move(matrix));
 }
+
 
 Group* Group::createSingle(short objId, bool isUserCreated) {
     auto ret = new Group();
@@ -76,10 +83,28 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
     ret->m_isUserCreated = isUserCreated;
     ret->m_menu = nullptr;
     ret->m_bgSprite = nullptr;
+    ret->m_textNode = nullptr;
+
     ret->setID("RaZooM");
     ret->autorelease();
     return ret;
 }
+
+
+void Group::clearAllCreateMenuItems() {
+    if (m_menu != nullptr) {
+        if (auto buttons = m_menu->getChildren()) {
+            for (int i = 0; i < buttons->count(); i++) {
+                if (auto cmi = typeinfo_cast<CreateMenuItem*>(buttons->objectAtIndex(i))) {
+                    if (cmi->m_objectID != 0) {
+                        Global::get().m_editorUI->m_createButtonArray->removeObject(cmi);
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 CreateMenuItem* Group::getCmi() {
     CreateMenuItem* ret;
@@ -94,16 +119,25 @@ CreateMenuItem* Group::getCmi() {
     return ret;
 }
 
+
 // selector for group button (not for single object)
 void Group::onOpen(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
     auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
     if (!group) return;
 
+    if (!group->m_isInitialized) {
+        group->updateMenu(); // lazy update
+        group->m_isInitialized = true;
+    } else {
+        // other possible situations when menu update is required
+    }
+
     group->removeFromParent();
     cmi->getParent()->addChild(group);
     group->setPosition(cmi->getPosition());
 }
+
 
 // selector for plus button (adding new object)
 void Group::onPlusButton(CCObject* sender) {
@@ -114,6 +148,7 @@ void Group::onPlusButton(CCObject* sender) {
     log::debug("plus pressed");
 }
 
+
 bool Group::exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
     if (y1 >= m_matrix.size() || y2 >= m_matrix.size()) return false;
     if (x1 >= m_matrix[0].size() || x2 >= m_matrix[0].size()) return false;
@@ -122,6 +157,7 @@ bool Group::exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
     m_matrix[y2][x2] = tmp;
     return true;
 }
+
 
 void Group::moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY) {
     if (right) {
@@ -136,12 +172,14 @@ void Group::moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY) {
     }
 }
 
+
 void Group::addColumn(uint8_t index) {
     if (index >= m_matrix[0].size()) index = m_matrix[0].size() - 1;
     for (int i = 0; i < m_matrix.size(); i++) {
         m_matrix[i].insert(m_matrix[i].begin() + index, 0);
     }
 }
+
 
 void Group::addRow(uint8_t index) {
     if (index >= m_matrix.size()) index = m_matrix.size() - 1;
@@ -215,6 +253,7 @@ void Group::updateMenu() {
 
 }
 
+
 void Group::updateButtonPositionsAndBackground() {
     // some old code that just works
     auto buttonArray = m_menu->getChildren();
@@ -224,8 +263,8 @@ void Group::updateButtonPositionsAndBackground() {
     
     const float scale = firstBtn->getScale();
     m_menu->setScale(1 / scale);
-    const float shiftUp = (firstBtn->getContentHeight() + 5) * scale * 1.5;
     const float oneDistance = (firstBtn->getContentHeight() + 5) * scale; // distance between two button centers
+    const float shiftUp = oneDistance * 1.5 - 10;
 
     const int rowCount = m_matrix.size();
     const int columnCount = m_matrix[0].size();
@@ -236,22 +275,35 @@ void Group::updateButtonPositionsAndBackground() {
     for (int row = 0; row < rowCount; row++) {
         for (int col = 0; col < columnCount; col++) {
             btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(iter++));
-            btn->setPositionY(shiftUp + (rowCount - row - 1) * oneDistance - 10);
+            btn->setPositionY(shiftUp + (rowCount - row - 1) * oneDistance);
             btn->setPositionX(col * oneDistance - centerShiftX);
         }
     }
 
+    const float top = firstBtn->getPositionY();
+    const float left = firstBtn->getPositionX();
+    const float bottom = btn->getPositionY();
+    const float right = btn->getPositionX();
+    
+    // update name text
+    float spaceOnTop = 0;
+    if (Global::get().m_settings.m_showNames && !m_groupName.empty()) {
+        m_textNode->setString(m_groupName.c_str());
+        float availableSpace = right - left + oneDistance;
+        float takenSpace = m_textNode->getContentWidth();
+        float labelScale = std::min(1.1f, availableSpace / takenSpace / scale);
+        m_textNode->setScale(labelScale);
+        spaceOnTop = m_textNode->getContentHeight() * labelScale;
+        m_textNode->setPosition({0, top / scale + oneDistance * 0.65f});
+    }
+
     // update bg
     if (m_bgSprite) {
-        const float top = firstBtn->getPositionY();
-        const float left = firstBtn->getPositionX();
-        const float bottom = btn->getPositionY();
-        const float right = btn->getPositionX();
         const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed
         const float border = 1.4f * oneDistance;
-        m_bgSprite->setContentSize({((right - left) + border) * scaleFactor, 
-            ((top - bottom) + border) * scaleFactor});
-        m_bgSprite->setPosition({0, (top + bottom) / (2 * scale)});
+        m_bgSprite->setContentSize({(right - left + border) * scaleFactor, 
+            (top + spaceOnTop - bottom + border) * scaleFactor});
+        m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / (2 * scale)});
         m_bgSprite->setScale(1 / (scaleFactor * scale));
     }
 }

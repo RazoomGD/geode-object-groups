@@ -56,6 +56,12 @@
 				"arrow-step": 1,
 				"slider": false
 			}
+		},
+		"show-names": {
+			"type": "bool",
+			"name": "Show group names",
+			"description": "Show the name of the group above objects when group is opened.\n<cy>Note:</c> if the name is empty, it will not be shown",
+			"default": true
 		}
 	}
 }

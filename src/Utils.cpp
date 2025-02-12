@@ -24,30 +24,6 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
     return btn;
 }
 
-// void recursiveSetChildrenColor(CCSprite* parent, ccColor3B col) {
-//     if (auto children = parent->getChildren()) {
-//         for (unsigned i = 0; i < children->count(); i++) {
-//             auto child = typeinfo_cast<CCSprite*>(children->objectAtIndex(i));
-//             if (child) {
-//                 child->setColor(col);
-//                 recursiveSetChildrenColor(child, col);
-//             }
-//         }
-//     }
-// }
-
-// void setColorToCreateBtn(CreateMenuItem* cmi, ccColor3B col) {
-//     if (auto children = cmi->getChildren()) {
-//         for (int i = 0; i < children->count(); i++) {
-//             // recursively set color starting from ButtonSprite children
-//             if (auto btnSpr = typeinfo_cast<ButtonSprite*>(children->objectAtIndex(i))) {
-//                 recursiveSetChildrenColor(btnSpr, col);
-//                 break;
-//             }
-//         }
-//     }
-// }
-
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright) {
     // ! mostly decompiled code of EditorUI::updateCreateMenu() that sets the color
 
@@ -203,7 +179,7 @@ std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*>
     for (auto& el : objInfo) {
         int row = el.second.first;
         int col = el.second.second;
-        if (result[row][col] != 0) {
+        if (result[row][col] != 0 && result[row][col] != el.first->m_objectID) {
             // two distinct objects in one cell => assume objects are not grid-aligned
             return emptyVector;
         }
