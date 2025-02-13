@@ -22,6 +22,8 @@ using namespace geode::prelude;
 #define CMI_USER_OBJ_ID "OG-cmi"
 
 
+struct MyEditorUI;
+
 
 // Mod global state (singleton)
 struct Global {
@@ -30,8 +32,8 @@ struct Global {
         return instance;
     }
 
-    EditorUI* m_editorUI;
-
+    MyEditorUI* m_editorUI;
+    bool m_isEditMode;
     // Group Config (index in array is a build tab index)
     std::array<Ref<CCArray>, 20> m_groups; 
 
@@ -57,14 +59,18 @@ private:
     std::vector<std::vector<short>> m_matrix;
     bool m_isSingle; // single object or group
     bool m_isInitialized; // used for lazy group load
+    bool m_isInEditMode; // is menu setup for edit mode
     bool m_isUserCreated;
 
     CCMenu* m_menu; // there must be only buttons and nothing else
     CCScale9Sprite* m_bgSprite;
     CCLabelBMFont* m_textNode;
+    CCMenu* m_topMenu;
+    CCMenu* m_sideMenu;
 
     bool exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
-    void updateButtonPositionsAndBackground();
+    void updateGroupView();
+    void setupControlMenus();
 
 public:
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
@@ -74,7 +80,10 @@ public:
 
     CreateMenuItem* getCmi();
     void updateMenu();
-    void onOpen(CCObject*);
+    void onClick(CCObject*);
+    void onOpenGroupMenu();
+    void onCloseGroupMenu();
+    void onInnerCreateButton(CCObject*);
     void onPlusButton(CCObject*);
     void clearAllCreateMenuItems();
 
@@ -99,23 +108,6 @@ public:
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
 };
 
-// // types of the buttons in the EditButtonBar
-// enum class BtnType {
-//     UserItem,       // added by user
-//     DefaultItem,    // added by RobTop (by default)
-//     Group           // group
-// };
-
-// // each button in EditButtonBar added by user must have this object
-// struct BtnInfo : CCObject {
-// 	SEL_MenuHandler m_itemSelector;
-// 	BtnType m_btnType;
-// 	Ref<Group> m_groupObj;
-
-// 	BtnInfo(BtnType type, SEL_MenuHandler defaultSelector, Group* groupObj=nullptr);
-
-// 	void onClickDefault(CCObject* sender);
-// };
 
 
 struct BarInfo : public CCObject {

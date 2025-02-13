@@ -9,21 +9,24 @@ class $modify(MyEditorUI, EditorUI) {
 	struct Fields {
 		Ref<CCMenu> rowMenu = nullptr;
 		Ref<CCMenu> toggleMenu = nullptr;
-		bool isEditGroupsMode = false;
 		Ref<CCNode> buttonFrame = nullptr;
+		struct {
+			Ref<Group> group = nullptr;
+			Ref<CreateMenuItem> cmi = nullptr;
+		} openedGroup;
 
 		Fields() {
 			// init global config and load data from json
-			for (int i = 0; i < Global::get().m_groups.size(); i++) {
-				Global::get().m_groups[i] = CCArray::create();
-			}
-			auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
-			readConfigFromJson(file.string()); // todo: move the file to save directory
+			// for (int i = 0; i < Global::get().m_groups.size(); i++) {
+			// 	Global::get().m_groups[i] = CCArray::create();
+			// }
+			// auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
+			// readConfigFromJson(file.string()); // todo: move the file to save directory
 		}
 		~Fields() {
-			for (int i = 0; i < Global::get().m_groups.size(); i++) {
-				Global::get().m_groups[i] = nullptr;
-			}
+			// for (int i = 0; i < Global::get().m_groups.size(); i++) {
+			// 	Global::get().m_groups[i] = nullptr;
+			// }
 		}
 	};
 
@@ -144,6 +147,7 @@ class $modify(MyEditorUI, EditorUI) {
 	$override
 	bool init(LevelEditorLayer* editorLayer) {
 		Global::get().m_editorUI = this;
+		Global::get().m_isEditMode = false;
 		Global::get().m_settings.update();
 		
 		if (!EditorUI::init(editorLayer)) return false;
@@ -167,7 +171,7 @@ class $modify(MyEditorUI, EditorUI) {
 		m_fields->buttonFrame->setID("razoom.object-groups.frame");
 
 		toggleEditGroupsMode(nullptr);
-		// toggleEditGroupsMode(nullptr); // todo: uncomment so that edit mode was disabled by default 
+		toggleEditGroupsMode(nullptr);
 
 		return true;
 	}
@@ -176,7 +180,7 @@ class $modify(MyEditorUI, EditorUI) {
 	void toggleMode(CCObject* sender) {
 		EditorUI::toggleMode(sender);
 		if (auto menu = m_fields->rowMenu) {
-			menu->setVisible(sender == m_buildModeBtn && m_fields->isEditGroupsMode);
+			menu->setVisible(sender == m_buildModeBtn && Global::get().m_isEditMode);
 			m_fields->toggleMenu->setVisible(sender == m_buildModeBtn);
 		}
 	}
@@ -220,11 +224,42 @@ class $modify(MyEditorUI, EditorUI) {
 		}
 	}
 
+	// open/close the group
+	void onGroupButton(CreateMenuItem* groupCmi) {
+		auto group = static_cast<Group*>(groupCmi->getUserObject(CMI_USER_OBJ_ID));
+		if (!group) return;
+
+		if (m_fields->openedGroup.group == group) {
+			// close
+			closeOpenedGroupIfExists();
+			setSelectedCmi(groupCmi);
+		} else {
+			// open
+			closeOpenedGroupIfExists();
+			group->onOpenGroupMenu();
+			group->removeFromParent();
+			groupCmi->getParent()->addChild(group);
+			group->setPosition(groupCmi->getPosition());
+			m_fields->openedGroup = {group, groupCmi};
+			setSelectedCmi(groupCmi);
+		}
+	}
+
+	void closeOpenedGroupIfExists() {
+		if (auto group = m_fields->openedGroup.group) {
+			group->onCloseGroupMenu();
+			group->removeFromParent();
+			m_fields->openedGroup = {nullptr, nullptr};
+		}
+	}
+
+	// enable/disable the row menu
 	void toggleEditGroupsMode(CCObject*) {
-		m_fields->isEditGroupsMode = !m_fields->isEditGroupsMode;
-		if (!m_fields->isEditGroupsMode) {
+		Global::get().m_isEditMode = !Global::get().m_isEditMode;
+		closeOpenedGroupIfExists();
+		if (!Global::get().m_isEditMode) {
 			m_fields->rowMenu->setVisible(false);
-		} else if (m_selectedMode == 2) { // 2 -  build mode
+		} else if (m_selectedMode == 2 /* build mode */) {
 			m_fields->rowMenu->setVisible(true);
 		}
 	}

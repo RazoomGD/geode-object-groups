@@ -1,4 +1,5 @@
 #include "ObjectGroups.hpp"
+#include "EditorUI.cpp"
 
 
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red

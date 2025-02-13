@@ -30,8 +30,8 @@
 	],
 	"resources": {
         "sprites": [
-            "resources/*.png"
-        ],
+			"resources/*.png"
+		],
 		"files": [
 			"resources/OGv2_config_default.json"
 		]
