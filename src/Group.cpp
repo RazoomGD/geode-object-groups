@@ -1,5 +1,5 @@
-#include "ObjectGroups.hpp"
-#include "EditorUI.cpp"
+#include "Group.hpp"
+#include "EditorUI.hpp"
 
 Group* Group::createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
@@ -299,7 +299,7 @@ void Group::updateMenu() {
                     // setColorToCreateBtnNew(btn, true);
                     m_menu->addChild(btn);
                 }
-            }
+            } // todo: optimize plus buttons when it is not edit mode
         }
     }
 
@@ -334,12 +334,17 @@ void Group::updateGroupView() {
     const float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
 
     int iter = 0;
+    bool isEditMode = Global::get().m_isEditMode;
     CreateMenuItem* btn;
     for (int row = 0; row < rowCount; row++) {
         for (int col = 0; col < columnCount; col++) {
             btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(iter++));
             btn->setPositionY(shiftUp + (rowCount - row - 1) * oneDistance);
             btn->setPositionX(col * oneDistance - centerShiftX);
+            // hide plus buttons if it is not edit mode
+            if (btn->m_objectID == 0) {
+                btn->setVisible(isEditMode);
+            }
         }
     }
 

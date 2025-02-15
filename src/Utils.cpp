@@ -1,5 +1,5 @@
 #include "ObjectGroups.hpp"
-#include "EditorUI.cpp"
+#include "EditorUI.hpp"
 
 
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
@@ -107,6 +107,27 @@ int getItemBtnColor(short objId) {
 
 int getGroupBtnColor() {
     return Global::get().m_settings.m_groupColor;
+}
+
+std::string toValidString(const char* txt) {
+    std::string s;
+    for (; *txt; txt++) {
+        char c = *txt;
+        if ((c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9')) {
+            s += c;
+        } else {
+            const char* a = " -_.,!?()[]{}<>|/:=+*";
+            for (; *a; a++) {
+                if (*a == c) {
+                    s += c;
+                    break;
+                }
+            }
+        }
+    }
+    return s;
 }
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {

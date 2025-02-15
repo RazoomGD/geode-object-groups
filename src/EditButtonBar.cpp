@@ -1,4 +1,4 @@
-#include "ObjectGroups.hpp"
+#include "Group.hpp"
 
 
 class $modify(MyEditButtonBar, EditButtonBar) {

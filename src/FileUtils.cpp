@@ -1,4 +1,4 @@
-#include "ObjectGroups.hpp"
+#include "Group.hpp"
 
 #include <matjson.hpp>
 #include <matjson/std.hpp>
