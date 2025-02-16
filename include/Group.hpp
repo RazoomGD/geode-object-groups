@@ -8,7 +8,7 @@ private:
     short m_objectId;
     std::vector<std::vector<short>> m_matrix;
     bool m_isSingle; // single object or group
-    bool m_isInitialized; // used for lazy group load
+    bool m_isUpdateRequired;
     bool m_isInEditMode; // is menu setup for edit mode
     bool m_isUserCreated;
 
@@ -18,28 +18,37 @@ private:
     CCMenu* m_topMenu;
     CCMenu* m_sideMenu;
 
-    bool exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
-    void updateGroupView();
     void setupControlMenus();
+    
+    void updateGroupView();
+    
+    bool exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
+    void moveItem(bool right, bool down, uint32_t itemX, uint32_t itemY);
+    void addColumn(uint32_t index);
+    void addRow(uint32_t index);
 
 public:
+    // create method variants
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);
     static Group* createDefault();
     static Group* create() = delete;
 
+    // the most important methods here
     CreateMenuItem* getCmi();
     void updateMenu();
-    void onClick(CCObject*);
+
+    // button handlers
+    void onGroupBtnClick(CCObject*);
     void onOpenGroupMenu();
     void onCloseGroupMenu();
+
     void onInnerCreateButton(CCObject*);
     void onPlusButton(CCObject*);
-    void clearAllCreateMenuItems();
 
-    void moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY);
-    void addColumn(uint8_t index);
-    void addRow(uint8_t index);
+    void onExtraButton(CCObject*);
+
+    void clearAllCreateMenuItems();
 
     // debug
     Group() {
@@ -50,11 +59,12 @@ public:
         log::debug("group de-constructed");
     }
 
-    // getters
+    // getters, setters
     std::string getName() const {return m_groupName;}
     short getObjId() const {return m_objectId;}
     bool isUserCreated() const {return m_isUserCreated;}
     bool isSingle() const {return m_isSingle;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
+    void setName(std::string name) {m_groupName = name;}
 };
     

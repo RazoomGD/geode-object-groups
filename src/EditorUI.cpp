@@ -6,8 +6,9 @@ inline int mod(int a, int b) {return (a % b + b) % b;}
 
 // shorter alert create
 inline void alert(const char* text) {
-	FLAlertLayer::create("Object Groups", text, "Ok")->show();
+	FLAlertLayer::create("Object Groups", text, "ok")->show();
 }
+
 
 CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	const auto rowMenu = CCMenu::create();
@@ -60,6 +61,7 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	return rowMenu;
 }
 
+
 CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 	auto tMenu = CCMenu::create(); 
 	auto tBtn = CCMenuItemSpriteExtra::create(
@@ -80,6 +82,7 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 	tMenu->setID("razoom.object_groups.toggle_menu");
 	return tMenu;
 }
+
 
 void MyEditorUI::setupExtraTabs(int count) {
 	for (int i = 0; i < count; i++) {
@@ -106,16 +109,19 @@ void MyEditorUI::setupExtraTabs(int count) {
 	}
 }
 
+
 // helper function that sets a frame to given cmi (cmi can be nullptr)
 void MyEditorUI::setSelectedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
 	if (cmi) cmi->addChild(m_fields->buttonFrame);
 }
 
+
 // helper function that returns a button on which the frame is set (or nullptr)
 CreateMenuItem* MyEditorUI::getSelectedCmi() {
 	return typeinfo_cast<CreateMenuItem*>(m_fields->buttonFrame->getParent());
 }
+
 
 // open/close the group
 void MyEditorUI::onGroupButton(CreateMenuItem* groupCmi) {
@@ -138,6 +144,7 @@ void MyEditorUI::onGroupButton(CreateMenuItem* groupCmi) {
 	}
 }
 
+
 void MyEditorUI::closeOpenedGroupIfExists() {
 	if (auto group = m_fields->openedGroup.group) {
 		group->onCloseGroupMenu();
@@ -145,6 +152,7 @@ void MyEditorUI::closeOpenedGroupIfExists() {
 		m_fields->openedGroup = {nullptr, nullptr};
 	}
 }
+
 
 // enable/disable the row menu
 void MyEditorUI::toggleEditGroupsMode(CCObject*) {
@@ -157,13 +165,13 @@ void MyEditorUI::toggleEditGroupsMode(CCObject*) {
 	}
 }
 
+
 // helper function to find out whether my tab is opened now
 inline bool isMyTab(EditButtonBar* tab) {
 	return tab->getUserObject(BAR_USER_OBJ_ID) != nullptr;
 }
 
 
-// ------------------------------- handlers of rowMenu ------------------------------- 
 void MyEditorUI::onNewObjectButton(CCObject*) {
 	// make sure this is my tab (current bar is editor->m_createButtonBar)
 	if (!isMyTab(m_createButtonBar)) {
@@ -211,6 +219,7 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 	}
 }
 
+
 void MyEditorUI::onDeleteItemButton(CCObject*) {
 	// make sure this is my tab
 	if (!isMyTab(m_createButtonBar)) {
@@ -255,13 +264,16 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 }
 
+
 void MyEditorUI::onMoveForwardButton(CCObject*) {
 	moveSelectedButton(true);
 }
 
+
 void MyEditorUI::onMoveBackwardButton(CCObject*) {
 	moveSelectedButton(false);
 }
+
 
 // move selected button in create editButtonBar forward or backward
 void MyEditorUI::moveSelectedButton(bool forward) {
@@ -294,6 +306,7 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 }
 
+
 void MyEditorUI::onSaveButton(CCObject*) {
 	// auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
 	// // update arrays of groups first
@@ -315,6 +328,7 @@ void MyEditorUI::onSaveButton(CCObject*) {
 	// }
 	// writeConfigToJson(file.string());
 }
+
 
 void MyEditorUI::onNewGroupButton(CCObject*) {
 
@@ -353,6 +367,7 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 	addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 }
 
+
 void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 	// make sure this is my tab (current bar is editor->m_createButtonBar)
 	if (!isMyTab(m_createButtonBar)) {
@@ -380,6 +395,7 @@ void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 preserving their relative positions. Check that there are no multiple objects at the same spot");
 	}
 }
+
 
 void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
 	int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
@@ -414,15 +430,3 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 	}
 }
 
-
-// support for BetterEdit scale factor
-inline float getBetterEditInterfaceScale() {
-	if (Loader::get()->isModInstalled("hjfod.betteredit")) {
-		auto betterEdit = Loader::get()->getInstalledMod("hjfod.betteredit");
-		if (betterEdit->isEnabled() && betterEdit->hasSetting("scale-factor")) {
-			float scale = betterEdit->getSettingValue<double>("scale-factor");
-			if (scale > 0.1) return scale;
-		}
-	}
-	return 1;
-}

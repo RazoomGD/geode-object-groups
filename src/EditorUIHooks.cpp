@@ -13,7 +13,6 @@ inline float getBetterEditInterfaceScale() {
 }
 
 
-$override
 bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_editorUI = this;
 	Global::get().m_isEditMode = false;
@@ -45,7 +44,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	return true;
 }
 
-$override
+
 void MyEditorUI::toggleMode(CCObject* sender) {
 	EditorUI::toggleMode(sender);
 	if (auto menu = m_fields->rowMenu) {
@@ -54,7 +53,7 @@ void MyEditorUI::toggleMode(CCObject* sender) {
 	}
 }
 
-$override
+
 void MyEditorUI::updateCreateMenu(bool p0) {
 	EditorUI::updateCreateMenu(p0);
 	
@@ -71,7 +70,7 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 	}
 }
 
-$override
+
 void MyEditorUI::onCreateButton(CCObject* sender) {
 	EditorUI::onCreateButton(sender);
 	auto cmi = typeinfo_cast<CreateMenuItem*>(sender);

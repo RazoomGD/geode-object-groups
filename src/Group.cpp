@@ -1,5 +1,6 @@
 #include "Group.hpp"
 #include "EditorUI.hpp"
+#include "ExtraPopup.hpp"
 
 Group* Group::createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
@@ -14,7 +15,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_isSingle = false;
     ret->m_isInEditMode = false;
     ret->m_isUserCreated = true;
-    ret->m_isInitialized = false; // lazy init
+    ret->m_isUpdateRequired = false; // lazy init
 
     // in case of empty matrix (it shouldn't be passed here though)
     if (ret->m_matrix.size() == 0) {
@@ -127,7 +128,7 @@ CreateMenuItem* Group::getCmi() {
         ret = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
     } else { // get cmi with set userObject and custom selector
         ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
-        ret->m_pfnSelector = menu_selector(Group::onClick);
+        ret->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
     }
     ret->setUserObject(CMI_USER_OBJ_ID, this);
     setColorToCreateBtnNew(ret, true);
@@ -149,7 +150,7 @@ void Group::setupControlMenus() {
         this, nullptr);
     auto btn5 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_small_plus.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onExtraButton));
     auto btn6 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_trashcan.png"_spr),
         this, nullptr);
@@ -168,17 +169,18 @@ void Group::setupControlMenus() {
 }
 
 
-// selector for group button (not for single object)
-void Group::onClick(CCObject* sender) {
+// selector for group button (not for single object).
+// this function will call one of onOpenGroupMenu or onCloseGroupMenu
+void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
     Global::get().m_editorUI->onGroupButton(cmi);
 }
 
 void Group::onOpenGroupMenu() {
-    if (!m_isInitialized /* lazy init */ || 
+    if (!m_isUpdateRequired /* lazy init */ || 
                 Global::get().m_isEditMode != m_isInEditMode) {
         updateMenu();
-        m_isInitialized = true;
+        m_isUpdateRequired = true;
         m_isInEditMode = Global::get().m_isEditMode;
     }
 }
@@ -204,8 +206,12 @@ void Group::onPlusButton(CCObject* sender) {
     log::debug("plus pressed");
 }
 
+void Group::onExtraButton(CCObject*) {
+    ExtraOptionsPopup::create(this)->show();
+}
 
-bool Group::exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
+
+bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
     if (y1 >= m_matrix.size() || y2 >= m_matrix.size()) return false;
     if (x1 >= m_matrix[0].size() || x2 >= m_matrix[0].size()) return false;
     short tmp = m_matrix[y1][x1];
@@ -215,7 +221,7 @@ bool Group::exchangeItems(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
 }
 
 
-void Group::moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY) {
+void Group::moveItem(bool right, bool down, uint32_t itemX, uint32_t itemY) {
     if (right) {
         exchangeItems(itemX, itemY, itemX+1, itemY);
     } else {
@@ -229,7 +235,7 @@ void Group::moveItem(bool right, bool down, uint8_t itemX, uint8_t itemY) {
 }
 
 
-void Group::addColumn(uint8_t index) {
+void Group::addColumn(uint32_t index) {
     if (index >= m_matrix[0].size()) index = m_matrix[0].size() - 1;
     for (int i = 0; i < m_matrix.size(); i++) {
         m_matrix[i].insert(m_matrix[i].begin() + index, 0);
@@ -237,12 +243,13 @@ void Group::addColumn(uint8_t index) {
 }
 
 
-void Group::addRow(uint8_t index) {
+void Group::addRow(uint32_t index) {
     if (index >= m_matrix.size()) index = m_matrix.size() - 1;
     int rowLen = m_matrix[0].size();
     std::vector<short> newRow(rowLen, 0);
     m_matrix.insert(m_matrix.begin() + index, newRow);
 }
+
 
 // utility for getting plus button
 CreateMenuItem* getPlusButton() {
@@ -363,6 +370,8 @@ void Group::updateGroupView() {
         m_textNode->setScale(labelScale);
         spaceOnTop = m_textNode->getContentHeight() * labelScale;
         m_textNode->setPosition({0, (top + oneDistance * 0.63f) / scale});
+    } else if (m_textNode) {
+        m_textNode->setString("");
     }
 
     
