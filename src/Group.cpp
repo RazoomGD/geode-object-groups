@@ -2,6 +2,16 @@
 #include "EditorUI.hpp"
 #include "ExtraPopup.hpp"
 
+
+struct GroupCoords : public CCObject {
+    uint32_t m_col;
+    uint32_t m_row;
+    GroupCoords(uint32_t col, uint32_t row) : m_col(col), m_row(row) {
+        this->autorelease();
+    }
+};
+
+
 Group* Group::createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
     if (!ret || !ret->init()) {
@@ -16,6 +26,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_isInEditMode = false;
     ret->m_isUserCreated = true;
     ret->m_isUpdateRequired = false; // lazy init
+    ret->m_cmi = nullptr;
 
     // in case of empty matrix (it shouldn't be passed here though)
     if (ret->m_matrix.size() == 0) {
@@ -100,6 +111,7 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
     ret->m_textNode = nullptr;
     ret->m_topMenu = nullptr;
     ret->m_sideMenu = nullptr;
+    ret->m_cmi = nullptr;
 
     ret->setID("RaZooM");
     ret->autorelease();
@@ -132,6 +144,7 @@ CreateMenuItem* Group::getCmi() {
     }
     ret->setUserObject(CMI_USER_OBJ_ID, this);
     setColorToCreateBtnNew(ret, true);
+    m_cmi = ret;
     return ret;
 }
 
@@ -264,6 +277,48 @@ CreateMenuItem* getPlusButton() {
 }
 
 
+void Group::updateObjId(short newObjId) {
+    if (!m_cmi) return;
+    m_objectId = newObjId;
+    auto otherCmi = getCustomCreateBtn(newObjId, getGroupBtnColor(), false);
+    bool selected = false; // preserve selected
+    if (auto spr = m_cmi->getChildByType<ButtonSprite>(0)) {
+        if (spr->m_subBGSprite) {
+            auto col = spr->m_subBGSprite->getColor(); // button bg sprite
+            selected = (col == ccc3(127, 127, 127));
+        }
+    }
+    m_cmi->setNormalImage(otherCmi->getNormalImage());
+    m_cmi->updateSprite();
+    if (selected) {
+        setColorToCreateBtnNew(m_cmi, false);
+    }
+    // otherCmi will be autoreleased
+}
+
+
+bool Group::getSelectedItemPos(uint32_t* x, uint32_t* y) {
+    auto cmi = Global::get().m_editorUI->getSelectedCmi();
+    if (cmi == nullptr) {
+        return false;
+    }
+    auto myButtons = m_menu->getChildren();
+    for (int i = 0; i < myButtons->count(); i++) {
+        auto btn = myButtons->objectAtIndex(i);
+        if (btn == cmi) {
+            if (auto pos = static_cast<GroupCoords*>(cmi->getUserObject())) {
+                *x = pos->m_col;
+                *y = pos->m_row;
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+
 void Group::updateMenu() {
     int szY = m_matrix.size();
     if (szY == 0) return;
@@ -281,10 +336,17 @@ void Group::updateMenu() {
 
     m_menu->removeAllChildren(); // remove old buttons
         
-    // update buttons
-    for (int i = 0; i < szY; i++) {
-        for (int j = 0; j < szX; j++) {
-            short id = m_matrix[i][j];
+    // prepare new buttons
+
+    const bool isEditMode = Global::get().m_isEditMode;
+
+    for (uint32_t i = 0; i < szY; i++) {
+        for (uint32_t j = 0; j < szX; j++) {
+            const short id = m_matrix[i][j];
+
+            if (id == 0 && !isEditMode) {
+                continue; // we need plus buttons only in edit mode
+            }
 
             // reuse old buttons when possible
             bool found = false;
@@ -292,21 +354,25 @@ void Group::updateMenu() {
                 auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
                 if (btn->m_objectID == id) {
                     m_menu->addChild(btn);
+                    btn->setUserObject(new GroupCoords(i, j));
                     oldButtons->fastRemoveObjectAtIndex(k); // important to break immediately
                     found = true;
                     break;
                 }
             }
+
             if (!found) {
+                CreateMenuItem *btn;
                 if (id == 0) {
-                    m_menu->addChild(getPlusButton());
+                    btn = getPlusButton();
                 } else {
-                    auto btn = getCustomCreateBtn(id, getItemBtnColor(id));
+                    btn = getCustomCreateBtn(id, getItemBtnColor(id));
                     btn->m_pfnSelector = menu_selector(Group::onInnerCreateButton);
                     // setColorToCreateBtnNew(btn, true);
-                    m_menu->addChild(btn);
                 }
-            } // todo: optimize plus buttons when it is not edit mode
+                btn->setUserObject(new GroupCoords(i, j));
+                m_menu->addChild(btn);
+            }
         }
     }
 
@@ -323,57 +389,47 @@ void Group::updateMenu() {
 
 }
 
+
 // monster function
 void Group::updateGroupView() {
-    // some old code that just works
+
     auto buttonArray = m_menu->getChildren();
-    if (!buttonArray || !buttonArray->count()) return;
+    if (!buttonArray) {
+        buttonArray = CCArray::create();
+    }
     
-    const auto firstBtn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
-    
-    const float scale = firstBtn->getScale();
-    m_menu->setScale(1 / scale);
-    const float oneDistance = (firstBtn->getContentHeight() + 5) * scale; // distance between two button centers
-    const float shiftUp = oneDistance * 1.5 - 10;
+    const float oneDistance = 45; // distance between two button centers
+    const float shiftY = 57.5;
 
     const int rowCount = m_matrix.size();
     const int columnCount = m_matrix[0].size();
-    const float centerShiftX = (columnCount - 1) * 0.5f * oneDistance;
+    const float centerShiftX = (columnCount - 1) * oneDistance * 0.5f;
 
-    int iter = 0;
-    bool isEditMode = Global::get().m_isEditMode;
-    CreateMenuItem* btn;
-    for (int row = 0; row < rowCount; row++) {
-        for (int col = 0; col < columnCount; col++) {
-            btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(iter++));
-            btn->setPositionY(shiftUp + (rowCount - row - 1) * oneDistance);
-            btn->setPositionX(col * oneDistance - centerShiftX);
-            // hide plus buttons if it is not edit mode
-            if (btn->m_objectID == 0) {
-                btn->setVisible(isEditMode);
-            }
-        }
+    const float top = shiftY + (float)(rowCount - 1) * oneDistance;
+    const float left = -centerShiftX;
+    const float bottom = shiftY;
+    const float right = (float)(columnCount - 1) * oneDistance - centerShiftX;
+
+    for (int i = 0; i < buttonArray->count(); i++) {
+        auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
+        auto uObj = static_cast<GroupCoords*>(btn->getUserObject());
+        float x = left + (float)uObj->m_col * oneDistance;
+        float y = top - (float)uObj->m_row * oneDistance;
+        btn->setPosition(ccp(x, y));
     }
 
-    const float top = firstBtn->getPositionY();
-    const float left = firstBtn->getPositionX();
-    const float bottom = btn->getPositionY();
-    const float right = btn->getPositionX();
-    
     // update name text
     float spaceOnTop = 0;
     if (Global::get().m_settings.m_showNames && !m_groupName.empty() && m_textNode) {
         m_textNode->setString(m_groupName.c_str());
         float availableSpace = right - left + oneDistance;
         float takenSpace = m_textNode->getContentWidth();
-        float labelScale = std::min(1.1f, availableSpace / takenSpace / scale);
-        m_textNode->setScale(labelScale);
-        spaceOnTop = m_textNode->getContentHeight() * labelScale;
-        m_textNode->setPosition({0, (top + oneDistance * 0.63f) / scale});
+        m_textNode->setScale(std::min(1.1f, availableSpace / takenSpace));
+        spaceOnTop = m_textNode->getScaledContentHeight();
+        m_textNode->setPosition({0, top + oneDistance * 0.63f});
     } else if (m_textNode) {
         m_textNode->setString("");
     }
-
     
     // update bg
     if (m_bgSprite) {
@@ -381,22 +437,22 @@ void Group::updateGroupView() {
         const float border = 1.4f * oneDistance;
         m_bgSprite->setContentSize({(right - left + border) * scaleFactor, 
             (top + spaceOnTop - bottom + border) * scaleFactor});
-        m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / (2 * scale)});
-        m_bgSprite->setScale(1 / (scaleFactor * scale));
+        m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / 2});
+        m_bgSprite->setScale(1 / scaleFactor);
     }
 
     // update control menus
     if (m_topMenu && m_sideMenu) {
         if (Global::get().m_isEditMode) {
             m_topMenu->setVisible(true);
-            m_topMenu->setPosition({0, (top + spaceOnTop + oneDistance * 0.8f) / scale});
-            m_topMenu->setContentWidth((right - left + oneDistance * 2) / scale);
+            m_topMenu->setPosition({0, top + spaceOnTop + oneDistance * 0.8f});
+            m_topMenu->setContentWidth(right - left + oneDistance * 2);
             m_topMenu->updateLayout();
             
             m_sideMenu->setVisible(true);
-            m_sideMenu->setPosition({(right + oneDistance * 0.8f) / scale, 
-                (top + spaceOnTop + oneDistance * 0.5f) / scale});
-            m_sideMenu->setContentHeight((top + spaceOnTop - bottom + oneDistance) / scale);
+            m_sideMenu->setPosition({right + oneDistance * 0.8f, 
+                top + spaceOnTop + oneDistance / 2});
+            m_sideMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance);
             m_sideMenu->setScale(1.2);
             m_sideMenu->updateLayout();
     

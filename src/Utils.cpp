@@ -22,6 +22,9 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
     if (!doRegister && editor->m_createButtonArray->lastObject() == btn) {
         editor->m_createButtonArray->removeLastObject();
     }
+    btn->m_baseScale = 1;
+    btn->setScale(1);
+    btn->updateSprite();
     return btn;
 }
 

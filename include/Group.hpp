@@ -17,6 +17,7 @@ private:
     CCLabelBMFont* m_textNode;
     CCMenu* m_topMenu;
     CCMenu* m_sideMenu;
+    CreateMenuItem* m_cmi;
 
     void setupControlMenus();
     
@@ -37,6 +38,7 @@ public:
     // the most important methods here
     CreateMenuItem* getCmi();
     void updateMenu();
+    bool getSelectedItemPos(uint32_t* x, uint32_t* y);
 
     // button handlers
     void onGroupBtnClick(CCObject*);
@@ -49,6 +51,7 @@ public:
     void onExtraButton(CCObject*);
 
     void clearAllCreateMenuItems();
+    void updateObjId(short newObjId);
 
     // debug
     Group() {

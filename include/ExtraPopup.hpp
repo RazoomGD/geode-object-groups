@@ -164,7 +164,14 @@ buttons won't do anything",
     }
 
     void onSetIcon(CCObject* sender) {
-        // code
+        auto selected = EditorUI::get()->m_selectedObject;
+        if (selected == nullptr) {
+            FLAlertLayer::create("Object Groups", "<cr>Icon not updated!</c> You must select \
+exactly 1 object in editor to update group icon", "ok")->show();
+        } else {
+            short id = selected->m_objectID;
+            m_myGroup->updateObjId(id);
+        }
         onClose(sender);
     }
 };

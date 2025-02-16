@@ -113,7 +113,7 @@ void MyEditorUI::setupExtraTabs(int count) {
 // helper function that sets a frame to given cmi (cmi can be nullptr)
 void MyEditorUI::setSelectedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
-	if (cmi) cmi->addChild(m_fields->buttonFrame);
+	if (cmi) cmi->addChild(m_fields->buttonFrame, 5);
 }
 
 
