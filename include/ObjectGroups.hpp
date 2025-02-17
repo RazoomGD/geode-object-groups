@@ -41,11 +41,13 @@ struct Global {
         uint8_t m_extraTabsCount;
         int m_groupColor;
         bool m_showNames;
+        ccColor4B m_groupBgColor;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
             m_showNames = Mod::get()->getSettingValue<bool>("show-names");
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupColor = (col >= 1 && col <= 10) ? col : 1;
+            m_groupBgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color-v2");
         }
     } m_settings;
 };
@@ -62,6 +64,9 @@ struct BarInfo : public CCObject {
 
 
 // --------------------------- utils --------------------------- 
+
+// shorter alert create
+inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text, "ok")->show();}
 
 // replacement for getCreateBtn
 // this supports custom colors and can remove button from editor->m_createButtonArray

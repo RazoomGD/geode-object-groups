@@ -89,6 +89,15 @@ LAB_14010dac2:
     }
 }
 
+
+// CreateMenuItem* getCreateMenuItemButton(CCSprite* sprite, SEL_MenuHandler selector, const char* buttonTexture) {
+//     auto buttonSpr = ButtonSprite::create(sprite, 0x20, 0x0, 32.0, 1.0, true /* ? */, buttonTexture, true);
+//     auto cmi = CreateMenuItem::create(buttonSpr, nullptr /* ? */, Global::get().m_editorUI, selector);
+//     cmi->m_objectID = 0;
+//     return cmi;
+// }
+
+
 void getBarSize(int* rows, int* cols) {
     *cols = GameManager::sharedState()->getIntGameVariable("0049");
     *rows = GameManager::sharedState()->getIntGameVariable("0050");

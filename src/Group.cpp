@@ -46,8 +46,9 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     // bg sprite
     ret->m_bgSprite = CCScale9Sprite::create("square02b_001.png", {0, 0, 80, 80});
     ret->addChild(ret->m_bgSprite);
-    ret->m_bgSprite->setColor(ccc3(0,0,0));
-    ret->m_bgSprite->setOpacity(170);
+    auto bgCol = Global::get().m_settings.m_groupBgColor;
+    ret->m_bgSprite->setColor(ccc3(bgCol.r, bgCol.g, bgCol.b));
+    ret->m_bgSprite->setOpacity(bgCol.a);
     ret->m_bgSprite->setZOrder(-10);
 
     // text node
@@ -75,7 +76,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
 
     ret->setupControlMenus();
 
-    ret->setID("RaZooM");
+    ret->setID("group"_spr);
     ret->autorelease();
     return ret;
 }
@@ -113,7 +114,7 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
     ret->m_sideMenu = nullptr;
     ret->m_cmi = nullptr;
 
-    ret->setID("RaZooM");
+    ret->setID("group"_spr);
     ret->autorelease();
     return ret;
 }
@@ -144,29 +145,31 @@ CreateMenuItem* Group::getCmi() {
     }
     ret->setUserObject(CMI_USER_OBJ_ID, this);
     setColorToCreateBtnNew(ret, true);
+    ret->setTag(0); // compat with creative mode
     m_cmi = ret;
     return ret;
 }
 
+
 void Group::setupControlMenus() {
     auto btn1 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_move_up.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onArrowButton));
     auto btn2 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_move_down.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onArrowButton));
     auto btn3 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_move_left.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onArrowButton));
     auto btn4 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_move_right.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onArrowButton));
     auto btn5 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_small_plus.png"_spr),
         this, menu_selector(Group::onExtraButton));
     auto btn6 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_trashcan.png"_spr),
-        this, nullptr);
+        this, menu_selector(Group::onDeleteObjButton));
             
     m_topMenu->setAnchorPoint({0.5, 0});
     m_topMenu->addChild(btn1);
@@ -174,11 +177,45 @@ void Group::setupControlMenus() {
     m_topMenu->addChild(btn3);
     m_topMenu->addChild(btn4);
     m_topMenu->setLayout(RowLayout::create());
+
+    btn1->setTag(1);
+    btn2->setTag(2);
+    btn3->setTag(3);
+    btn4->setTag(4);
     
     m_sideMenu->setAnchorPoint({0, 1});
     m_sideMenu->addChild(btn5);
     m_sideMenu->addChild(btn6);
     m_sideMenu->setLayout(ColumnLayout::create()->setAxisAlignment(AxisAlignment::End));
+}
+
+
+void Group::onArrowButton(CCObject* sender) {
+    int tag = sender->getTag(); // 1,2,3,4 - up, down, left, right
+    if (tag > 4 || tag < 1) return;
+    uint32_t btnX, btnY;
+    if (!getSelectedItemPos(&btnX, &btnY)) {
+        alert("No focused button within the group. Select the button first!");
+        return;
+    }
+    switch (tag) {
+        case 1: exchangeItems(btnX, btnY, btnX, btnY - 1); break;
+        case 2: exchangeItems(btnX, btnY, btnX, btnY + 1); break;
+        case 3: exchangeItems(btnX, btnY, btnX - 1, btnY); break;
+        case 4: exchangeItems(btnX, btnY, btnX + 1, btnY); break;
+    }
+    updateMenu();
+}
+
+
+void Group::onDeleteObjButton(CCObject*) {
+    uint32_t btnX, btnY;
+    if (!getSelectedItemPos(&btnX, &btnY)) {
+        alert("No focused button within the group. Select the button first!");
+        return;
+    }
+    m_matrix[btnY][btnX] = 0;
+    updateMenu();
 }
 
 
@@ -234,20 +271,6 @@ bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
 }
 
 
-void Group::moveItem(bool right, bool down, uint32_t itemX, uint32_t itemY) {
-    if (right) {
-        exchangeItems(itemX, itemY, itemX+1, itemY);
-    } else {
-        if (itemX > 0) exchangeItems(itemX, itemY, itemX-1, itemY);
-    }
-    if (down) {
-        exchangeItems(itemX, itemY, itemX, itemY+1);
-    } else {
-        if (itemY > 0) exchangeItems(itemX, itemY, itemX, itemY-1);
-    }
-}
-
-
 void Group::addColumn(uint32_t index) {
     if (index >= m_matrix[0].size()) index = m_matrix[0].size() - 1;
     for (int i = 0; i < m_matrix.size(); i++) {
@@ -264,16 +287,29 @@ void Group::addRow(uint32_t index) {
 }
 
 
+void Group::deleteColumn(uint32_t index) {
+    if (index >= m_matrix[0].size()) index = m_matrix[0].size() - 1;
+    if (index == 0 && m_matrix[0].size() == 1) return;
+    for (int i = 0; i < m_matrix.size(); i++) {
+        m_matrix[i].erase(m_matrix[i].begin() + index);
+    }
+}
+
+
+void Group::deleteRow(uint32_t index) {
+    if (index >= m_matrix.size()) index = m_matrix.size() - 1;
+    if (index == 0 && m_matrix.size() == 1) return;
+    m_matrix.erase(m_matrix.begin() + index);
+}
+
+
 // utility for getting plus button
 CreateMenuItem* getPlusButton() {
-    auto btn = getCustomCreateBtn(1, 2, false);
-    auto spr = static_cast<ButtonSprite*>(btn->getChildren()->objectAtIndex(0));
-    spr->updateBGImage("OG_button_plus.png"_spr);
-    spr->getChildByType<GameObject>(0)->removeFromParent();
-    btn->m_objectID = 0;
-    btn->m_pfnSelector = menu_selector(Group::onPlusButton);
-    // btn->setEnabled(false); <--- set it for filler buttons
-    return btn;
+    auto btnSpr = ButtonSprite::create(
+        CCSprite::create(), 32, 0, 32, 1, true, "OG_button_plus.png"_spr, true);
+    auto cmi = CreateMenuItem::create(btnSpr, nullptr, nullptr, menu_selector(Group::onPlusButton));
+    cmi->m_objectID = 0;
+    return cmi;
 }
 
 
@@ -297,18 +333,17 @@ void Group::updateObjId(short newObjId) {
 }
 
 
-bool Group::getSelectedItemPos(uint32_t* x, uint32_t* y) {
+bool Group::getSelectedItemPos(uint32_t* col, uint32_t* row) {
     auto cmi = Global::get().m_editorUI->getSelectedCmi();
-    if (cmi == nullptr) {
-        return false;
-    }
+    if (cmi == nullptr) return false;
     auto myButtons = m_menu->getChildren();
+    if (myButtons == nullptr) return false;
     for (int i = 0; i < myButtons->count(); i++) {
         auto btn = myButtons->objectAtIndex(i);
         if (btn == cmi) {
             if (auto pos = static_cast<GroupCoords*>(cmi->getUserObject())) {
-                *x = pos->m_col;
-                *y = pos->m_row;
+                *col = pos->m_col;
+                *row = pos->m_row;
                 return true;
             } else {
                 return false;
@@ -319,10 +354,33 @@ bool Group::getSelectedItemPos(uint32_t* x, uint32_t* y) {
 }
 
 
+bool Group::setSelectedCmiWithPosition(uint32_t row, uint32_t col) {
+    auto buttons = m_menu->getChildren();
+    if (buttons == nullptr) return false;
+    for (int i = 0; i < buttons->count(); i++) {
+        auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
+        if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject())) {
+            if (uObj->m_row == row && uObj->m_col == col) {
+                if (btn->m_objectID == 0) {
+                    return false; // don't set focus on plus button
+                }
+                Global::get().m_editorUI->setSelectedCmi(btn);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
 void Group::updateMenu() {
-    int szY = m_matrix.size();
+    const int szY = m_matrix.size();
     if (szY == 0) return;
-    int szX = m_matrix[0].size();
+    const int szX = m_matrix[0].size();
+    const bool isEditMode = Global::get().m_isEditMode;
+
+    uint32_t focusedRow, focusedColumn; // try to preserve it
+    bool hasFocusedCmi = getSelectedItemPos(&focusedColumn, &focusedRow);
 
     auto oldButtons = m_menu->getChildren();
     if (oldButtons == nullptr) {
@@ -337,9 +395,6 @@ void Group::updateMenu() {
     m_menu->removeAllChildren(); // remove old buttons
         
     // prepare new buttons
-
-    const bool isEditMode = Global::get().m_isEditMode;
-
     for (uint32_t i = 0; i < szY; i++) {
         for (uint32_t j = 0; j < szX; j++) {
             const short id = m_matrix[i][j];
@@ -354,7 +409,7 @@ void Group::updateMenu() {
                 auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
                 if (btn->m_objectID == id) {
                     m_menu->addChild(btn);
-                    btn->setUserObject(new GroupCoords(i, j));
+                    btn->setUserObject(new GroupCoords(j, i));
                     oldButtons->fastRemoveObjectAtIndex(k); // important to break immediately
                     found = true;
                     break;
@@ -368,9 +423,9 @@ void Group::updateMenu() {
                 } else {
                     btn = getCustomCreateBtn(id, getItemBtnColor(id));
                     btn->m_pfnSelector = menu_selector(Group::onInnerCreateButton);
-                    // setColorToCreateBtnNew(btn, true);
+                    setColorToCreateBtnNew(btn, true);
                 }
-                btn->setUserObject(new GroupCoords(i, j));
+                btn->setUserObject(new GroupCoords(j, i));
                 m_menu->addChild(btn);
             }
         }
@@ -387,10 +442,15 @@ void Group::updateMenu() {
 
     updateGroupView();
 
+    // preserve
+    if (hasFocusedCmi) {
+        setSelectedCmiWithPosition(focusedRow, focusedColumn);
+    }
+
 }
 
 
-// monster function
+// monster function (don't call it directly, it must be only called from updateMenu())
 void Group::updateGroupView() {
 
     auto buttonArray = m_menu->getChildren();
@@ -455,7 +515,6 @@ void Group::updateGroupView() {
             m_sideMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance);
             m_sideMenu->setScale(1.2);
             m_sideMenu->updateLayout();
-    
         } else {
             m_topMenu->setVisible(false);
             m_sideMenu->setVisible(false);

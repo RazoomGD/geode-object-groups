@@ -62,6 +62,12 @@
 			"name": "Show group names",
 			"description": "Show the name of the group above objects when group is opened.\n<cy>Note:</c> if the name is empty, it will not be shown",
 			"default": true
+		},
+		"bg-color-v2": {
+			"type": "rgba",
+			"name": "Background color",
+			"description": "Color and opacity of menu background",
+			"default": [0, 0, 0, 170]
 		}
 	}
 }

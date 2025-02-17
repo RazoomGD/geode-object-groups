@@ -13,6 +13,29 @@ inline float getBetterEditInterfaceScale() {
 }
 
 
+void MyEditorUI::showUI(bool show) {
+	EditorUI::showUI(show);
+	if (auto children = m_fields->rowMenu->getChildren()) {
+		for (int i = 0; i < children->count(); i++) {
+			auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
+			btn->setVisible(show);
+		}
+	}
+	if (auto children = m_fields->toggleMenu->getChildren()) {
+		for (int i = 0; i < children->count(); i++) {
+			auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
+			btn->setVisible(show);
+		}
+	}
+}
+
+// CreateMenuItem* MyEditorUI::getCreateBtn(int id, int bg) {
+// 	log::debug("call");
+// 	auto ret = EditorUI::getCreateBtn(id, bg);
+// 	log::debug("ret");
+// 	return ret;
+// }
+
 bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_editorUI = this;
 	Global::get().m_isEditMode = false;
@@ -36,7 +59,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	frame->setAnchorPoint({0,0});
 	m_fields->buttonFrame = CCNode::create();
 	m_fields->buttonFrame->addChild(frame);
-	m_fields->buttonFrame->setID("razoom.object-groups.frame");
+	m_fields->buttonFrame->setID("frame"_spr);
 
 	toggleEditGroupsMode(nullptr);
 	toggleEditGroupsMode(nullptr);

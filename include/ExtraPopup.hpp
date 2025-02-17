@@ -5,12 +5,21 @@
 class ExtraOptionsPopup : public Popup<Group*> {
 private:
     Ref<Group> m_myGroup;
+    struct {
+        bool m_groupHasSelectedCmi;
+        uint32_t m_row;
+        uint32_t m_column;
+    } m_groupCmiInfo;
+
+    Ref<CCArray> m_addAndRemoveButtons;
     CCLabelBMFont* m_groupSizeLabel;
     const float m_width = 260.f;
     const float m_height = 210.f;
+
 protected:
     bool setup(Group* group) override {
         m_myGroup = group;
+        m_addAndRemoveButtons = CCArray::create();
         m_closeBtn->setVisible(false);
         setTitle("Extra Group Options");
 
@@ -35,8 +44,9 @@ protected:
         nameLabel->setScale(0.5);
         nameLabel->setPosition(ccp(20, m_height - 55));
         
+        const float textInputScale = 1; // broken when < 1
         auto nameInput = TextInput::create(
-            (m_width - nameLabel->getScaledContentWidth() - 20 - 5 - 20) / 0.8, "(empty)");
+            (m_width - nameLabel->getScaledContentWidth() - 20 - 5 - 20) / textInputScale, "(empty)");
         nameInput->setString(group->getName(), false);
         nameInput->setCommonFilter(CommonFilter::Any);
         nameInput->setCallback([nameInput, group](const std::string& str) {
@@ -46,14 +56,13 @@ protected:
         });
         m_mainLayer->addChild(nameInput);
         nameInput->setAnchorPoint({0,0.5});
-        nameInput->setScale(0.8);
+        nameInput->setScale(textInputScale);
         nameInput->setPosition(ccp(nameLabel->getScaledContentWidth() + 5 + 20, m_height - 55));
 
         m_groupSizeLabel = CCLabelBMFont::create("", "bigFont.fnt");
         m_mainLayer->addChild(m_groupSizeLabel);
         m_groupSizeLabel->setScale(0.3);
-        m_groupSizeLabel->setPosition(ccp(m_width / 2, m_height - 84));
-        updateSizeLabel();
+        m_groupSizeLabel->setPosition(ccp(m_width / 2, m_height - 85));
         
         const float scale1 = 0.8, scale2 = 0.35 / scale1; // adjust button padding
         auto spr = ButtonSprite::create("Add column right", "bigFont.fnt", "GJ_button_01.png", scale1);
@@ -84,17 +93,21 @@ protected:
                 menu->addChild(btn);
                 float offset = btn->getScaledContentWidth() / 2;
                 btn->setPosition(posX + offset, posY);
+                m_addAndRemoveButtons->addObject(btn);
                 posY -= 20;
             }
             posX = m_width / 2;
         }
-
+        
         spr = ButtonSprite::create("Set icon", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         auto btn7 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onSetIcon));
         menu->addChild(btn7);
         btn7->setPosition(20 + btn7->getScaledContentWidth() / 2, m_height - 180);
 
+        updateGroupInfoLabel();
+        updateGroupCmiInfo();
+        
         return true;
     }
 
@@ -111,10 +124,42 @@ public:
     }
 
 private:
-    void updateSizeLabel() {
+    void updateGroupInfoLabel() {
         float h = m_myGroup->getMatrix().size();
         float w = (h > 0) ? m_myGroup->getMatrix()[0].size() : 0;
-        m_groupSizeLabel->setString(fmt::format("Group size: Rows: {}. Columns: {}.", h, w).c_str());
+        int count = 0;
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (m_myGroup->getMatrix()[i][j] != 0) {
+                    count++;
+                }
+            }
+        }
+        m_groupSizeLabel->setString(fmt::format(
+            "Group: Rows: {}. Columns: {}. Items: {}.", h, w, count).c_str());
+    }
+
+    void updateGroupCmiInfo() {
+        uint32_t btnX, btnY;
+        if (m_myGroup->getSelectedItemPos(&btnX, &btnY)) {
+            m_groupCmiInfo.m_groupHasSelectedCmi = true;
+            m_groupCmiInfo.m_column = btnX;
+            m_groupCmiInfo.m_row = btnY;
+        } else {
+            m_groupCmiInfo.m_groupHasSelectedCmi = false;
+        }
+        updateButtons();
+    }
+
+    void updateButtons() {
+        bool active = m_groupCmiInfo.m_groupHasSelectedCmi;
+        for (int i = 0; i < m_addAndRemoveButtons->count(); i++) {
+            auto btn = static_cast<CCMenuItemSpriteExtra*>(m_addAndRemoveButtons->objectAtIndex(i));
+            btn->setEnabled(active);
+            auto btnSpr = static_cast<ButtonSprite*>(btn->getChildByTag(1));
+            btnSpr->m_BGSprite->setOpacity(active ? 255 : 100);
+            btnSpr->m_label->setOpacity(active ? 255 : 100);
+        }
     }
 
     void onClose(CCObject* sender) override {
@@ -122,7 +167,7 @@ private:
         Popup::onClose(sender);
     }
 
-    void onInfoBtn(CCObject* sender) {
+    void onInfoBtn(CCObject*) {
         auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
         geode::createQuickPopup("Extra options explanation", 
 "<co>- Group name</c>: name of the group. Name isn't shown if it's empty or \
@@ -132,47 +177,73 @@ relative to the <cj>focused button</c>.\n\
 <co>- Remove (...)</c>: remove the row/column containing the <cj>focused button</c>.\n\
 <co>- Set icon</c>: set object shown on the group button (for that, exactly 1 object must be selected).\n\
 <co>Note</c>: If there are no <cj>focused button</c> within the group, <co>Add</c> and <co>Remove</c> \
-buttons won't do anything",
+buttons will be <cr>inactive</c>",
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );
     }
 
-    void onAddColRight(CCObject* sender) {
-        // code
+    void onAddColRight(CCObject*) {
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->addColumn(m_groupCmiInfo.m_column+1);
+        m_myGroup->updateMenu();
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column);
+        updateGroupInfoLabel();
+        updateGroupCmiInfo();
     }
 
-    void onAddColLeft(CCObject* sender) {
-        // code
+    void onAddColLeft(CCObject*) {
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->addColumn(m_groupCmiInfo.m_column);
+        m_myGroup->updateMenu();
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column+1);
+        updateGroupInfoLabel();
+        updateGroupCmiInfo();
     }
 
-    void onAddRowTop(CCObject* sender) {
-        // code
+    void onAddRowTop(CCObject*) { 
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->addRow(m_groupCmiInfo.m_row);
+        m_myGroup->updateMenu();
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row+1, m_groupCmiInfo.m_column);
+        updateGroupInfoLabel();
+        updateGroupCmiInfo();
     }
 
-    void onAddRowBottom(CCObject* sender) {
-        // code
+    void onAddRowBottom(CCObject*) {
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->addRow(m_groupCmiInfo.m_row+1);
+        m_myGroup->updateMenu();
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column);
+        updateGroupInfoLabel();
+        updateGroupCmiInfo();
     }
 
-    void onColRemove(CCObject* sender) {
-        // code
-        onClose(sender);
+    void onColRemove(CCObject*) {
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->deleteColumn(m_groupCmiInfo.m_column);
+        Global::get().m_editorUI->setSelectedCmi(nullptr);
+        m_myGroup->updateMenu();
+        onClose(nullptr);
     }
 
-    void onRowRemove(CCObject* sender) {
-        // code
-        onClose(sender);
+    void onRowRemove(CCObject*) {
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
+        m_myGroup->deleteRow(m_groupCmiInfo.m_row);
+        Global::get().m_editorUI->setSelectedCmi(nullptr);
+        m_myGroup->updateMenu();
+        onClose(nullptr);
     }
 
-    void onSetIcon(CCObject* sender) {
+    void onSetIcon(CCObject*) {
         auto selected = EditorUI::get()->m_selectedObject;
         if (selected == nullptr) {
-            FLAlertLayer::create("Object Groups", "<cr>Icon not updated!</c> You must select \
-exactly 1 object in editor to update group icon", "ok")->show();
+            alert("<cr>Icon not updated!</c> You must select \
+exactly 1 object in editor to update group icon");
         } else {
             short id = selected->m_objectID;
             m_myGroup->updateObjId(id);
         }
-        onClose(sender);
+        onClose(nullptr);
     }
 };
     

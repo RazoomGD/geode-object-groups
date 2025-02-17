@@ -4,20 +4,15 @@
 // mathematically correct a % b
 inline int mod(int a, int b) {return (a % b + b) % b;}
 
-// shorter alert create
-inline void alert(const char* text) {
-	FLAlertLayer::create("Object Groups", text, "ok")->show();
-}
-
 
 CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	const auto rowMenu = CCMenu::create();
-	this->addChild(rowMenu);
+	this->addChild(rowMenu); // todo: add children not to editorUI directly
 	rowMenu->setAnchorPoint({0.5, 0});
 	rowMenu->setLayout(RowLayout::create());
 	rowMenu->setPosition(ccp(CCDirector::get()->getWinSize().width / 2, 111 * scale));
 	rowMenu->setScale(scale * 0.5);
-	rowMenu->setID("razoom.object_groups.row_menu");
+	rowMenu->setID("row_menu"_spr);
 
 	auto newObjectBtn = CCMenuItemSpriteExtra::create(
 		ButtonSprite::create("New\nobject"), this, 
@@ -69,7 +64,7 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 		menu_selector(MyEditorUI::toggleEditGroupsMode)
 	);
 	tMenu->addChild(tBtn);
-	this->addChild(tMenu);
+	this->addChild(tMenu); // todo: add children not to editorUI directly
 	tMenu->setAnchorPoint({1,0});
 	auto layout = RowLayout::create();
 	layout->setAxisAlignment(AxisAlignment::End);
@@ -79,7 +74,7 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 	tMenu->setContentWidth(100);
 	tMenu->setZOrder(2);
 	tMenu->updateLayout();
-	tMenu->setID("razoom.object_groups.toggle_menu");
+	tMenu->setID("toggle_menu"_spr);
 	return tMenu;
 }
 

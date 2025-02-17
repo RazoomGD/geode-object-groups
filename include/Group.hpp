@@ -22,11 +22,8 @@ private:
     void setupControlMenus();
     
     void updateGroupView();
-    
+
     bool exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
-    void moveItem(bool right, bool down, uint32_t itemX, uint32_t itemY);
-    void addColumn(uint32_t index);
-    void addRow(uint32_t index);
 
 public:
     // create method variants
@@ -38,7 +35,8 @@ public:
     // the most important methods here
     CreateMenuItem* getCmi();
     void updateMenu();
-    bool getSelectedItemPos(uint32_t* x, uint32_t* y);
+    bool getSelectedItemPos(uint32_t* col, uint32_t* row);
+    bool setSelectedCmiWithPosition(uint32_t row, uint32_t col);
 
     // button handlers
     void onGroupBtnClick(CCObject*);
@@ -49,9 +47,16 @@ public:
     void onPlusButton(CCObject*);
 
     void onExtraButton(CCObject*);
+    void onDeleteObjButton(CCObject*);
+    void onArrowButton(CCObject*);
 
     void clearAllCreateMenuItems();
+
     void updateObjId(short newObjId);
+    void addColumn(uint32_t index);
+    void addRow(uint32_t index);
+    void deleteColumn(uint32_t index);
+    void deleteRow(uint32_t index);
 
     // debug
     Group() {
