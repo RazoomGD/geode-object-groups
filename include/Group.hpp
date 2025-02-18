@@ -2,6 +2,9 @@
 
 #include "ObjectGroups.hpp"
 
+#include <matjson.hpp>
+#include <matjson/std.hpp>
+
 class Group : public CCNode {
 private:
     std::string m_groupName;
@@ -12,12 +15,12 @@ private:
     bool m_isInEditMode; // is menu setup for edit mode
     bool m_isUserCreated;
 
-    CCMenu* m_menu; // there must be only buttons and nothing else
-    CCScale9Sprite* m_bgSprite;
-    CCLabelBMFont* m_textNode;
-    CCMenu* m_topMenu;
-    CCMenu* m_sideMenu;
-    CreateMenuItem* m_cmi;
+    CCMenu* m_menu = nullptr; // there must be only buttons and nothing else
+    CCScale9Sprite* m_bgSprite = nullptr;
+    CCLabelBMFont* m_textNode = nullptr;
+    CCMenu* m_topMenu = nullptr;
+    CCMenu* m_sideMenu = nullptr;
+    CreateMenuItem* m_cmi = nullptr;
 
     void setupControlMenus();
     
@@ -30,13 +33,15 @@ public:
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);
     static Group* createDefault();
+    static Group* createFromJsonValue(matjson::Value json); // always check for null!
     static Group* create() = delete;
 
     // the most important methods here
     CreateMenuItem* getCmi();
-    void updateMenu();
-    bool getSelectedItemPos(uint32_t* col, uint32_t* row);
-    bool setSelectedCmiWithPosition(uint32_t row, uint32_t col);
+    void updateMenu(bool preserveSelectedCmi=true);
+    bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
+    bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
+    matjson::Value toJson();
 
     // button handlers
     void onGroupBtnClick(CCObject*);

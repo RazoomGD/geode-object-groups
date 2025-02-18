@@ -78,7 +78,6 @@ LAB_14010da89:
                     goto LAB_14010da89;
                 }
 LAB_14010daad:
-                // color = ccc3(0, 0, 0);
                 color = isBright ? ccc3(0, 0, 0) : ccc3(127, 127, 127);
             }
 LAB_14010dac2:

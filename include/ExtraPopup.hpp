@@ -114,12 +114,11 @@ protected:
 public:
     static ExtraOptionsPopup* create(Group* group) {
         auto ret = new ExtraOptionsPopup();
-        if (ret->initAnchored(ret->m_width, ret->m_height, group)) {
+        if (ret && ret->initAnchored(ret->m_width, ret->m_height, group)) {
             ret->autorelease();
-            return ret;
+            return ret; 
         }
-
-        delete ret;
+        CC_SAFE_DELETE(ret);
         return nullptr;
     }
 
@@ -141,7 +140,7 @@ private:
 
     void updateGroupCmiInfo() {
         uint32_t btnX, btnY;
-        if (m_myGroup->getSelectedItemPos(&btnX, &btnY)) {
+        if (m_myGroup->getSelectedItemPosition(&btnX, &btnY)) {
             m_groupCmiInfo.m_groupHasSelectedCmi = true;
             m_groupCmiInfo.m_column = btnX;
             m_groupCmiInfo.m_row = btnY;
@@ -185,8 +184,8 @@ buttons will be <cr>inactive</c>",
     void onAddColRight(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->addColumn(m_groupCmiInfo.m_column+1);
-        m_myGroup->updateMenu();
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column);
+        m_myGroup->updateMenu(false);
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
     }
@@ -194,8 +193,8 @@ buttons will be <cr>inactive</c>",
     void onAddColLeft(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->addColumn(m_groupCmiInfo.m_column);
-        m_myGroup->updateMenu();
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column+1);
+        m_myGroup->updateMenu(false);
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column+1, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
     }
@@ -203,8 +202,8 @@ buttons will be <cr>inactive</c>",
     void onAddRowTop(CCObject*) { 
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->addRow(m_groupCmiInfo.m_row);
-        m_myGroup->updateMenu();
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row+1, m_groupCmiInfo.m_column);
+        m_myGroup->updateMenu(false);
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row+1);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
     }
@@ -212,8 +211,8 @@ buttons will be <cr>inactive</c>",
     void onAddRowBottom(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->addRow(m_groupCmiInfo.m_row+1);
-        m_myGroup->updateMenu();
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_row, m_groupCmiInfo.m_column);
+        m_myGroup->updateMenu(false);
+        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
     }
@@ -222,7 +221,7 @@ buttons will be <cr>inactive</c>",
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteColumn(m_groupCmiInfo.m_column);
         Global::get().m_editorUI->setSelectedCmi(nullptr);
-        m_myGroup->updateMenu();
+        m_myGroup->updateMenu(false);
         onClose(nullptr);
     }
 
@@ -230,7 +229,7 @@ buttons will be <cr>inactive</c>",
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteRow(m_groupCmiInfo.m_row);
         Global::get().m_editorUI->setSelectedCmi(nullptr);
-        m_myGroup->updateMenu();
+        m_myGroup->updateMenu(false);
         onClose(nullptr);
     }
 

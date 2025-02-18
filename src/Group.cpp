@@ -64,17 +64,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_menu->setContentSize({0,0});
     ret->m_menu->setTouchPriority(-502);
 
-    // top menu
-    ret->m_topMenu = CCMenu::create();
-    ret->addChild(ret->m_topMenu);
-    ret->m_topMenu->setTouchPriority(-502);
-
-    // side menu
-    ret->m_sideMenu = CCMenu::create();
-    ret->addChild(ret->m_sideMenu);
-    ret->m_sideMenu->setTouchPriority(-502);
-
-    ret->setupControlMenus();
+    // ret->setupControlMenus(); <-- lazy setup
 
     ret->setID("group"_spr);
     ret->autorelease();
@@ -107,12 +97,6 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
     ret->m_objectId = objId;
     ret->m_isSingle = true;
     ret->m_isUserCreated = isUserCreated;
-    ret->m_menu = nullptr;
-    ret->m_bgSprite = nullptr;
-    ret->m_textNode = nullptr;
-    ret->m_topMenu = nullptr;
-    ret->m_sideMenu = nullptr;
-    ret->m_cmi = nullptr;
 
     ret->setID("group"_spr);
     ret->autorelease();
@@ -170,7 +154,11 @@ void Group::setupControlMenus() {
     auto btn6 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_trashcan.png"_spr),
         this, menu_selector(Group::onDeleteObjButton));
-            
+    
+    m_topMenu = CCMenu::create();
+    this->addChild(m_topMenu);
+    m_topMenu->setTouchPriority(-502);
+
     m_topMenu->setAnchorPoint({0.5, 0});
     m_topMenu->addChild(btn1);
     m_topMenu->addChild(btn2);
@@ -183,6 +171,10 @@ void Group::setupControlMenus() {
     btn3->setTag(3);
     btn4->setTag(4);
     
+    m_sideMenu = CCMenu::create();
+    this->addChild(m_sideMenu);
+    m_sideMenu->setTouchPriority(-502);
+
     m_sideMenu->setAnchorPoint({0, 1});
     m_sideMenu->addChild(btn5);
     m_sideMenu->addChild(btn6);
@@ -191,31 +183,35 @@ void Group::setupControlMenus() {
 
 
 void Group::onArrowButton(CCObject* sender) {
-    int tag = sender->getTag(); // 1,2,3,4 - up, down, left, right
+    const int tag = sender->getTag(); // 1,2,3,4 - up, down, left, right
     if (tag > 4 || tag < 1) return;
-    uint32_t btnX, btnY;
-    if (!getSelectedItemPos(&btnX, &btnY)) {
+    uint32_t col, row;
+    if (!getSelectedItemPosition(&col, &row)) {
         alert("No focused button within the group. Select the button first!");
         return;
     }
+    uint32_t newCol = col, newRow = row;
     switch (tag) {
-        case 1: exchangeItems(btnX, btnY, btnX, btnY - 1); break;
-        case 2: exchangeItems(btnX, btnY, btnX, btnY + 1); break;
-        case 3: exchangeItems(btnX, btnY, btnX - 1, btnY); break;
-        case 4: exchangeItems(btnX, btnY, btnX + 1, btnY); break;
+        case 1: {newRow -= 1; break;}
+        case 2: {newRow += 1; break;}
+        case 3: {newCol -= 1; break;}
+        case 4: {newCol += 1; break;}
     }
-    updateMenu();
+    if (!exchangeItems(col, row, newCol, newRow)) return;
+    updateMenu(false);
+    setSelectedCmiWithPosition(newCol, newRow);
 }
 
 
 void Group::onDeleteObjButton(CCObject*) {
     uint32_t btnX, btnY;
-    if (!getSelectedItemPos(&btnX, &btnY)) {
+    if (!getSelectedItemPosition(&btnX, &btnY)) {
         alert("No focused button within the group. Select the button first!");
         return;
     }
     m_matrix[btnY][btnX] = 0;
-    updateMenu();
+    Global::get().m_editorUI->setSelectedCmi(nullptr);
+    updateMenu(false);
 }
 
 
@@ -333,7 +329,7 @@ void Group::updateObjId(short newObjId) {
 }
 
 
-bool Group::getSelectedItemPos(uint32_t* col, uint32_t* row) {
+bool Group::getSelectedItemPosition(uint32_t* col, uint32_t* row) {
     auto cmi = Global::get().m_editorUI->getSelectedCmi();
     if (cmi == nullptr) return false;
     auto myButtons = m_menu->getChildren();
@@ -354,7 +350,7 @@ bool Group::getSelectedItemPos(uint32_t* col, uint32_t* row) {
 }
 
 
-bool Group::setSelectedCmiWithPosition(uint32_t row, uint32_t col) {
+bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
     auto buttons = m_menu->getChildren();
     if (buttons == nullptr) return false;
     for (int i = 0; i < buttons->count(); i++) {
@@ -373,14 +369,19 @@ bool Group::setSelectedCmiWithPosition(uint32_t row, uint32_t col) {
 }
 
 
-void Group::updateMenu() {
+void Group::updateMenu(bool preserveSelectedCmi) {
     const int szY = m_matrix.size();
     if (szY == 0) return;
     const int szX = m_matrix[0].size();
     const bool isEditMode = Global::get().m_isEditMode;
 
+    if (isEditMode && (!m_topMenu || !m_sideMenu)) {
+        setupControlMenus(); // lazy setup
+    }
+
     uint32_t focusedRow, focusedColumn; // try to preserve it
-    bool hasFocusedCmi = getSelectedItemPos(&focusedColumn, &focusedRow);
+    bool hasSelectedCmi = preserveSelectedCmi ? 
+                getSelectedItemPosition(&focusedColumn, &focusedRow) : false;
 
     auto oldButtons = m_menu->getChildren();
     if (oldButtons == nullptr) {
@@ -442,9 +443,9 @@ void Group::updateMenu() {
 
     updateGroupView();
 
-    // preserve
-    if (hasFocusedCmi) {
-        setSelectedCmiWithPosition(focusedRow, focusedColumn);
+    // preserve selected cmi
+    if (hasSelectedCmi) {
+        setSelectedCmiWithPosition(focusedColumn, focusedRow);
     }
 
 }

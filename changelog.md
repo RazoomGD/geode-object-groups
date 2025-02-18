@@ -1,16 +1,5 @@
-# 1.0.1
-- initial release
+# 2.0.0 (a complete mod rewrite)
+- todo
 
-# 1.0.2
-- fix game crashes after updating create menu
-
-# 1.0.3
-- add new contrast button sprites
-
-# 1.0.4
-- tiny tweaks in default group config
-- no more log spam (for other mod developers)
-- add incompatibility info
-
-# 1.0.5
-- add "Objects order" option (check mod settings)
+# 1.0.*
+Older versions of the mod. <cr>Deprecated and unrecommended to use!</c> Upgrade to the latest version.
