@@ -5,9 +5,6 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
     $override 
     void loadFromItems(CCArray* buttonArray, int p1, int p2, bool p3) {
-        if (!buttonArray || buttonArray->count() == 0) {
-            return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
-        }
 
         auto barInfo = static_cast<BarInfo*>(this->getUserObject(BAR_USER_OBJ_ID));
         if (!barInfo || barInfo->m_isLoaded) {

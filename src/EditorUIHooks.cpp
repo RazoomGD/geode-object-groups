@@ -102,4 +102,5 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 	} else {
 		setSelectedCmi(nullptr);
 	}
+	log::debug("on create button");
 }

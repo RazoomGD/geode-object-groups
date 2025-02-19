@@ -16,6 +16,7 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
             case 8: {btnSpr->updateBGImage("OG_button_08.png"_spr); break;}
             case 9: {btnSpr->updateBGImage("OG_button_09.png"_spr); break;}
             case 10: {btnSpr->updateBGImage("OG_button_10.png"_spr); break;}
+            case 11: {btnSpr->updateBGImage("OG_button_11.png"_spr); break;}
             default: break;
         }
     }
@@ -39,7 +40,7 @@ void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright) {
 
         if (auto gameObj = typeinfo_cast<GameObject*>(spr->m_subSprite)) {
             int objId;
-            if (gameObj->m_unk4D0 == 1) {
+            if (gameObj->m_classType == 1) {
                 bool cVar14;
                 if (gameObj->m_customColorType == 0) {
                     cVar14 = gameObj->m_maybeNotColorable;

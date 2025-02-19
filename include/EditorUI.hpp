@@ -7,10 +7,7 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> rowMenu = nullptr;
 		Ref<CCMenu> toggleMenu = nullptr;
 		Ref<CCNode> buttonFrame = nullptr;
-		struct {
-			bool enable = false;
-			CreateMenuItem* fillerObj = nullptr;
-		} optimizeGetCreateBtn;
+
 		struct {
 			Ref<Group> group = nullptr;
 			Ref<CreateMenuItem> cmi = nullptr;
@@ -64,5 +61,6 @@ class $modify(MyEditorUI, EditorUI) {
 	CreateMenuItem* getSelectedCmi();
 
 	void onGroupButton(CreateMenuItem* groupCmi);
-	void closeOpenedGroupIfExists();
+	void setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi);
+	Group* getOpenedGroup();
 };

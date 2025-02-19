@@ -59,19 +59,19 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 
 CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 	auto tMenu = CCMenu::create(); 
-	auto tBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("T"), this, 
-		menu_selector(MyEditorUI::toggleEditGroupsMode)
-	);
+	auto spr = CCSprite::create("OG_button_editMode.png"_spr);
+	spr->setScale(0.6);
+	auto tBtn = CCMenuItemSpriteExtra::create(spr, this, 
+		menu_selector(MyEditorUI::toggleEditGroupsMode));
 	tMenu->addChild(tBtn);
-	this->addChild(tMenu); // todo: add children not to editorUI directly
+	this->addChild(tMenu);
 	tMenu->setAnchorPoint({1,0});
-	auto layout = RowLayout::create();
-	layout->setAxisAlignment(AxisAlignment::End);
-	tMenu->setLayout(layout);
-	tMenu->setPosition(ccp(CCDirector::get()->getWinSize().width - 100 * scale, 3));
-	tMenu->setScale(scale * 0.9);
+
+	tMenu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::End));
+	tMenu->setPosition(ccp(CCDirector::get()->getWinSize().width - 5 - this->getChildByID("toolbar-toggles-menu")->getContentWidth() * scale, 2.5));
+	tMenu->setScale(scale);
 	tMenu->setContentWidth(100);
+	tMenu->setContentHeight(30);
 	tMenu->setZOrder(2);
 	tMenu->updateLayout();
 	tMenu->setID("toggle_menu"_spr);
@@ -145,45 +145,39 @@ CreateMenuItem* MyEditorUI::getSelectedCmi() {
 }
 
 
-// open/close the group
-void MyEditorUI::onGroupButton(CreateMenuItem* groupCmi) {
-	auto group = static_cast<Group*>(groupCmi->getUserObject(CMI_USER_OBJ_ID));
-	if (!group) return;
-
-	if (m_fields->openedGroup.group == group) {
-		// close
-		closeOpenedGroupIfExists();
-		setSelectedCmi(groupCmi);
-	} else {
-		// open
-		closeOpenedGroupIfExists();
-		group->onOpenGroupMenu();
-		group->removeFromParent();
-		groupCmi->getParent()->addChild(group);
-		group->setPosition(groupCmi->getPosition());
-		m_fields->openedGroup = {group, groupCmi};
-		setSelectedCmi(groupCmi);
+// pass nullptr to close
+void MyEditorUI::setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi) {
+	// close opened group if exists
+	if (m_fields->openedGroup.group) {
+		m_fields->openedGroup.group->removeFromParent();
+		m_fields->openedGroup = {nullptr, nullptr};
+	}
+	// open new group
+	if (newGroup != nullptr && cmi != nullptr) {
+		newGroup->removeFromParent();
+		cmi->getParent()->addChild(newGroup);
+		newGroup->setPosition(cmi->getPosition());
+		m_fields->openedGroup = {newGroup, cmi};
 	}
 }
 
 
-void MyEditorUI::closeOpenedGroupIfExists() {
-	if (auto group = m_fields->openedGroup.group) {
-		group->onCloseGroupMenu();
-		group->removeFromParent();
-		m_fields->openedGroup = {nullptr, nullptr};
-	}
+Group* MyEditorUI::getOpenedGroup() {
+	return m_fields->openedGroup.group;
 }
 
 
 // enable/disable the row menu
-void MyEditorUI::toggleEditGroupsMode(CCObject*) {
+void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
+	auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
 	Global::get().m_isEditMode = !Global::get().m_isEditMode;
-	closeOpenedGroupIfExists();
+	setNewOpenedGroup(nullptr, nullptr);
 	if (!Global::get().m_isEditMode) {
 		m_fields->rowMenu->setVisible(false);
+		if (btn) btn->setColor(ccc3(255, 255, 255));
 	} else if (m_selectedMode == 2 /* build mode */) {
 		m_fields->rowMenu->setVisible(true);
+		if (btn) btn->setColor(ccc3(127, 127, 127));
 	}
 }
 

@@ -9,17 +9,18 @@ class Group : public CCNode {
 private:
     std::string m_groupName;
     short m_objectId;
+    bool m_isUserCreated;
     std::vector<std::vector<short>> m_matrix;
     bool m_isSingle; // single object or group
     bool m_isUpdateRequired;
     bool m_isInEditMode; // is menu setup for edit mode
-    bool m_isUserCreated;
 
     CCMenu* m_menu = nullptr; // there must be only buttons and nothing else
     CCScale9Sprite* m_bgSprite = nullptr;
     CCLabelBMFont* m_textNode = nullptr;
     CCMenu* m_topMenu = nullptr;
-    CCMenu* m_sideMenu = nullptr;
+    CCMenu* m_rightMenu = nullptr;
+    CCMenu* m_leftMenu = nullptr;
     CreateMenuItem* m_cmi = nullptr;
 
     void setupControlMenus();
@@ -27,6 +28,19 @@ private:
     void updateGroupView();
 
     bool exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
+
+    CreateMenuItem* getPlusButton();
+
+    // button handlers
+    void onGroupBtnClick(CCObject*);
+
+    void onInnerCreateButton(CCObject*);
+    void onInnerPlusButton(CCObject*);
+
+    void onExtraButton(CCObject*);
+    void onDeleteObjButton(CCObject*);
+    void onAddObjectButton(CCObject*);
+    void onArrowButton(CCObject*);
 
 public:
     // create method variants
@@ -42,18 +56,6 @@ public:
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     matjson::Value toJson();
-
-    // button handlers
-    void onGroupBtnClick(CCObject*);
-    void onOpenGroupMenu();
-    void onCloseGroupMenu();
-
-    void onInnerCreateButton(CCObject*);
-    void onPlusButton(CCObject*);
-
-    void onExtraButton(CCObject*);
-    void onDeleteObjButton(CCObject*);
-    void onArrowButton(CCObject*);
 
     void clearAllCreateMenuItems();
 

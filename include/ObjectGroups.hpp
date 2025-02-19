@@ -46,7 +46,7 @@ struct Global {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
             m_showNames = Mod::get()->getSettingValue<bool>("show-names");
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
-            m_groupColor = (col >= 1 && col <= 10) ? col : 1;
+            m_groupColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color-v2");
         }
     } m_settings;
