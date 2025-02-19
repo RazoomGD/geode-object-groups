@@ -5,40 +5,21 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
     $override 
     void loadFromItems(CCArray* buttonArray, int p1, int p2, bool p3) {
-        if (buttonArray->count() == 0) {
+        if (!buttonArray || buttonArray->count() == 0) {
             return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
         }
 
-        int tabIndex;
-        if (auto obj = static_cast<BarInfo*>(this->getUserObject(BAR_USER_OBJ_ID))) {
-            if (obj->m_isLoaded) {
-                // tab already loaded
-                return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
-            }
-            obj->m_isLoaded = true; // will be loaded right now
-            tabIndex = obj->m_tabIndx;
-        } else {
-            // user object is not set means this is either not my tab or tab is not loaded
-
-            // check if this is my tab
-            if (m_tabIndex < 0 || m_tabIndex >= 13) {
-                return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
-            }
-
-            // validate that this is the build tab and make a special check for the 1st tab
-            auto cmi = typeinfo_cast<CreateMenuItem*>(buttonArray->objectAtIndex(0));
-            if (!cmi || m_tabIndex == 0 && (cmi->m_objectID != 1 || buttonArray->count() < 400)) {
-                return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
-            }
-
-            // tab is mine and will be loaded right now
-            this->setUserObject(BAR_USER_OBJ_ID, new BarInfo(m_tabIndex, true));
-            tabIndex = m_tabIndex;
+        auto barInfo = static_cast<BarInfo*>(this->getUserObject(BAR_USER_OBJ_ID));
+        if (!barInfo || barInfo->m_isLoaded) {
+            // not my tab or just reload
+            return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
         }
 
         // load my tab
-        loadCustomBarForTab(buttonArray, tabIndex, p1, p2, p3);
-        log::debug("first load from items {}", tabIndex);
+        loadCustomBarForTab(buttonArray, barInfo->m_tabIndx, p1, p2, p3);
+        log::debug("first load from items {}", barInfo->m_tabIndx);
+
+        barInfo->m_isLoaded = true;
 
         // fix overlapping with arrows
         if (auto myChildren = this->getChildren())

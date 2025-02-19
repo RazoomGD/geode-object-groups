@@ -44,11 +44,12 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	if (!EditorUI::init(editorLayer)) return false;
 
 	// prevent overlapping with my menus
-	if (auto ch = this->getChildByID("build-tabs-menu")) ch->setZOrder(6); 
-	if (auto ch = this->getChildByID("editor-buttons-menu")) ch->setZOrder(6);
-	if (auto ch = this->getChildByID("layer-menu")) ch->setZOrder(6);
+	getChildByID("build-tabs-menu")->setZOrder(6); 
+	getChildByID("editor-buttons-menu")->setZOrder(6);
+	getChildByID("layer-menu")->setZOrder(6);
 
 	setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
+	setupVanillaTabs();
 
 	const float scale = getBetterEditInterfaceScale();
 
@@ -84,8 +85,7 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 	// (as we now can have more buttons of type than 1)
 	int indx = m_selectedObjectIndex;
 	if (indx > 0) {
-		CCArrayExt<CreateMenuItem*> buttons = m_createButtonArray;
-		for (auto* btn : buttons) {
+		for (auto* btn : CCArrayExt<CreateMenuItem*>(m_createButtonArray)) {
 			if (btn->m_objectID == indx) {
 				setColorToCreateBtnNew(btn, false);
 			}

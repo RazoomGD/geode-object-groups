@@ -36,6 +36,7 @@ class $modify(MyEditorUI, EditorUI) {
 	CCMenu* setupRowMenu(float scale);
 	CCMenu* setupToggleMenu(float scale);
 	void setupExtraTabs(int count);
+	void setupVanillaTabs();
 
 	// hooks
 	$override bool init(LevelEditorLayer* editorLayer);

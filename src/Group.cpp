@@ -66,7 +66,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
 
     // ret->setupControlMenus(); <-- lazy setup
 
-    ret->setID("group"_spr);
+    ret->setID("RaZooM");
     ret->autorelease();
     return ret;
 }
@@ -98,7 +98,7 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
     ret->m_isSingle = true;
     ret->m_isUserCreated = isUserCreated;
 
-    ret->setID("group"_spr);
+    ret->setID("RaZooM");
     ret->autorelease();
     return ret;
 }

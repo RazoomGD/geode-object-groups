@@ -80,18 +80,17 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 
 
 void MyEditorUI::setupExtraTabs(int count) {
+	int rows, cols;
+	getBarSize(&rows, &cols);
+
 	for (int i = 0; i < count; i++) {
-		EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}", i+1),
+		EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}"_spr, i+1),
 			// is called once on creation
 			[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 				auto icon = CCLabelBMFont::create(std::to_string(i+1).c_str(), "bigFont.fnt");
 				icon->setScale(0.5f);
 				EditorTabUtils::setTabIcon(toggler, icon);
-
 				auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
-
-				int rows, cols;
-				getBarSize(&rows, &cols);
 
 				// set user obj and call my hook
 				ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i, false));
@@ -101,6 +100,34 @@ void MyEditorUI::setupExtraTabs(int count) {
 			// is called on every tab click
 			[](EditorUI*, bool state, CCNode*) {}
 		);
+	}
+}
+
+
+void MyEditorUI::setupVanillaTabs() {
+	const char* const names[] = {
+		"block-tab-bar", 
+		"outline-tab-bar",
+		"slope-tab-bar",
+		"hazard-tab-bar",
+		"3d-tab-bar",
+		"portal-tab-bar",
+		"monster-tab-bar",
+		"pixel-tab-bar",
+		"collectible-tab-bar",
+		"icon-tab-bar",
+		"deco-tab-bar",
+		"sawblade-tab-bar",
+		"trigger-tab-bar"
+	};
+
+	int rows, cols;
+	getBarSize(&rows, &cols);
+
+	for (int i = 0; i < 13; i++) {
+		auto bar = static_cast<EditButtonBar*>(getChildByID(names[i]));
+		bar->setUserObject(BAR_USER_OBJ_ID, new BarInfo(i, false));
+		bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
 	}
 }
 
