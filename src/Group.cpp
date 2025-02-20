@@ -104,12 +104,56 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 
 
 Group* Group::createFromJsonValue(matjson::Value json) {
-    return nullptr;
+    matjson::Value obj = json["obj"];
+    if (!obj.isExactlyUInt()) return nullptr;
+
+    std::string name;
+    matjson::Value aName = json["name"];
+    if (aName.isString()) {
+        name = aName.asString().unwrap();
+    }
+
+    std::vector<std::vector<short>> matrix;
+    matjson::Value aMatrix = json["group"];
+    if (aMatrix.isArray()) {
+        for (matjson::Value& row : aMatrix) {
+            if (row.isArray()) {
+                std::vector<short> vec;
+                for (matjson::Value& el : row) {
+                    if (el.isExactlyUInt()) {
+                        vec.push_back(el.asInt().unwrap());
+                    }
+                }
+                matrix.push_back(vec);
+            }
+        }
+    }
+    Group* group;
+    if (matrix.empty()) {
+        matjson::Value isUserObj = json["isUsr"];
+        group = Group::createSingle(obj.asInt().unwrap(), isUserObj.asBool().unwrapOr(false));
+    } else {
+        group = Group::createGroup(name, obj.asInt().unwrap(), std::move(matrix));
+    }
+    return group;
 }
 
 
 matjson::Value Group::toJson() {
-    return matjson::Value(nullptr);
+    matjson::Value jsonGroup;
+    jsonGroup.set("obj", m_objectId);
+    if (!m_isSingle) { // group
+        jsonGroup.set("group", m_matrix);
+
+        if (!m_groupName.empty()) {
+            jsonGroup.set("name", m_groupName);
+        }
+    } else { // single object
+        if (m_isUserCreated) {
+            jsonGroup.set("isUsr", m_isUserCreated);
+        }
+    }
+    return jsonGroup;
 }
 
 

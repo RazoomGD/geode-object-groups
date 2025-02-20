@@ -1,5 +1,8 @@
 #include "Group.hpp"
 
+#include <iostream>
+#include <fstream>
+
 using namespace matjson;
 
 $on_mod(Loaded) {
@@ -21,118 +24,87 @@ $on_mod(Loaded) {
     }
 }
 
+// write config to json file. Return 0 on success, -1 on file error
+int writeConfigToJson(std::string filename) {
+    // open file
+    // std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
 
-bool writeConfigToJson(std::string filename) {
-    Value config;
-    for (int i = 0; i < Global::get().m_groups.size(); i++) { // foreach tab
-        auto tabArray = Global::get().m_groups[i].data();
-        if (tabArray == nullptr || tabArray->count() == 0) {
-            continue;
-        }
+    // if (!jsonFile) {
+    //     return -1;
+    // }
 
-        Value jsonArray(std::vector<int>{});
-        for (int i = 0; i < tabArray->count(); i++) { // foreach item
-            auto group = static_cast<Group*>(tabArray->objectAtIndex(i));
-            Value jsonGroup;
-            jsonGroup.set("obj", group->getObjId());
-            if (!group->isSingle()) { // group
-                jsonGroup.set("group", group->getMatrix());
+    // Value config;
+    // foreach bar with my user object
+    // for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
+    // 	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
+    //         Value jsonArray(std::vector<int>{});
+    //         // foreach item in my tab
+    //         for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+    //             if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+    //                 jsonArray.push(group->toJson());
+    //             } else if (cmi->m_objectID != 0) {
+    //                 // single not user-created object without any info
+    //                 auto unkObj = makeObject({{"obj", cmi->m_objectID}});
+    //                 jsonArray.push(unkObj);
+    //             }
+    //         }
 
-                auto name = group->getName();
-                if (!name.empty()) {
-                    jsonGroup.set("name", name);
-                }
-            } else { // single object
-                if (group->isUserCreated()) {
-                    jsonGroup.set("isUsr", true);
-                }
-            }
-            jsonArray.push(jsonGroup);
-        }
-
-        auto tabIdx = std::to_string(i);
-        config[tabIdx] = 1;
+    //         auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
+    //         config[tabIdx] = jsonArray;
+    //     }
+    // }
+    
+    // Value jsonObj = makeObject({
+    //     {"comment", "DANGER! Don't edit this manually!"},
+    //     {"config", config}
+    // });
+    // Value jsonArray({1,2,3,bool});
+    Value jsonArray({ 1, 2, "hello", true });
+    for (int i = 0; i < 10000; i++) {
+        jsonArray.push(1);
     }
-    Value jsonObj = makeObject({
-        {"comment", "DANGER! Don't edit this manually!"},
-        {"config", config}
-    });
+    log::debug("str", jsonArray.dump());
 
-    std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
-    if (!jsonFile) {
-        return false;
-    }
-    jsonFile << jsonObj.dump() << std::endl;
-    return true;
+    // write file
+    // jsonFile << config.dump() << std::endl;
+    // jsonFile.close();
+    
+    return 0;
 }
 
-bool readConfigFromJson(std::string filename) {
+
+// load config from json file to global buffers (Global->m_groups)
+// return 0 on success, -1 on file error, -2 on json error
+int readConfigFromJson(std::string filename) {
     std::ifstream jsonFile(filename);
     if (!jsonFile) {
-        return false;
+        return -1;
     }
     auto res = matjson::parse(jsonFile);
-    if (res.isErr()) {
-        return false;
+    if (!res.isOk()) {
+        return -2;
     }
 
     Value jsonObj = res.unwrap();
     Value config = jsonObj["config"];
     if (!config.isObject()) {
-        return false;
+        return -2;
     }
 
     for (int i = 0; i < Global::get().m_groups.size(); i++) { // foreach tab
-        auto tabArray = Global::get().m_groups[i].data();
-        if (tabArray == nullptr) {
-            return false;
-        }
-        if (tabArray->count()) {
-            tabArray->removeAllObjects();
-        }
-
-        auto key = std::to_string(i);
-        Value tab = config[key];
-        if (!tab.isArray()) {
-            continue;
-        }
-
-        for (Value& groupObj : tab) { // foreach group/obj entry
-            Value obj = groupObj["obj"];
-            if (!obj.isExactlyUInt()) {
-                continue;
-            }
-
-            std::string name;
-            Value aName = groupObj["name"];
-            if (aName.isString()) {
-                name = aName.asString().unwrap();
-            }
-
-            std::vector<std::vector<short>> matrix;
-            Value aMatrix = groupObj["group"];
-            if (aMatrix.isArray()) {
-                for (Value& row : aMatrix) {
-                    if (row.isArray()) {
-                        std::vector<short> vec;
-                        for (Value& el : row) {
-                            if (el.isExactlyUInt()) {
-                                vec.push_back(el.asInt().unwrap());
-                            }
-                        }
-                        matrix.push_back(vec);
-                    }
+        Value tab = config[fmt::format("tab_{}", i)];
+        if (tab.isArray()) {
+            auto tabArray = CCArray::create();
+            for (Value& groupObj : tab) { // foreach group/obj entry
+                if (auto group = Group::createFromJsonValue(groupObj)) {
+                    tabArray->addObject(group);
                 }
             }
-            Group* group;
-            if (matrix.empty()) {
-                Value isUserObj = groupObj["isUsr"];
-                group = Group::createSingle(obj.asInt().unwrap(), isUserObj.asBool().unwrapOr(false));
-            } else {
-                group = Group::createGroup(name, obj.asInt().unwrap(), std::move(matrix));
-            }
-            Global::get().m_groups[i].data()->addObject(group);
+            Global::get().m_groups[i] = tabArray;
+        } else {
+            Global::get().m_groups[i] = nullptr;
         }
     }
-    return true;
+
+    return 0;
 }

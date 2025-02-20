@@ -1,4 +1,5 @@
 #include "EditorUI.hpp"
+#include "json.hpp"
 
 
 // mathematically correct a % b
@@ -68,7 +69,8 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 	tMenu->setAnchorPoint({1,0});
 
 	tMenu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::End));
-	tMenu->setPosition(ccp(CCDirector::get()->getWinSize().width - 5 - this->getChildByID("toolbar-toggles-menu")->getContentWidth() * scale, 2.5));
+	tMenu->setPosition(ccp(CCDirector::get()->getWinSize().width - (7 + 
+		this->getChildByID("toolbar-toggles-menu")->getContentWidth()) * scale, 2.5));
 	tMenu->setScale(scale);
 	tMenu->setContentWidth(100);
 	tMenu->setContentHeight(30);
@@ -259,17 +261,18 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	
 	if (auto group = static_cast<Group*>(btn->getUserObject(CMI_USER_OBJ_ID))) {
 		if (group->isSingle()) {
+			// single object
 			group->removeFromParent();
 			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
-			m_createButtonArray->removeObject(btn);
+			m_createButtonArray->fastRemoveObject(btn);
 		} else {
-			// proper group deletion
-			group->clearAllCreateMenuItems();
+			// group
+			group->clearAllCreateMenuItems(); // proper group deletion
 			group->removeFromParent();
 			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
 		}
 	} else {
-		// not a group and
+		// not a group
 		if (btn->m_objectID == 0) {
 			alert("Can't delete this button");
 			return;
@@ -324,25 +327,29 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 
 
 void MyEditorUI::onSaveButton(CCObject*) {
-	// auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
-	// // update arrays of groups first
-	// for (int i = 0; i < m_createButtonBars->count(); i++) {
-	// 	auto bar = static_cast<EditButtonBar*>(m_createButtonBars->objectAtIndex(i));
-	// 	// is my bar
-	// 	if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-	// 		auto myArray = Global::get().m_groups[obj->m_tabIndx].data();
-	// 		// myArray contains objects from previous load. Buttons may be added or deleted from that time
-	// 		myArray->removeAllObjects();
-	// 		for (int j = 0; j < bar->m_buttonArray->count(); j++) {
-	// 			auto cmi = typeinfo_cast<CreateMenuItem*>(bar->m_buttonArray->objectAtIndex(j));
-	// 			if (cmi == nullptr || cmi->m_objectID <= 0) continue;
-	// 			if (auto btnInfo = static_cast<BtnInfo*>(bar->getUserObject(CMI_USER_OBJ_ID))) {
-					
-	// 			}
-	// 		}
-	// 	}
+// 	auto file = Mod::get()->getConfigDir().append("OGv2_config.json");
+// 	int result = writeConfigToJson(file.string());
+// 	log::debug("bobobob");
+// 	if (result == 0) {
+// 		shortAlert("Saved!");
+// 	} else if (result == -1) {
+// 		alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n\
+// Configuration wasn't saved! Check that file exists and isn't locked", file.string()).c_str());
+// 	}
+	// std::vector<int> vec;
+	// auto jsonArray = matjson::Value::array();
+	// for (int i = 0; i < 10000; i++) {
+	// 	jsonArray.push(1);
 	// }
-	// writeConfigToJson(file.string());
+	// log::debug("str {}", jsonArray.dump(0));
+	// log::debug("str {}", jsonArray.dump(0));
+	// log::debug("end");
+	auto array = json::Array();
+	for (int i = 0; i < 10000; i++) {
+		array.append(1);
+	}
+
+	log::debug("str {}", array.dump());
 }
 
 

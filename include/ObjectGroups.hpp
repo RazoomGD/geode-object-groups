@@ -8,6 +8,7 @@
 #include <alphalaneous.editortab_api/include/EditorTabs.hpp>
 
 #include <string>
+#include <matjson.hpp>
 #include <vector>
 #include <list>
 #include <set>
@@ -67,6 +68,7 @@ struct BarInfo : public CCObject {
 
 // shorter alert create
 inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text, "ok")->show();}
+void shortAlert(const char* text, float timeSec=1.0);
 
 // replacement for getCreateBtn
 // this supports custom colors and can remove button from editor->m_createButtonArray
@@ -86,7 +88,7 @@ std::string toValidString(const char* txt);
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 
 // --------------------------- file --------------------------
-bool readConfigFromJson(std::string filename);
-bool writeConfigToJson(std::string filename);
+int readConfigFromJson(std::string filename);
+int writeConfigToJson(std::string filename);
 
 
