@@ -30,63 +30,66 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
 }
 
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright) {
-    // ! mostly decompiled code of EditorUI::updateCreateMenu() that sets the color
-
     ccColor3B color = isBright ? ccc3(255, 255, 255) : ccc3(127, 127, 127);
     if (auto spr = cmi->getChildByType<ButtonSprite>(0)) {
         if (spr->m_subBGSprite) {
             spr->m_subBGSprite->setColor(color); // button bg sprite
         }
-
         if (auto gameObj = typeinfo_cast<GameObject*>(spr->m_subSprite)) {
-            int objId;
-            if (gameObj->m_classType == 1) {
-                bool cVar14;
-                if (gameObj->m_customColorType == 0) {
-                    cVar14 = gameObj->m_maybeNotColorable;
-                } else {
-                    cVar14 = (gameObj->m_customColorType == 1);
-                }
-                if (cVar14 || gameObj->m_colorSprite || 
-                    gameObj->m_baseColor->m_defaultColorID == 0x3ec || 
-                    gameObj->m_baseColor->m_defaultColorID == 0x0  || 
-                    /* (*(char *)(gameObj + 0xdf) == '\0') */ false) {
-                    goto LAB_14010da56;
-                }
-                color = isBright ? ccc3(200, 200, 255) : ccc3(100, 100, 127);
-                goto LAB_14010dac2;
-            }
-LAB_14010da56:
-            objId = gameObj->m_objectID;
-            bool bVar12;
-            if (objId < 0x531) {
-                if (((objId == 0x530) || (objId == 0x396)) || (objId == 0x397)) goto LAB_14010daad;
-                bVar12 = (objId == 0x52f);
-LAB_14010da89:
-                if (bVar12) goto LAB_14010daad;
-                auto piVar3 = gameObj->m_baseColor;
-                if (piVar3 != 0) {
-                    objId = piVar3->m_colorID;
-                    if ((piVar3->m_defaultColorID == objId) || (objId == 0x0)) {
-                        objId = piVar3->m_defaultColorID;
-                    }
-                    if (objId == 0x3f2) goto LAB_14010daad;
-                }
-            }
-            else {
-                if (objId != 0x630) {
-                    bVar12 = (objId == 0x7dc);
-                    goto LAB_14010da89;
-                }
-LAB_14010daad:
-                color = isBright ? ccc3(0, 0, 0) : ccc3(127, 127, 127);
-            }
-LAB_14010dac2:
-            gameObj->setObjectColor(color);
-            color = isBright ? ccc3(200, 200, 255) : ccc3(100, 100, 127);
-            gameObj->setChildColor(color);
+            setColorToGameObjectNew(gameObj, isBright);
         }
     }
+}
+
+void setColorToGameObjectNew(GameObject* gameObj, bool isBright) {
+    // ! mostly decompiled code of EditorUI::updateCreateMenu() that sets the color
+    ccColor3B color = isBright ? ccc3(255, 255, 255) : ccc3(127, 127, 127);
+    int objId;
+    if (gameObj->m_classType == 1) {
+        bool cVar14;
+        if (gameObj->m_customColorType == 0) {
+            cVar14 = gameObj->m_maybeNotColorable;
+        } else {
+            cVar14 = (gameObj->m_customColorType == 1);
+        }
+        if (cVar14 || gameObj->m_colorSprite || 
+            gameObj->m_baseColor->m_defaultColorID == 0x3ec || 
+            gameObj->m_baseColor->m_defaultColorID == 0x0  || 
+            /* (*(char *)(gameObj + 0xdf) == '\0') */ false) {
+            goto LAB_14010da56;
+        }
+        color = isBright ? ccc3(200, 200, 255) : ccc3(100, 100, 127);
+        goto LAB_14010dac2;
+    }
+LAB_14010da56:
+    objId = gameObj->m_objectID;
+    bool bVar12;
+    if (objId < 0x531) {
+        if (((objId == 0x530) || (objId == 0x396)) || (objId == 0x397)) goto LAB_14010daad;
+        bVar12 = (objId == 0x52f);
+LAB_14010da89:
+        if (bVar12) goto LAB_14010daad;
+        auto piVar3 = gameObj->m_baseColor;
+        if (piVar3 != 0) {
+            objId = piVar3->m_colorID;
+            if ((piVar3->m_defaultColorID == objId) || (objId == 0x0)) {
+                objId = piVar3->m_defaultColorID;
+            }
+            if (objId == 0x3f2) goto LAB_14010daad;
+        }
+    }
+    else {
+        if (objId != 0x630) {
+            bVar12 = (objId == 0x7dc);
+            goto LAB_14010da89;
+        }
+LAB_14010daad:
+        color = isBright ? ccc3(0, 0, 0) : ccc3(127, 127, 127);
+    }
+LAB_14010dac2:
+    gameObj->setObjectColor(color);
+    color = isBright ? ccc3(200, 200, 255) : ccc3(100, 100, 127);
+    gameObj->setChildColor(color);
 }
 
 
@@ -159,7 +162,7 @@ void shortAlert(const char* text, float timeSec) {
     base->addChild(label, 2);
     base->setPosition(CCDirector::get()->getWinSize() / 2);
     base->setScale(scale);
-    CCScene::get()->addChild(base, 99);
+    CCScene::get()->addChild(base, 199);
 
     auto endFunc = CallFuncExt::create([base](){base->setVisible(false);}); // fix screen blink
     auto endFunc2 = CallFuncExt::create([base](){base->removeFromParent();});

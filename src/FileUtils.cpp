@@ -27,47 +27,39 @@ $on_mod(Loaded) {
 // write config to json file. Return 0 on success, -1 on file error
 int writeConfigToJson(std::string filename) {
     // open file
-    // std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
+    std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
 
-    // if (!jsonFile) {
-    //     return -1;
-    // }
+    if (!jsonFile) return -1;
 
-    // Value config;
+    Value config;
     // foreach bar with my user object
-    // for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
-    // 	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-    //         Value jsonArray(std::vector<int>{});
-    //         // foreach item in my tab
-    //         for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
-    //             if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-    //                 jsonArray.push(group->toJson());
-    //             } else if (cmi->m_objectID != 0) {
-    //                 // single not user-created object without any info
-    //                 auto unkObj = makeObject({{"obj", cmi->m_objectID}});
-    //                 jsonArray.push(unkObj);
-    //             }
-    //         }
+    for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
+    	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
+            Value jsonArray(std::vector<int>{});
+            // foreach item in my tab
+            for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+                if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+                    jsonArray.push(group->toJson());
+                } else if (cmi->m_objectID != 0) {
+                    // single not user-created object without any info
+                    auto unkObj = makeObject({{"obj", cmi->m_objectID}});
+                    jsonArray.push(unkObj);
+                }
+            }
 
-    //         auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
-    //         config[tabIdx] = jsonArray;
-    //     }
-    // }
-    
-    // Value jsonObj = makeObject({
-    //     {"comment", "DANGER! Don't edit this manually!"},
-    //     {"config", config}
-    // });
-    // Value jsonArray({1,2,3,bool});
-    Value jsonArray({ 1, 2, "hello", true });
-    for (int i = 0; i < 10000; i++) {
-        jsonArray.push(1);
+            auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
+            config[tabIdx] = jsonArray;
+        }
     }
-    log::debug("str", jsonArray.dump());
+    
+    Value jsonObj = makeObject({
+        {"comment", "DANGER! Don't edit this manually!"},
+        {"config", config}
+    });
 
     // write file
-    // jsonFile << config.dump() << std::endl;
-    // jsonFile.close();
+    jsonFile << jsonObj.dump() << std::endl;
+    jsonFile.close();
     
     return 0;
 }

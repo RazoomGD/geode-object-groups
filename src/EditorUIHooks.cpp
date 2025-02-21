@@ -1,4 +1,5 @@
 #include "EditorUI.hpp"
+#include "UpdateNotificationManager.hpp"
 
 // support for BetterEdit scale factor
 inline float getBetterEditInterfaceScale() {
@@ -39,6 +40,7 @@ void MyEditorUI::showUI(bool show) {
 bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_editorUI = this;
 	Global::get().m_isEditMode = false;
+	Global::get().m_hasUnsavedOGChanges = false;
 	Global::get().m_settings.update();
 	
 	if (!EditorUI::init(editorLayer)) return false;
@@ -65,6 +67,12 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	toggleEditGroupsMode(nullptr);
 	toggleEditGroupsMode(nullptr);
 
+	if (Global::get().m_isFirstEditorEnter || !Global::get().m_isCurrentVersionSafe) {
+		// notify user about an important update
+		UpdateNotificationManager::get()->goodMorning();
+		Global::get().m_isFirstEditorEnter = false;
+	}
+
 	return true;
 }
 
@@ -72,8 +80,8 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 void MyEditorUI::toggleMode(CCObject* sender) {
 	EditorUI::toggleMode(sender);
 	if (auto menu = m_fields->rowMenu) {
-		menu->setVisible(sender == m_buildModeBtn && Global::get().m_isEditMode);
-		m_fields->toggleMenu->setVisible(sender == m_buildModeBtn);
+		menu->setVisible(m_selectedMode == 2 && Global::get().m_isEditMode);
+		m_fields->toggleMenu->setVisible(m_selectedMode == 2);
 	}
 }
 
@@ -84,7 +92,7 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 	// darken all buttons with the selected object 
 	// (as we now can have more buttons of type than 1)
 	int indx = m_selectedObjectIndex;
-	if (indx > 0) {
+	if (indx != 0) {
 		for (auto* btn : CCArrayExt<CreateMenuItem*>(m_createButtonArray)) {
 			if (btn->m_objectID == indx) {
 				setColorToCreateBtnNew(btn, false);

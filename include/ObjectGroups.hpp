@@ -35,6 +35,11 @@ struct Global {
 
     MyEditorUI* m_editorUI;
     bool m_isEditMode;
+    bool m_hasUnsavedOGChanges;
+    // update notification related
+    bool m_isFirstEditorEnter = true;
+    bool m_isCurrentVersionSafe = true; // async
+
     // Group Config (index in array is a build tab index)
     std::array<Ref<CCArray>, 20> m_groups; 
 
@@ -68,7 +73,7 @@ struct BarInfo : public CCObject {
 
 // shorter alert create
 inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text, "ok")->show();}
-void shortAlert(const char* text, float timeSec=1.0);
+void shortAlert(const char* text, float timeSec=1.5);
 
 // replacement for getCreateBtn
 // this supports custom colors and can remove button from editor->m_createButtonArray
@@ -76,6 +81,7 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 
 // brighten or darken the CreateMenuItem (decompiled function)
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);
+void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 
 // return number of rows and columns on editButtonBar
 void getBarSize(int* rows, int* cols);

@@ -1,5 +1,5 @@
 #include "EditorUI.hpp"
-#include "json.hpp"
+#include "MoreOptionsPopup.hpp"
 
 
 // mathematically correct a % b
@@ -43,6 +43,10 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 		ButtonSprite::create("Delete\nbutton"), this, 
 		menu_selector(MyEditorUI::onDeleteItemButton)
 	);
+	auto moreOptionsButton = CCMenuItemSpriteExtra::create(
+		ButtonSprite::create("More\n "), this, 
+		menu_selector(MyEditorUI::onMoreOptionsButton)
+	);	
 
 	rowMenu->addChild(newObjectBtn);
 	rowMenu->addChild(moveForwardBtn);
@@ -51,6 +55,7 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	rowMenu->addChild(newGroupBtn);
 	rowMenu->addChild(newGroupFromLayoutBtn);
 	rowMenu->addChild(deleteItemButton);
+	rowMenu->addChild(moreOptionsButton);
 	
 	rowMenu->updateLayout();
 
@@ -175,9 +180,12 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 	Global::get().m_isEditMode = !Global::get().m_isEditMode;
 	setNewOpenedGroup(nullptr, nullptr);
 	if (!Global::get().m_isEditMode) {
+		// disable
+		// todo: handle unsaved changes
 		m_fields->rowMenu->setVisible(false);
 		if (btn) btn->setColor(ccc3(255, 255, 255));
 	} else if (m_selectedMode == 2 /* build mode */) {
+		// enable
 		m_fields->rowMenu->setVisible(true);
 		if (btn) btn->setColor(ccc3(127, 127, 127));
 	}
@@ -214,6 +222,7 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 		int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
 		auto newBtn = getCustomCreateBtn(newObjId, getItemBtnColor(newObjId));
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+		Global::get().m_hasUnsavedOGChanges = true;
 
 	} else {
 		std::vector<short> ids;
@@ -231,8 +240,10 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 						arr->addObject(newBtn);
 					}
 					addButtonsAndReloadCurrentBar(arr);
+					Global::get().m_hasUnsavedOGChanges = true;
 				}
-			}
+			},
+			true, true
 		);
 	}
 }
@@ -281,6 +292,12 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 		m_createButtonArray->removeObject(btn);
 	}
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
+	Global::get().m_hasUnsavedOGChanges = true;
+}
+
+
+void MyEditorUI::onMoreOptionsButton(CCObject*) {
+	MoreOptionsPopup::create()->show();
 }
 
 
@@ -323,33 +340,24 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 	m_createButtonBar->m_buttonArray->exchangeObjectAtIndex(index, index + (forward ? 1 : -1));
 
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
+	Global::get().m_hasUnsavedOGChanges = true;
 }
 
 
 void MyEditorUI::onSaveButton(CCObject*) {
-// 	auto file = Mod::get()->getConfigDir().append("OGv2_config.json");
-// 	int result = writeConfigToJson(file.string());
-// 	log::debug("bobobob");
-// 	if (result == 0) {
-// 		shortAlert("Saved!");
-// 	} else if (result == -1) {
-// 		alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n\
-// Configuration wasn't saved! Check that file exists and isn't locked", file.string()).c_str());
-// 	}
-	// std::vector<int> vec;
-	// auto jsonArray = matjson::Value::array();
-	// for (int i = 0; i < 10000; i++) {
-	// 	jsonArray.push(1);
-	// }
-	// log::debug("str {}", jsonArray.dump(0));
-	// log::debug("str {}", jsonArray.dump(0));
-	// log::debug("end");
-	auto array = json::Array();
-	for (int i = 0; i < 10000; i++) {
-		array.append(1);
+	if (!Global::get().m_hasUnsavedOGChanges) {
+		shortAlert("No changes were made!", 2);
+	} else {
+		auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
+		int result = writeConfigToJson(file.string());
+		if (result == 0) {
+			shortAlert("Saved!", 2);
+			Global::get().m_hasUnsavedOGChanges = false;
+		} else if (result == -1) {
+			alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n\
+	Configuration wasn't saved! Check that file exists and isn't locked", file.string()).c_str());
+		}
 	}
-
-	log::debug("str {}", array.dump());
 }
 
 
@@ -388,6 +396,7 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 
 	auto newBtn = group->getCmi();
 	addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+	Global::get().m_hasUnsavedOGChanges = true;
 }
 
 
@@ -413,10 +422,118 @@ void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 		log::debug("grid group created");
 		auto newBtn = group->getCmi();
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+		Global::get().m_hasUnsavedOGChanges = true;
 	} else {
 		alert("<co>Layout not detected</c>: Selected objects cannot be arranged while \
 preserving their relative positions. Check that there are no multiple objects at the same spot");
 	}
+}
+
+
+void MyEditorUI::createIconForTheTabFromSelectedObjects() {
+	auto selected = getSelectedObjects();
+	auto levelLayer = LevelEditorLayer::get();
+	
+	if (selected->count() > 48) {
+		alert("<cg>Sorry, but I've set a limit of 48 objects. Use them wisely</c>");
+
+	} else if (m_selectedTab < m_tabsArray->count() && m_selectedTab >= 0) {
+		// set new icon to the current tab (if it's mine)
+		if (auto uObj = static_cast<BarInfo*>(m_createButtonBar->getUserObject(BAR_USER_OBJ_ID))) {
+			// my tab
+			auto tabIcon = static_cast<CCMenuItemToggler*>(m_tabsArray->objectAtIndex(m_selectedTab));
+			std::string str;
+			for (auto* obj : CCArrayExt<GameObject*>(selected)) {
+				str += obj->getSaveString(levelLayer) + ";";
+			}
+
+			if (setSpiteToTabByIndexFromString(str, tabIcon, uObj->m_tabIndx)) {
+				Mod::get()->setSavedValue(fmt::format("tab_{}_icon", uObj->m_tabIndx), str);
+				shortAlert(str.empty() ? "Icon reset!" : "Icon set!");
+			}
+
+		} else {
+			alert("You can not change the icon of this tab.\n\
+<cl>You can only change default editor tabs and tabs added by</c> <cy>Object Groups</c>");
+		}
+
+	}
+}
+
+
+// if str is empty, reset to default
+bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx) {
+
+	if (objectString.empty()) {
+		struct SprInfo {const char* name; float sc;};
+		const SprInfo defaultSprites[13] = {
+			{"square_01_001.png", 0.45f},
+			{"blockOutline_01_001.png", 0.45f},
+			{"triangle_a_02_001.png", 0.45f},
+			{"spike_01_001.png", 0.45f},
+			{"persp_outline_01_001.png", 0.8f},
+			{"ring_01_001.png", 0.45f},
+			{"GJBeast01_01_001.png", 0.346f},
+			{"pixelb_03_01_001.png", 1.227f},
+			{"pixelitem_001_001.png", 0.844f},
+			{"particle_01_001.png", 0.844f},
+			{"d_spikes_01_001.png", 0.188f},
+			{"sawblade_02_001.png", 0.225f},
+			{"edit_eTintCol01Btn_001.png", 0.482f},
+		};
+		if (tabIdx < 13) {
+			auto sprInfo = defaultSprites[tabIdx];
+			auto icon = CCSprite::createWithSpriteFrameName(sprInfo.name);
+			icon->setScale(sprInfo.sc);
+			EditorTabUtils::setTabIcon(tab, icon);
+		} else {
+			auto icon = CCLabelBMFont::create(std::to_string(tabIdx-13+1).c_str(), "bigFont.fnt");
+			icon->setScale(0.5f);
+			EditorTabUtils::setTabIcon(tab, icon);
+		}
+		
+		return true;
+	}
+
+	auto levelLayer = LevelEditorLayer::get();
+	auto arrA = CCArray::create();
+	// auto arrB = CCArray::create();
+
+	auto sprA = spriteFromObjectString(objectString, false, false, 0, arrA, nullptr, nullptr);
+	// auto sprB = spriteFromObjectString(objectString, false, false, 0, arrB, nullptr, nullptr);
+	// levelLayer->updateObjectColors(arr);
+
+	for (auto* el : CCArrayExt<GameObject*>(arrA)) {
+		setColorToGameObjectNew(el, true);
+	}
+
+	// for (auto* el : CCArrayExt<GameObject*>(arrB)) {
+	// 	setColorToGameObjectNew(el, true);
+	// }
+	
+	// max size is 13x26
+	float vScaleRatio = 13.f / sprA->getContentHeight();
+	float hScaleRatio = 26.f / sprA->getContentWidth();
+	float scl = std::min(vScaleRatio, hScaleRatio);
+
+	sprA->setScale(scl);
+	// sprB->setScale(scl);
+
+	sprA->setCascadeOpacityEnabled(true);
+	sprA->setOpacity(150);
+
+	EditorTabUtils::setTabIcon(tab, sprA);
+
+	// auto childA = tab->m_offButton->getChildByType<CCSprite>(0);
+	// auto childB = tab->m_onButton->getChildByType<CCSprite>(0);
+	
+	// childA->removeAllChildren();
+	// childB->removeAllChildren();
+
+	// childA->addChildAtPosition(sprA, Anchor::Center, ccp(0, -1));
+	// childB->addChildAtPosition(sprB, Anchor::Center, ccp(0, -1));
+
+	return true;
 }
 
 
@@ -432,15 +549,9 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 		m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex++);
 
 		// select (or set frame to) newly created button
-		if (btn->m_objectID > 0) {
-			if (m_selectedObjectIndex == btn->m_objectID) {
-				setColorToCreateBtnNew(btn, false);
-				setSelectedCmi(btn);
-			} else {
-				if (btn == buttons.inner()->lastObject()) {
-					onCreateButton(btn); // makes sense only for last obj
-				}
-			}
+		if (btn->m_objectID != 0 && m_selectedObjectIndex == btn->m_objectID) {
+			setColorToCreateBtnNew(btn, false);
+			setSelectedCmi(btn);
 		}
 	}
 	

@@ -52,10 +52,13 @@ class $modify(MyEditorUI, EditorUI) {
 	void onSaveButton(CCObject*);
 	void onNewGroupButton(CCObject*);
 	void onNewGroupFromLayoutButton(CCObject*);
-
+	void onMoreOptionsButton(CCObject*);
+	
 	// various helper methods
 	void moveSelectedButton(bool forward);
 	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons);
+	void createIconForTheTabFromSelectedObjects();
+	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
 
 	void setSelectedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getSelectedCmi();

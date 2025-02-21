@@ -182,6 +182,7 @@ CreateMenuItem* Group::getCmi() {
     ret->setUserObject(CMI_USER_OBJ_ID, this);
     setColorToCreateBtnNew(ret, true);
     ret->setTag(0); // compat with creative mode
+    ret->setUserObject(new GroupInfo()); // compat with creative mode x2
     m_cmi = ret;
     return ret;
 }
@@ -264,6 +265,7 @@ void Group::onArrowButton(CCObject* sender) {
     }
     if (!exchangeItems(col, row, newCol, newRow)) return;
     updateMenu(false);
+    Global::get().m_hasUnsavedOGChanges = true;
     setSelectedCmiWithPosition(newCol, newRow);
 }
 
@@ -277,6 +279,7 @@ void Group::onDeleteObjButton(CCObject*) {
     m_matrix[btnY][btnX] = 0;
     Global::get().m_editorUI->setSelectedCmi(nullptr);
     updateMenu(false);
+    Global::get().m_hasUnsavedOGChanges = true;
 }
 
 
@@ -318,6 +321,7 @@ object in editor.\n(Now selected <cy>{}</c>)", selected->count()).c_str());
         }
         m_matrix[btnY][btnX] = id;
         updateMenu();
+        Global::get().m_hasUnsavedOGChanges = true;
     }
 }
 

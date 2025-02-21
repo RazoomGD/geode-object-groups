@@ -168,7 +168,7 @@ private:
 
     void onInfoBtn(CCObject*) {
         auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
-        geode::createQuickPopup("Extra options explanation", 
+        createQuickPopup("Extra options explanation", 
 "<co>- Group name</c>: name of the group. Name isn't shown if it's empty or \
 if this option is disabled in mod settings.\n\
 <co>- Add (...)</c>: create new empty row/column at the specified location \
@@ -188,6 +188,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
+        Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddColLeft(CCObject*) {
@@ -197,6 +198,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column+1, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
+        Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddRowTop(CCObject*) { 
@@ -206,6 +208,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row+1);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
+        Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddRowBottom(CCObject*) {
@@ -215,6 +218,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
         updateGroupInfoLabel();
         updateGroupCmiInfo();
+        Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onColRemove(CCObject*) {
@@ -222,6 +226,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->deleteColumn(m_groupCmiInfo.m_column);
         Global::get().m_editorUI->setSelectedCmi(nullptr);
         m_myGroup->updateMenu(false);
+        Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);
     }
 
@@ -230,6 +235,7 @@ buttons will be <cr>inactive</c>",
         m_myGroup->deleteRow(m_groupCmiInfo.m_row);
         Global::get().m_editorUI->setSelectedCmi(nullptr);
         m_myGroup->updateMenu(false);
+        Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);
     }
 
@@ -241,6 +247,7 @@ exactly 1 object in editor to update group icon");
         } else {
             short id = selected->m_objectID;
             m_myGroup->updateObjId(id);
+            Global::get().m_hasUnsavedOGChanges = true;
         }
         onClose(nullptr);
     }

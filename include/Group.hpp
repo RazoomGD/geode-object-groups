@@ -5,6 +5,15 @@
 #include <matjson.hpp>
 #include <matjson/std.hpp>
 
+
+// this is needed only as marker object for compatibility with creative mode 
+struct GroupInfo : public CCObject {
+    GroupInfo() {
+        this->autorelease();
+    }
+};
+
+
 class Group : public CCNode {
 private:
     std::string m_groupName;
