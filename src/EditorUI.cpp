@@ -12,7 +12,7 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	rowMenu->setAnchorPoint({0.5, 0});
 	rowMenu->setLayout(RowLayout::create());
 	rowMenu->setPosition(ccp(CCDirector::get()->getWinSize().width / 2, 111 * scale));
-	rowMenu->setScale(scale * 0.5);
+	// rowMenu->setScale(scale * 0.5); ignore
 	rowMenu->setID("row_menu"_spr);
 
 	auto newObjectBtn = CCMenuItemSpriteExtra::create(
@@ -59,6 +59,10 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	
 	rowMenu->updateLayout();
 
+	// maxWidth = 400
+	rowMenu->setScale(400.f / rowMenu->getContentWidth());
+	log::debug("w {}", rowMenu->getContentWidth());
+
 	return rowMenu;
 }
 
@@ -94,9 +98,10 @@ void MyEditorUI::setupExtraTabs(int count) {
 		EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}"_spr, i+1),
 			// is called once on creation
 			[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
-				auto icon = CCLabelBMFont::create(std::to_string(i+1).c_str(), "bigFont.fnt");
-				icon->setScale(0.5f);
-				EditorTabUtils::setTabIcon(toggler, icon);
+				// changed tab icon
+				auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", 13+i), "");
+				Global::get().m_editorUI->setSpiteToTabByIndexFromString(objStr, toggler, 13+i);
+
 				auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
 
 				// set user obj and call my hook
@@ -112,42 +117,34 @@ void MyEditorUI::setupExtraTabs(int count) {
 
 
 void MyEditorUI::setupVanillaTabs() {
-	const char* const names[] = {
-		"block-tab-bar", 
-		"outline-tab-bar",
-		"slope-tab-bar",
-		"hazard-tab-bar",
-		"3d-tab-bar",
-		"portal-tab-bar",
-		"monster-tab-bar",
-		"pixel-tab-bar",
-		"collectible-tab-bar",
-		"icon-tab-bar",
-		"deco-tab-bar",
-		"sawblade-tab-bar",
-		"trigger-tab-bar"
-	};
-
 	int rows, cols;
 	getBarSize(&rows, &cols);
+	auto tabsMenu = getChildByID("build-tabs-menu");
 
 	for (int i = 0; i < 13; i++) {
-		auto bar = static_cast<EditButtonBar*>(getChildByID(names[i]));
-		bar->setUserObject(BAR_USER_OBJ_ID, new BarInfo(i, false));
-		bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
+		if (auto bar = static_cast<EditButtonBar*>(getChildByID(vanillaTabsInfo[i].barId))) {
+			bar->setUserObject(BAR_USER_OBJ_ID, new BarInfo(i, false));
+			bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
+		}
+		if (auto toggler = tabsMenu->getChildByID(vanillaTabsInfo[i].togglerId)) {
+			auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", i), "");
+			if (!objStr.empty()) {
+				setSpiteToTabByIndexFromString(objStr, static_cast<CCMenuItemToggler*>(toggler), i);
+			}
+		}
 	}
 }
 
 
 // helper function that sets a frame to given cmi (cmi can be nullptr)
-void MyEditorUI::setSelectedCmi(CreateMenuItem* cmi) {
+void MyEditorUI::setFocusedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
 	if (cmi) cmi->addChild(m_fields->buttonFrame, 5);
 }
 
 
 // helper function that returns a button on which the frame is set (or nullptr)
-CreateMenuItem* MyEditorUI::getSelectedCmi() {
+CreateMenuItem* MyEditorUI::getFocusedCmi() {
 	return typeinfo_cast<CreateMenuItem*>(m_fields->buttonFrame->getParent());
 }
 
@@ -171,6 +168,17 @@ void MyEditorUI::setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi) {
 
 Group* MyEditorUI::getOpenedGroup() {
 	return m_fields->openedGroup.group;
+}
+
+
+void MyEditorUI::setNewSelectedGroupCmi(CreateMenuItem* groupCmi) {
+	if (m_fields->selectedGroupCmi) {
+		setColorToCreateBtnNew(m_fields->selectedGroupCmi, true);
+	}
+	if (groupCmi) {
+		setColorToCreateBtnNew(groupCmi, false);
+	}
+	m_fields->selectedGroupCmi = groupCmi;
 }
 
 
@@ -257,7 +265,7 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	}
 
 	// make sure the button is selected
-	auto btn = getSelectedCmi();
+	auto btn = getFocusedCmi();
 	if (btn == nullptr) {
 		alert("Button is not selected");
 		return;
@@ -320,7 +328,7 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 	}
 
 	// make sure the button is selected
-	auto btn = getSelectedCmi();
+	auto btn = getFocusedCmi();
 	if (btn == nullptr) {
 		alert("Button is not selected");
 		return;
@@ -453,7 +461,7 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 			}
 
 		} else {
-			alert("You can not change the icon of this tab.\n\
+			alert("You can't change the icon of this tab.\n\
 <cl>You can only change default editor tabs and tabs added by</c> <cy>Object Groups</c>");
 		}
 
@@ -465,26 +473,9 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx) {
 
 	if (objectString.empty()) {
-		struct SprInfo {const char* name; float sc;};
-		const SprInfo defaultSprites[13] = {
-			{"square_01_001.png", 0.45f},
-			{"blockOutline_01_001.png", 0.45f},
-			{"triangle_a_02_001.png", 0.45f},
-			{"spike_01_001.png", 0.45f},
-			{"persp_outline_01_001.png", 0.8f},
-			{"ring_01_001.png", 0.45f},
-			{"GJBeast01_01_001.png", 0.346f},
-			{"pixelb_03_01_001.png", 1.227f},
-			{"pixelitem_001_001.png", 0.844f},
-			{"particle_01_001.png", 0.844f},
-			{"d_spikes_01_001.png", 0.188f},
-			{"sawblade_02_001.png", 0.225f},
-			{"edit_eTintCol01Btn_001.png", 0.482f},
-		};
 		if (tabIdx < 13) {
-			auto sprInfo = defaultSprites[tabIdx];
-			auto icon = CCSprite::createWithSpriteFrameName(sprInfo.name);
-			icon->setScale(sprInfo.sc);
+			auto icon = CCSprite::createWithSpriteFrameName(vanillaTabsInfo[tabIdx].textureName);
+			icon->setScale(vanillaTabsInfo[tabIdx].textureScale);
 			EditorTabUtils::setTabIcon(tab, icon);
 		} else {
 			auto icon = CCLabelBMFont::create(std::to_string(tabIdx-13+1).c_str(), "bigFont.fnt");
@@ -496,42 +487,24 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenu
 	}
 
 	auto levelLayer = LevelEditorLayer::get();
-	auto arrA = CCArray::create();
-	// auto arrB = CCArray::create();
+	auto arr = CCArray::create();
 
-	auto sprA = spriteFromObjectString(objectString, false, false, 0, arrA, nullptr, nullptr);
-	// auto sprB = spriteFromObjectString(objectString, false, false, 0, arrB, nullptr, nullptr);
-	// levelLayer->updateObjectColors(arr);
+	auto spr = spriteFromObjectString(objectString, false, false, 0, arr, nullptr, nullptr);
 
-	for (auto* el : CCArrayExt<GameObject*>(arrA)) {
+	for (auto* el : CCArrayExt<GameObject*>(arr)) {
 		setColorToGameObjectNew(el, true);
 	}
 
-	// for (auto* el : CCArrayExt<GameObject*>(arrB)) {
-	// 	setColorToGameObjectNew(el, true);
-	// }
-	
 	// max size is 13x26
-	float vScaleRatio = 13.f / sprA->getContentHeight();
-	float hScaleRatio = 26.f / sprA->getContentWidth();
-	float scl = std::min(vScaleRatio, hScaleRatio);
+	float vScaleRatio = 13.f / spr->getContentHeight();
+	float hScaleRatio = 26.f / spr->getContentWidth();
 
-	sprA->setScale(scl);
-	// sprB->setScale(scl);
+	spr->setScale(std::min(vScaleRatio, hScaleRatio));
 
-	sprA->setCascadeOpacityEnabled(true);
-	sprA->setOpacity(150);
+	spr->setCascadeOpacityEnabled(true);
+	spr->setOpacity(150);
 
-	EditorTabUtils::setTabIcon(tab, sprA);
-
-	// auto childA = tab->m_offButton->getChildByType<CCSprite>(0);
-	// auto childB = tab->m_onButton->getChildByType<CCSprite>(0);
-	
-	// childA->removeAllChildren();
-	// childB->removeAllChildren();
-
-	// childA->addChildAtPosition(sprA, Anchor::Center, ccp(0, -1));
-	// childB->addChildAtPosition(sprB, Anchor::Center, ccp(0, -1));
+	EditorTabUtils::setTabIcon(tab, spr);
 
 	return true;
 }
@@ -551,7 +524,7 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 		// select (or set frame to) newly created button
 		if (btn->m_objectID != 0 && m_selectedObjectIndex == btn->m_objectID) {
 			setColorToCreateBtnNew(btn, false);
-			setSelectedCmi(btn);
+			setFocusedCmi(btn);
 		}
 	}
 	

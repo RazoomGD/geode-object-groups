@@ -12,6 +12,7 @@ class $modify(MyEditorUI, EditorUI) {
 			Ref<Group> group = nullptr;
 			Ref<CreateMenuItem> cmi = nullptr;
 		} openedGroup;
+		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
 		Fields() {
 			// init global config and load data from json
@@ -27,6 +28,11 @@ class $modify(MyEditorUI, EditorUI) {
 			// }
 		}
 	};
+
+
+	static void onModify(auto& self) {
+        (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
+    }
 
 
 	// setup methods
@@ -60,10 +66,10 @@ class $modify(MyEditorUI, EditorUI) {
 	void createIconForTheTabFromSelectedObjects();
 	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
 
-	void setSelectedCmi(CreateMenuItem* cmi);
-	CreateMenuItem* getSelectedCmi();
+	void setFocusedCmi(CreateMenuItem* cmi);
+	CreateMenuItem* getFocusedCmi();
 
-	void onGroupButton(CreateMenuItem* groupCmi);
+	void setNewSelectedGroupCmi(CreateMenuItem* groupCmi);
 	void setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi);
 	Group* getOpenedGroup();
 };

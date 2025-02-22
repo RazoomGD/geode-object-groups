@@ -277,7 +277,7 @@ void Group::onDeleteObjButton(CCObject*) {
         return;
     }
     m_matrix[btnY][btnX] = 0;
-    Global::get().m_editorUI->setSelectedCmi(nullptr);
+    Global::get().m_editorUI->setFocusedCmi(nullptr);
     updateMenu(false);
     Global::get().m_hasUnsavedOGChanges = true;
 }
@@ -346,15 +346,25 @@ void Group::onGroupBtnClick(CCObject* sender) {
                 group->m_isInEditMode = Global::get().m_isEditMode;
             }
         }
-        editor->setSelectedCmi(cmi);
+        editor->setFocusedCmi(cmi);
     }
 }
 
 
 void Group::onInnerCreateButton(CCObject* sender) {
-    Global::get().m_editorUI->onCreateButton(sender);
+    auto btn = static_cast<CreateMenuItem*>(sender);
+    auto editor = Global::get().m_editorUI;
+
+    editor->onCreateButton(btn);
     if (!Global::get().m_isEditMode) {
-        Global::get().m_editorUI->setNewOpenedGroup(nullptr, nullptr);
+        editor->setNewOpenedGroup(nullptr, nullptr);
+    }
+
+    bool thisIsNowSelected = (btn->m_objectID == editor->m_selectedObjectIndex);
+    if (thisIsNowSelected) {
+        editor->setNewSelectedGroupCmi(m_cmi);
+    } else {
+        editor->setNewSelectedGroupCmi(nullptr);
     }
 }
 
@@ -362,7 +372,7 @@ void Group::onInnerCreateButton(CCObject* sender) {
 // selector for plus button
 void Group::onInnerPlusButton(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
-    Global::get().m_editorUI->setSelectedCmi(cmi);
+    Global::get().m_editorUI->setFocusedCmi(cmi);
 }
 
 
@@ -445,7 +455,7 @@ void Group::updateObjId(short newObjId) {
 
 
 bool Group::getSelectedItemPosition(uint32_t* col, uint32_t* row) {
-    auto cmi = Global::get().m_editorUI->getSelectedCmi();
+    auto cmi = Global::get().m_editorUI->getFocusedCmi();
     if (cmi == nullptr) return false;
     auto myButtons = m_menu->getChildren();
     if (myButtons == nullptr) return false;
@@ -472,7 +482,7 @@ bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
         auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
         if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject())) {
             if (uObj->m_row == row && uObj->m_col == col) {
-                Global::get().m_editorUI->setSelectedCmi(btn);
+                Global::get().m_editorUI->setFocusedCmi(btn);
                 return true;
             }
         }

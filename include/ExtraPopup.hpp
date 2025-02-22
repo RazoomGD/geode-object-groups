@@ -224,7 +224,7 @@ buttons will be <cr>inactive</c>",
     void onColRemove(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteColumn(m_groupCmiInfo.m_column);
-        Global::get().m_editorUI->setSelectedCmi(nullptr);
+        Global::get().m_editorUI->setFocusedCmi(nullptr);
         m_myGroup->updateMenu(false);
         Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);
@@ -233,7 +233,7 @@ buttons will be <cr>inactive</c>",
     void onRowRemove(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteRow(m_groupCmiInfo.m_row);
-        Global::get().m_editorUI->setSelectedCmi(nullptr);
+        Global::get().m_editorUI->setFocusedCmi(nullptr);
         m_myGroup->updateMenu(false);
         Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);

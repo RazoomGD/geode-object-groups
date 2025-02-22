@@ -69,6 +69,28 @@ struct BarInfo : public CCObject {
 };
 
 
+struct {
+    const char* barId;          // EditButtonBar id
+    const char* togglerId;      // MenuToggler id
+    const char* textureName;    // icon texture
+    const float textureScale;   // icon texture scale
+} vanillaTabsInfo[13] = {
+    {"block-tab-bar",       "block-tab",        "square_01_001.png",            0.450f},
+    {"outline-tab-bar",     "outline-tab",      "blockOutline_01_001.png",      0.450f},
+    {"slope-tab-bar",       "slope-tab",        "triangle_a_02_001.png",        0.450f},
+    {"hazard-tab-bar",      "hazard-tab",       "spike_01_001.png",             0.450f},
+    {"3d-tab-bar",          "3d-tab",           "persp_outline_01_001.png",     0.800f},
+    {"portal-tab-bar",      "portal-tab",       "ring_01_001.png",              0.450f},
+    {"monster-tab-bar",     "monster-tab",      "GJBeast01_01_001.png",         0.346f},
+    {"pixel-tab-bar",       "pixel-tab",        "pixelb_03_01_001.png",         1.227f},
+    {"collectible-tab-bar", "collectible-tab",  "pixelitem_001_001.png",        0.844f},
+    {"icon-tab-bar",        "icon-tab",         "particle_01_001.png",          0.844f},
+    {"deco-tab-bar",        "deco-tab",         "d_spikes_01_001.png",          0.188f},
+    {"sawblade-tab-bar",    "sawblade-tab",     "sawblade_02_001.png",          0.225f},
+    {"trigger-tab-bar",     "trigger-tab",      "edit_eTintCol01Btn_001.png",   0.482f}
+}; // pain
+
+
 // --------------------------- utils --------------------------- 
 
 // shorter alert create
