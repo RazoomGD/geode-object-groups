@@ -68,11 +68,11 @@ public:
 
     void clearAllCreateMenuItems();
 
-    void updateObjId(short newObjId);
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
+    void updateObjId(short newObjId);
 
     // debug
     Group() {

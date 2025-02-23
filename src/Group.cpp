@@ -198,11 +198,13 @@ CreateMenuItem* Group::getCmi() {
     } else { // get cmi with set userObject and custom selector
         ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
         ret->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
+        ret->m_pListener = this;
+        ret->m_objectID = 0;
+        ret->setTag(0); // compat with creative mode
+        ret->setUserObject(new GroupInfo()); // compat with creative mode x2
     }
     ret->setUserObject(CMI_USER_OBJ_ID, this);
     setColorToCreateBtnNew(ret, true);
-    ret->setTag(0); // compat with creative mode
-    ret->setUserObject(new GroupInfo()); // compat with creative mode x2
     m_cmi = ret;
     return ret;
 }
@@ -273,9 +275,13 @@ void Group::onArrowButton(CCObject* sender) {
     if (tag > 4 || tag < 1) return;
     uint32_t col, row;
     if (!getSelectedItemPosition(&col, &row)) {
-        alert("No focused button within the group. Select the button first!");
+        // alert("No focused button within the group. Select the button first!");
         return;
     }
+    if (auto cmi = Global::get().m_editorUI->getFocusedCmi()) {
+        if (cmi->m_objectID == 0) return; // don't move plus buttons
+    }
+
     uint32_t newCol = col, newRow = row;
     switch (tag) {
         case 1: {newRow -= 1; break;}
@@ -305,43 +311,54 @@ void Group::onDeleteObjButton(CCObject*) {
 
 void Group::onAddObjectButton(CCObject* sender) {
     auto selected = Global::get().m_editorUI->getSelectedObjects();
-    if (selected->count() != 1) {
-        alert(fmt::format("To add new object to the group you must select exactly <cy>1</c> \
-object in editor.\n(Now selected <cy>{}</c>)", selected->count()).c_str());
+//     if (selected->count() != 1) {
+//         alert(fmt::format("To add new object to the group you must select exactly <cy>1</c> \
+// object in editor.\n(Now selected <cy>{}</c>)", selected->count()).c_str());
+//         return;
+//     }
+
+    if (selected->count() == 0) {
+        alert("To add new object to the group you must select at least <cy>1</c> object in editor");
         return;
     }
 
-    uint32_t btnX, btnY;
-    if (!getSelectedItemPosition(&btnX, &btnY)) {
-        // add to the first empty place
-        bool found = false;
-        for (int i = 0; i < m_matrix.size(); i++) {
-            for (int j = 0; j < m_matrix[i].size(); j++) {
-                if (m_matrix[i][j] == 0) {
-                    btnX = j;
-                    btnY = i;
-                    found = true;
-                    break;
-                }
-            }
-            if (found) break;
-        }
-        if (!found) {
-            alert("Can't add an object. Group is full!");
-            return;
+    std::set<short> idsOnce;
+    std::vector<short> ids;
+    for (int i = 0; i < selected->count(); i++) {
+        short id = static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID;
+        if (!idsOnce.contains(id)) {
+            idsOnce.insert(id);
+            ids.push_back(id);
         }
     }
 
-    short id = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+    uint32_t colSt, rowSt;
+    if (!getSelectedItemPosition(&colSt, &rowSt)) {
+        colSt = rowSt = 0;
+    }
 
-    if (btnY < m_matrix.size() && btnX < m_matrix[0].size()) {
-        if (m_matrix[btnY][btnX] != 0) {
-            alert("Can't add an object because there is <cr>another</c> object at this position");
-            return;
+    auto iter = ids.begin();
+    uint32_t col = colSt, row = rowSt;
+    const uint32_t rowEnd = m_matrix.size();
+    const uint32_t colEnd = m_matrix[0].size();
+    do {
+        if (m_matrix[row][col] == 0) {
+            m_matrix[row][col] = *iter;
+            if (++iter == ids.end()) break;
         }
-        m_matrix[btnY][btnX] = id;
+        if (++col == colEnd) {
+            col = 0;
+            if (++row == rowEnd) row = 0;
+        }
+    } while (col != colSt || row != rowSt); // full cycle
+    
+    if (iter != ids.begin()) { // at least 1 added
         updateMenu();
         Global::get().m_hasUnsavedOGChanges = true;
+    }
+
+    if (iter != ids.end()) {
+        alert("<cy>Group is full!</c>");
     }
 }
 
@@ -352,22 +369,38 @@ void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
     auto editor = Global::get().m_editorUI;
 
-    if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-        if (group == editor->getOpenedGroup()) {
-            // close
-            editor->setNewOpenedGroup(nullptr, nullptr);
-        } else {
-            // open
-            editor->setNewOpenedGroup(group, cmi);
+    // if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+    //     if (group == editor->getOpenedGroup()) {
+    //         // close
+    //         editor->setNewOpenedGroup(nullptr, nullptr);
+    //     } else {
+    //         // open
+    //         editor->setNewOpenedGroup(group, cmi);
             
-            if (group->m_isUpdateRequired || Global::get().m_isEditMode != group->m_isInEditMode) {
-                group->updateMenu();
-                group->m_isUpdateRequired = false;
-                group->m_isInEditMode = Global::get().m_isEditMode;
-            }
+    //         if (group->m_isUpdateRequired || Global::get().m_isEditMode != group->m_isInEditMode) {
+    //             group->updateMenu();
+    //             group->m_isUpdateRequired = false;
+    //             group->m_isInEditMode = Global::get().m_isEditMode;
+    //         }
+    //     }
+    //     editor->setNewFocusedCmi(cmi);
+    // }
+
+    if (this == editor->getOpenedGroup()) {
+        // close
+        editor->setNewOpenedGroup(nullptr, nullptr);
+    } else {
+        // open
+        editor->setNewOpenedGroup(this, cmi);
+
+        if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
+            updateMenu();
+            m_isUpdateRequired = false;
+            m_isInEditMode = Global::get().m_isEditMode;
         }
-        editor->setNewFocusedCmi(cmi);
     }
+    editor->setNewFocusedCmi(cmi);
+
 }
 
 
@@ -484,7 +517,7 @@ bool Group::getSelectedItemPosition(uint32_t* col, uint32_t* row) {
     for (int i = 0; i < myButtons->count(); i++) {
         auto btn = myButtons->objectAtIndex(i);
         if (btn == cmi) {
-            if (auto pos = static_cast<GroupCoords*>(cmi->getUserObject())) {
+            if (auto pos = static_cast<GroupCoords*>(cmi->getUserObject(COORDS_USER_OBJ_ID))) {
                 *col = pos->m_col;
                 *row = pos->m_row;
                 return true;
@@ -502,7 +535,7 @@ bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
     if (buttons == nullptr) return false;
     for (int i = 0; i < buttons->count(); i++) {
         auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
-        if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject())) {
+        if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject(COORDS_USER_OBJ_ID))) {
             if (uObj->m_row == row && uObj->m_col == col) {
                 Global::get().m_editorUI->setNewFocusedCmi(btn);
                 return true;
@@ -554,7 +587,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                 auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
                 if (btn->m_objectID == id) {
                     m_menu->addChild(btn);
-                    btn->setUserObject(new GroupCoords(j, i));
+                    btn->setUserObject(COORDS_USER_OBJ_ID, new GroupCoords(j, i));
                     oldButtons->fastRemoveObjectAtIndex(k); // important to break immediately
                     found = true;
                     break;
@@ -573,7 +606,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                     setColorToCreateBtnNew(btn, !isSelected);
                 }
                 m_menu->addChild(btn);
-                btn->setUserObject(new GroupCoords(j, i));
+                btn->setUserObject(COORDS_USER_OBJ_ID, new GroupCoords(j, i));
             }
         }
     }
@@ -620,7 +653,7 @@ void Group::updateGroupView() {
 
     for (int i = 0; i < buttonArray->count(); i++) {
         auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
-        auto uObj = static_cast<GroupCoords*>(btn->getUserObject());
+        auto uObj = static_cast<GroupCoords*>(btn->getUserObject(COORDS_USER_OBJ_ID));
         float x = left + (float)uObj->m_col * oneDistance;
         float y = top - (float)uObj->m_row * oneDistance;
         btn->setPosition(ccp(x, y));

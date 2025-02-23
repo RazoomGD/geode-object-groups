@@ -152,7 +152,7 @@ and <cy>{}</c> objects) from <cp>clipboard</c>?", total, groupCount, total - gro
 tab from selected objects (select nothing to reset to default)\n\
 - <co>Copy group/tab</c>: copy focused group or entire tab to clipboard in <cl>json</c> format\n\
 - <co>Paste group(s)</c>: add groups from <cl>json</c> content of clipboard to the current tab\n\
-- <cr>WARNING</c>: I strongly recommend not using <cl>copy/paste json</c> options for creating groups. \
+- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> <cl>copy/paste json</c> options for creating groups. \
 Instead, use <cp>'New group'</c> and <cp>'New group from layout'</c>",
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );

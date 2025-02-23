@@ -17,9 +17,9 @@
 using namespace geode::prelude;
 
 
-// for marking EditButtonBars
 #define BAR_USER_OBJ_ID "OG-bar"
 #define CMI_USER_OBJ_ID "OG-cmi"
+#define COORDS_USER_OBJ_ID "OG-coord"
 
 
 struct MyEditorUI;
