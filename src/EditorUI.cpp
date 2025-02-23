@@ -137,7 +137,7 @@ void MyEditorUI::setupVanillaTabs() {
 
 
 // helper function that sets a frame to given cmi (cmi can be nullptr)
-void MyEditorUI::setFocusedCmi(CreateMenuItem* cmi) {
+void MyEditorUI::setNewFocusedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
 	if (cmi) cmi->addChild(m_fields->buttonFrame, 5);
 }
@@ -509,6 +509,24 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenu
 	return true;
 }
 
+// return json array
+matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar) {
+	matjson::Value jsonArray(std::vector<int>{});
+	if (isMyTab(bar)) {
+		// foreach item in my tab
+		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+			if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+				jsonArray.push(group->toJson());
+			} else if (cmi->m_objectID != 0) {
+				// single not user-created object without any info
+				auto unkObj = matjson::makeObject({{"obj", cmi->m_objectID}});
+				jsonArray.push(unkObj);
+			}
+		}
+	}
+	return jsonArray;
+}
+
 
 void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
 	int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
@@ -524,7 +542,7 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 		// select (or set frame to) newly created button
 		if (btn->m_objectID != 0 && m_selectedObjectIndex == btn->m_objectID) {
 			setColorToCreateBtnNew(btn, false);
-			setFocusedCmi(btn);
+			setNewFocusedCmi(btn);
 		}
 	}
 	

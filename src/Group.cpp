@@ -33,7 +33,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     }
 
     // fix issue when inner vectors have different sizes
-    size_t maxSz = 0;
+    size_t maxSz = 1;
     for (int i = 0; i < ret->m_matrix.size(); i++) {
         auto sz = ret->m_matrix[i].size();
         if (sz > maxSz) maxSz = sz;
@@ -70,18 +70,22 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     return ret;
 }
 
-
-Group* Group::createDefault() {
-    static const short defaultObjectForTab[] = {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
+// (feature) set thumbnail object depending on the current tab
+short getIdForOpenedTab() {
+    static const short defaultObjectForTab[] = 
+        {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
     short id = 3823; // :)
-    
-    // (feature) set thumbnail and the first object depending on the current tab
     if (auto bar = Global::get().m_editorUI->m_createButtonBar)
     if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID)))
     if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
         id = defaultObjectForTab[obj->m_tabIndx];
     }
+    return id;
+}
 
+
+Group* Group::createDefault() {
+    short id = getIdForOpenedTab();
     std::vector<std::vector<short>> matrix = {{0, 0}, {0, 0}};
     return Group::createGroup("New Group", id, std::move(matrix));
 }
@@ -103,9 +107,15 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 }
 
 
-Group* Group::createFromJsonValue(matjson::Value json) {
+Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
     matjson::Value obj = json["obj"];
     if (!obj.isExactlyUInt()) return nullptr;
+
+    int objectId = obj.asInt().unwrap();
+
+    if (validateIds && !isObjIdExistsFast(objectId)) {
+        objectId = getIdForOpenedTab();
+    }
 
     std::string name;
     matjson::Value aName = json["name"];
@@ -128,12 +138,22 @@ Group* Group::createFromJsonValue(matjson::Value json) {
             }
         }
     }
+
     Group* group;
     if (matrix.empty()) {
         matjson::Value isUserObj = json["isUsr"];
-        group = Group::createSingle(obj.asInt().unwrap(), isUserObj.asBool().unwrapOr(false));
+        group = Group::createSingle(objectId, isUserObj.asBool().unwrapOr(false));
     } else {
-        group = Group::createGroup(name, obj.asInt().unwrap(), std::move(matrix));
+        if (validateIds) {
+            for (auto& row : matrix) {
+                for (auto& val : row) {
+                    if (!isObjIdExistsFast(val)) {
+                        val = 0;
+                    }
+                }
+            }
+        }
+        group = Group::createGroup(name, objectId, std::move(matrix));
     }
     return group;
 }
@@ -277,7 +297,7 @@ void Group::onDeleteObjButton(CCObject*) {
         return;
     }
     m_matrix[btnY][btnX] = 0;
-    Global::get().m_editorUI->setFocusedCmi(nullptr);
+    Global::get().m_editorUI->setNewFocusedCmi(nullptr);
     updateMenu(false);
     Global::get().m_hasUnsavedOGChanges = true;
 }
@@ -346,7 +366,7 @@ void Group::onGroupBtnClick(CCObject* sender) {
                 group->m_isInEditMode = Global::get().m_isEditMode;
             }
         }
-        editor->setFocusedCmi(cmi);
+        editor->setNewFocusedCmi(cmi);
     }
 }
 
@@ -355,14 +375,16 @@ void Group::onInnerCreateButton(CCObject* sender) {
     auto btn = static_cast<CreateMenuItem*>(sender);
     auto editor = Global::get().m_editorUI;
 
-    editor->onCreateButton(btn);
-    if (!Global::get().m_isEditMode) {
-        editor->setNewOpenedGroup(nullptr, nullptr);
-    }
+    EditorUI::get()->onCreateButton(btn); // avoid double call bug
+
+    // if (!Global::get().m_isEditMode) {
+    //     editor->setNewOpenedGroup(nullptr, nullptr);
+    // }
 
     bool thisIsNowSelected = (btn->m_objectID == editor->m_selectedObjectIndex);
     if (thisIsNowSelected) {
         editor->setNewSelectedGroupCmi(m_cmi);
+
     } else {
         editor->setNewSelectedGroupCmi(nullptr);
     }
@@ -372,7 +394,7 @@ void Group::onInnerCreateButton(CCObject* sender) {
 // selector for plus button
 void Group::onInnerPlusButton(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
-    Global::get().m_editorUI->setFocusedCmi(cmi);
+    Global::get().m_editorUI->setNewFocusedCmi(cmi);
 }
 
 
@@ -482,7 +504,7 @@ bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
         auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
         if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject())) {
             if (uObj->m_row == row && uObj->m_col == col) {
-                Global::get().m_editorUI->setFocusedCmi(btn);
+                Global::get().m_editorUI->setNewFocusedCmi(btn);
                 return true;
             }
         }
@@ -546,6 +568,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                 } else {
                     btn = getCustomCreateBtn(id, getItemBtnColor(id));
                     btn->m_pfnSelector = menu_selector(Group::onInnerCreateButton);
+                    btn->m_pListener = this;
                     bool isSelected = (Global::get().m_editorUI->m_selectedObjectIndex == id);
                     setColorToCreateBtnNew(btn, !isSelected);
                 }
@@ -584,6 +607,7 @@ void Group::updateGroupView() {
     
     const float oneDistance = 45; // distance between two button centers
     const float shiftY = 57.5;
+    const float border = 0.4f * oneDistance;
 
     const int rowCount = m_matrix.size();
     const int columnCount = m_matrix[0].size();
@@ -618,9 +642,8 @@ void Group::updateGroupView() {
     // update bg
     if (m_bgSprite) {
         const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed
-        const float border = 1.4f * oneDistance;
-        m_bgSprite->setContentSize({(right - left + border) * scaleFactor, 
-            (top + spaceOnTop - bottom + border) * scaleFactor});
+        m_bgSprite->setContentSize({(right - left + oneDistance + border) * scaleFactor, 
+            (top + spaceOnTop - bottom + oneDistance + border) * scaleFactor});
         m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / 2});
         m_bgSprite->setScale(1 / scaleFactor);
     }
@@ -636,7 +659,7 @@ void Group::updateGroupView() {
             m_rightMenu->setVisible(true);
             m_rightMenu->setPosition({right + oneDistance * 0.8f, 
                 top + spaceOnTop + oneDistance / 2});
-            m_rightMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance * 2);
+            m_rightMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance + border);
             m_rightMenu->updateLayout();
 
             m_leftMenu->setVisible(true);

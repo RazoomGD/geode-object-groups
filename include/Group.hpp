@@ -56,7 +56,7 @@ public:
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);
     static Group* createDefault();
-    static Group* createFromJsonValue(matjson::Value json); // always check for null!
+    static Group* createFromJsonValue(matjson::Value json, bool validateIds=false); // always check for null!
     static Group* create() = delete;
 
     // the most important methods here

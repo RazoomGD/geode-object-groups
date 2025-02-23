@@ -1,4 +1,5 @@
 #include "Group.hpp"
+#include "EditorUI.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -35,18 +36,7 @@ int writeConfigToJson(std::string filename) {
     // foreach bar with my user object
     for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
     	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-            Value jsonArray(std::vector<int>{});
-            // foreach item in my tab
-            for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
-                if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-                    jsonArray.push(group->toJson());
-                } else if (cmi->m_objectID != 0) {
-                    // single not user-created object without any info
-                    auto unkObj = makeObject({{"obj", cmi->m_objectID}});
-                    jsonArray.push(unkObj);
-                }
-            }
-
+            auto jsonArray = Global::get().m_editorUI->barToJsonValue(bar);
             auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
             config[tabIdx] = jsonArray;
         }

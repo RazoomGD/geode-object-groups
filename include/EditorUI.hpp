@@ -65,8 +65,9 @@ class $modify(MyEditorUI, EditorUI) {
 	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons);
 	void createIconForTheTabFromSelectedObjects();
 	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
+	matjson::Value barToJsonValue(EditButtonBar* bar);
 
-	void setFocusedCmi(CreateMenuItem* cmi);
+	void setNewFocusedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getFocusedCmi();
 
 	void setNewSelectedGroupCmi(CreateMenuItem* groupCmi);

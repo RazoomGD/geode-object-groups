@@ -17,7 +17,6 @@
 using namespace geode::prelude;
 
 
-
 // for marking EditButtonBars
 #define BAR_USER_OBJ_ID "OG-bar"
 #define CMI_USER_OBJ_ID "OG-cmi"
@@ -112,6 +111,7 @@ int getItemBtnColor(short objId);
 int getGroupBtnColor();
 
 std::string toValidString(const char* txt);
+bool isObjIdExistsFast(short id);
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 

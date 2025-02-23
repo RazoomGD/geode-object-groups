@@ -105,14 +105,20 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 void MyEditorUI::onCreateButton(CCObject* sender) {
 	int indexBefore = m_selectedObjectIndex;
 	EditorUI::onCreateButton(sender);
-	auto cmi = typeinfo_cast<CreateMenuItem*>(sender);
+	
+	auto cmi = static_cast<CreateMenuItem*>(sender);
 	if (cmi && m_selectedObjectIndex == cmi->m_objectID) {
-		setFocusedCmi(cmi);
+		setNewFocusedCmi(cmi);
 	} else {
-		setFocusedCmi(nullptr);
+		setNewFocusedCmi(nullptr);
 	}
+
 	if (indexBefore != m_selectedObjectIndex) {
 		setNewSelectedGroupCmi(nullptr); // deselect
+	}
+
+	if (!Global::get().m_isEditMode) {
+		setNewOpenedGroup(nullptr, nullptr); // close
 	}
 
 	log::debug("on create button");
