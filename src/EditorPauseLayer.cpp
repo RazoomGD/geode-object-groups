@@ -20,7 +20,7 @@ class $modify(EditorPauseLayer) {
         
         createQuickPopup("Object Groups", UNSAVED_POPUP_TXT,
             "Yes", "No", 
-            [=] (auto, bool isBtn2) {
+            [this, sender] (auto, bool isBtn2) {
                 if (!isBtn2) {
                     m_fields->justExit = true;
                     EditorPauseLayer::onExitEditor(sender);
@@ -49,7 +49,7 @@ class $modify(EditorPauseLayer) {
 
         createQuickPopup("Object Groups", UNSAVED_POPUP_TXT,
             "Yes", "No", 
-            [=] (auto, bool isBtn2) {
+            [this, sender] (auto, bool isBtn2) {
                 if (!isBtn2) {
                     m_fields->justExit = true;
                     EditorPauseLayer::onSaveAndPlay(sender);

@@ -482,7 +482,7 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 			auto tabIcon = static_cast<CCMenuItemToggler*>(m_tabsArray->objectAtIndex(m_selectedTab));
 			std::string str;
 			for (auto* obj : CCArrayExt<GameObject*>(selected)) {
-				str += obj->getSaveString(levelLayer) + ";";
+				str += obj->getSaveString(levelLayer) + std::string(";");
 			}
 
 			if (setSpiteToTabByIndexFromString(str, tabIcon, uObj->m_tabIndx)) {
