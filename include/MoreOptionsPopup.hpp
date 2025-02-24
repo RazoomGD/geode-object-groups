@@ -3,7 +3,7 @@
 class MoreOptionsPopup : public Popup<void*> {
 private:
     const float m_width = 220.f;
-    const float m_height = 180.f;
+    const float m_height = 220.f;
 
 protected:
     bool setup(void*) override {
@@ -30,22 +30,26 @@ protected:
         spr->setScale(scale2);
         auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onCreateTabIcon));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -55));
-
-        spr = ButtonSprite::create("Copy group\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
+        
+        spr = ButtonSprite::create("Create new group\nfrom layout", "bigFont.fnt", "GJ_button_03.png", scale1);
+        spr->setScale(scale2);
+        btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onGroupFromLayout));
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -95));
+        
+        spr = ButtonSprite::create("Copy group(s)\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyFocusedGroupAsJson));
-        menu->addChildAtPosition(btn, Anchor::Top, ccp(-btn->getScaledContentWidth()/2-5, -95));
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(-btn->getScaledContentWidth()/2-5, -135));
         
         spr = ButtonSprite::create("Copy tab\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyCurrentTabAsJson));
-        menu->addChildAtPosition(btn, Anchor::Top, ccp(btn->getScaledContentWidth()/2+5, -95));
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(btn->getScaledContentWidth()/2+5, -135));
 
         spr = ButtonSprite::create("Paste group(s)\nfrom clipboard", "bigFont.fnt", "GJ_button_04.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::pasteGroupsFromJson));
-        menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -135));
-
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -175));
 
         return true;
     }
@@ -68,6 +72,12 @@ public:
 private:
     void onCreateTabIcon(CCObject*) {
         Global::get().m_editorUI->createIconForTheTabFromSelectedObjects();
+        onClose(nullptr);
+    }
+
+    void onGroupFromLayout(CCObject*) {
+        Global::get().m_editorUI->onNewGroupFromLayoutButton(nullptr);
+        onClose(nullptr);
     }
 
     void copyFocusedGroupAsJson(CCObject*) {
@@ -84,6 +94,7 @@ private:
             auto idStr = std::to_string(cmi->m_objectID);
             auto str = std::string("[{\n    \"obj\": ") + idStr + "\n}]";
             clipboard::write(str);
+            shortAlert("Copied to clipboard!");
             return;
         }
         alert("<cr>Group is not selected</c>");
@@ -95,8 +106,8 @@ private:
             clipboard::write(json.dump());
             shortAlert("Copied to clipboard!");
         } else {
-            alert("Can't copy contents of the current tab\n\
-(because it is not controlled by <cy>Object Groups</c>)");
+            alert("Can't copy contents of the current tab\n"
+                        "(because it is not controlled by <cy>Object Groups</c>)");
         }
     }
 
@@ -124,8 +135,9 @@ private:
             buttons->retain();
 
             createQuickPopup("Object Groups", 
-                fmt::format("Are you sure you want to paste <cy>{}</c> buttons \n(<cy>{}</c> groups \
-and <cy>{}</c> objects) from <cp>clipboard</c>?", total, groupCount, total - groupCount),
+                fmt::format("Are you sure you want to paste <cy>{}</c> buttons \n(<cy>{}</c> groups "
+                            "and <cy>{}</c> objects) from <cp>clipboard</c>?", 
+                            total, groupCount, total - groupCount),
                 "No", "Yes", 
                 [buttons, this] (auto, bool isBtn2) {
                     if (isBtn2) {
@@ -148,11 +160,13 @@ and <cy>{}</c> objects) from <cp>clipboard</c>?", total, groupCount, total - gro
     void onInfoBtn(CCObject*) {
         auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
         createQuickPopup("More Options", 
-"- <co>Create tab icon from selected</c>: create new icon for the current \
+"- <co>Create tab icon from selected</c>: creates new icon for the current \
 tab from selected objects (select nothing to reset to default)\n\
-- <co>Copy group/tab</c>: copy focused group or entire tab to clipboard in <cl>json</c> format\n\
-- <co>Paste group(s)</c>: add groups from <cl>json</c> content of clipboard to the current tab\n\
-- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> <cl>copy/paste json</c> options for creating groups. \
+- <co>New group from layout</c>: tries to put selected objects in a new group while \
+preserving their relative positions from editor\n\
+- <co>Copy group/tab</c>: copies focused group or entire tab to clipboard in <cl>json</c> format\n\
+- <co>Paste group(s)</c>: adds groups from <cl>json</c> content of clipboard to the current tab\n\
+- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> copy/paste json options for creating groups. \
 Instead, use <cp>'New group'</c> and <cp>'New group from layout'</c>",
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );

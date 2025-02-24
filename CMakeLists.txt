@@ -9,6 +9,7 @@ project(ObjectGroups VERSION 1.0.0)
 # Set up the mod binary
 add_library(${PROJECT_NAME} SHARED
     src/EditButtonBar.cpp
+    src/EditorPauseLayer.cpp
     src/EditorUI.cpp
     src/EditorUIHooks.cpp
     src/FileUtils.cpp

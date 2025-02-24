@@ -2,6 +2,8 @@
 
 #include "Group.hpp"
 
+#include <Geode/modify/EditorUI.hpp>
+
 class $modify(MyEditorUI, EditorUI) {
 	struct Fields {
 		Ref<CCMenu> rowMenu = nullptr;

@@ -10,58 +10,57 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	const auto rowMenu = CCMenu::create();
 	this->addChild(rowMenu); // todo: add children not to editorUI directly
 	rowMenu->setAnchorPoint({0.5, 0});
-	rowMenu->setLayout(RowLayout::create());
+	rowMenu->setLayout(RowLayout::create()->setGap(30));
 	rowMenu->setPosition(ccp(CCDirector::get()->getWinSize().width / 2, 111 * scale));
 	// rowMenu->setScale(scale * 0.5); ignore
 	rowMenu->setID("row_menu"_spr);
 
 	auto newObjectBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("New\nobject"), this, 
+		CCSprite::create("OG_rowBtn_newObject.png"_spr), this, 
 		menu_selector(MyEditorUI::onNewObjectButton)
 	);
+	auto newGroupBtn = CCMenuItemSpriteExtra::create(
+		CCSprite::create("OG_rowBtn_newGroup.png"_spr), this, 
+		menu_selector(MyEditorUI::onNewGroupButton)
+	);
 	auto moveForwardBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("Move\n -->"), this, 
+		CCSprite::create("OG_rowBtn_moveRight.png"_spr), this, 
 		menu_selector(MyEditorUI::onMoveForwardButton)
 	);
 	auto moveBackwardBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("Move\n <--"), this, 
+		CCSprite::create("OG_rowBtn_moveLeft.png"_spr), this, 
 		menu_selector(MyEditorUI::onMoveBackwardButton)
 	);
 	auto saveMeBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("Save\nchanges"), this, 
+		CCSprite::create("OG_rowBtn_save.png"_spr), this, 
 		menu_selector(MyEditorUI::onSaveButton)
 	);
-	auto newGroupBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("New\ngroup"), this, 
-		menu_selector(MyEditorUI::onNewGroupButton)
-	);
-	auto newGroupFromLayoutBtn = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("New group\nfrom layout"), this, 
-		menu_selector(MyEditorUI::onNewGroupFromLayoutButton)
-	);
+	// auto newGroupFromLayoutBtn = CCMenuItemSpriteExtra::create(
+	// 	ButtonSprite::create("New group\nfrom layout"), this, 
+	// 	menu_selector(MyEditorUI::onNewGroupFromLayoutButton)
+	// );
 	auto deleteItemButton = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("Delete\nbutton"), this, 
+		CCSprite::create("OG_rowBtn_deleteButton.png"_spr), this, 
 		menu_selector(MyEditorUI::onDeleteItemButton)
 	);
 	auto moreOptionsButton = CCMenuItemSpriteExtra::create(
-		ButtonSprite::create("More\n "), this, 
+		CCSprite::create("OG_rowBtn_options.png"_spr), this, 
 		menu_selector(MyEditorUI::onMoreOptionsButton)
 	);	
 
 	rowMenu->addChild(newObjectBtn);
-	rowMenu->addChild(moveForwardBtn);
-	rowMenu->addChild(moveBackwardBtn);
-	rowMenu->addChild(saveMeBtn);
 	rowMenu->addChild(newGroupBtn);
-	rowMenu->addChild(newGroupFromLayoutBtn);
+	rowMenu->addChild(moveBackwardBtn);
+	rowMenu->addChild(moveForwardBtn);
+	rowMenu->addChild(saveMeBtn);
+	// rowMenu->addChild(newGroupFromLayoutBtn);
 	rowMenu->addChild(deleteItemButton);
 	rowMenu->addChild(moreOptionsButton);
 	
 	rowMenu->updateLayout();
 
-	// maxWidth = 400
-	rowMenu->setScale(400.f / rowMenu->getContentWidth());
-	log::debug("w {}", rowMenu->getContentWidth());
+	// maxWidth = 320
+	rowMenu->setScale(320.f / rowMenu->getContentWidth());
 
 	return rowMenu;
 }
@@ -181,6 +180,12 @@ void MyEditorUI::setNewSelectedGroupCmi(CreateMenuItem* groupCmi) {
 	m_fields->selectedGroupCmi = groupCmi;
 }
 
+inline void setEditModeEnabled(MyEditorUI* editor, CCNodeRGBA* btn, bool enable) {
+	editor->m_fields->rowMenu->setVisible(enable);
+	if (btn) btn->setColor(enable ? ccc3(127, 127, 127) : ccc3(255, 255, 255));
+	editor->m_fields->buttonFrame->setVisible(enable);
+}
+
 
 // enable/disable the row menu
 void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
@@ -189,13 +194,28 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 	setNewOpenedGroup(nullptr, nullptr);
 	if (!Global::get().m_isEditMode) {
 		// disable
-		// todo: handle unsaved changes
-		m_fields->rowMenu->setVisible(false);
-		if (btn) btn->setColor(ccc3(255, 255, 255));
+		if (Global::get().m_hasUnsavedOGChanges) {
+			createQuickPopup("Unsaved Changes Warning",
+"You have <co>unsaved</c> changes in <cy>Object Groups</c> configuration.\n\
+<cj>Do you want to save them?</c>",
+				"No, save later", "Yes, save now", 
+				[this, btn] (auto, bool isBtn2) {
+					if (isBtn2) {
+						Global::get().m_editorUI->onSaveButton(nullptr);
+					}
+
+					setEditModeEnabled(this, btn, false);
+				}, 
+				true, true
+			);
+
+		} else {
+			setEditModeEnabled(this, btn, false);
+		}
+
 	} else if (m_selectedMode == 2 /* build mode */) {
 		// enable
-		m_fields->rowMenu->setVisible(true);
-		if (btn) btn->setColor(ccc3(127, 127, 127));
+		setEditModeEnabled(this, btn, true);
 	}
 }
 
@@ -229,25 +249,27 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 	if (selected->count() == 1) { 
 		int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
 		auto newBtn = getCustomCreateBtn(newObjId, getItemBtnColor(newObjId));
+		setColorToCreateBtnNew(newBtn, true);
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+		shortAlert("Created!");
 		Global::get().m_hasUnsavedOGChanges = true;
 
 	} else {
-		std::vector<short> ids;
-		for (int i = 0; i < selected->count(); i++) {
-			ids.push_back(static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID);
-		}
+		auto ids = getUniqueIds(selected);
+
 		createQuickPopup("Object Groups", 
-			fmt::format("Are you sure you want to add buttons for <cy>{}</c> objects?", selected->count()),
+			fmt::format("Are you sure you want to add buttons for <cy>{}</c> objects?", ids.size()),
 			"Yes", "No",
 			[ids, this] (auto, bool btn2) {
 				if (!btn2) {
 					auto arr = CCArray::create();
 					for (short id : ids) {
-						auto newBtn = getCustomCreateBtn(id, 1);
+						auto newBtn = getCustomCreateBtn(id, getItemBtnColor(id));
+						setColorToCreateBtnNew(newBtn, true);
 						arr->addObject(newBtn);
 					}
 					addButtonsAndReloadCurrentBar(arr);
+					shortAlert("Created!");
 					Global::get().m_hasUnsavedOGChanges = true;
 				}
 			},
@@ -300,6 +322,7 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 		m_createButtonArray->removeObject(btn);
 	}
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
+	shortAlert("Deleted!");
 	Global::get().m_hasUnsavedOGChanges = true;
 }
 
@@ -359,11 +382,12 @@ void MyEditorUI::onSaveButton(CCObject*) {
 		auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
 		int result = writeConfigToJson(file.string());
 		if (result == 0) {
-			shortAlert("Saved!", 2);
 			Global::get().m_hasUnsavedOGChanges = false;
+			shortAlert("Saved!", 2);
 		} else if (result == -1) {
-			alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n\
-	Configuration wasn't saved! Check that file exists and isn't locked", file.string()).c_str());
+			alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n"
+	 					"Configuration wasn't saved! Check that file exists and "
+						"isn't locked", file.string()).c_str());
 		}
 	}
 }
@@ -379,32 +403,35 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 
 	Group* group;
 	auto const selected = getSelectedObjects();
-	int const selCount = selected->count();
 
-	if (selCount == 0) {
+	if (selected->count() == 0) {
 		group = Group::createDefault();
 
 	} else {
+		auto ids = getUniqueIds(selected);
+		auto total = ids.size();
 		std::vector<std::vector<short>> matrix;
-		short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
-		int rowCount = (selCount < 5) ? selCount : ((selCount < 7 || selCount == 9) ? 3 : 4);
-		int columnCount = ceil((float)selCount / (float)rowCount);
 
-		for (int objIter = 0; objIter < selCount;) {
+		int rowCount = (total < 5) ? total : ((total < 7 || total == 9) ? 3 : 4);
+		int columnCount = ceil(total / (float)rowCount);
+
+		for (int objIter = 0; objIter < total;) {
 			std::vector<short> newRow;
 			for (int j = 0; j < columnCount; j++) {
-				auto obj = static_cast<GameObject*>(selected->objectAtIndex(objIter++));
-				newRow.push_back(obj->m_objectID);
-				if (objIter == selCount) break;
+				newRow.push_back(ids[objIter++]);
+				if (objIter == total) break;
 			}
 			matrix.push_back(newRow);
 		}
-		group = Group::createGroup("New Group", firstId, std::move(matrix));
+		group = Group::createGroup("New Group", ids[0], std::move(matrix));
 	}
 
 	auto newBtn = group->getCmi();
 	addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 	Global::get().m_hasUnsavedOGChanges = true;
+	shortAlert("Created!");
+
+	newBtn->activate(); // instant open
 }
 
 
@@ -427,13 +454,16 @@ void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 
 	if (!res.empty()) {
 		auto group = Group::createGroup("New Group", firstId, std::move(res));
-		log::debug("grid group created");
 		auto newBtn = group->getCmi();
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 		Global::get().m_hasUnsavedOGChanges = true;
+		shortAlert("Created!");
+
+		newBtn->activate(); // instant open
 	} else {
-		alert("<co>Layout not detected</c>: Selected objects cannot be arranged while \
-preserving their relative positions. Check that there are no multiple objects at the same spot");
+		alert("<co>Layout not detected</c>: Selected objects cannot be arranged while "
+					"preserving their relative positions. Check that there are no multiple "
+					"objects at the same spot");
 	}
 }
 
@@ -461,8 +491,8 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 			}
 
 		} else {
-			alert("You can't change the icon of this tab.\n\
-<cl>You can only change default editor tabs and tabs added by</c> <cy>Object Groups</c>");
+			alert("You can't change the icon of this tab.\n<cl>You can only change default "
+						"editor tabs and tabs added by</c> <cy>Object Groups</c>");
 		}
 
 	}

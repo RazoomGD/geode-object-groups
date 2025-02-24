@@ -14,6 +14,18 @@ inline float getBetterEditInterfaceScale() {
 }
 
 
+// support for Creative Mode new tab UI
+inline bool isCreativeModeNewTabUI() {
+	if (Loader::get()->isModInstalled("alphalaneous.creative_mode")) {
+		auto creativeMode = Loader::get()->getInstalledMod("alphalaneous.creative_mode");
+		if (creativeMode->isEnabled() && creativeMode->hasSetting("enable-new-tab-ui")) {
+			return creativeMode->getSettingValue<bool>("enable-new-tab-ui");
+		}
+	}
+	return false;
+}
+
+
 void MyEditorUI::showUI(bool show) {
 	EditorUI::showUI(show);
 	if (auto children = m_fields->rowMenu->getChildren()) {
@@ -45,6 +57,21 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	
 	if (!EditorUI::init(editorLayer)) return false;
 
+	// try to load saved configuration
+	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
+	switch (readConfigFromJson(file.string())) {
+		case 0: break; // ok
+		case -1: { // file error
+			alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> configuration because of file error");
+			return true;
+		}
+		case -2: { // json error
+			alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> configuration because of JSON format error");
+			return true;
+		}
+		default: return true;
+	}
+
 	// prevent overlapping with my menus
 	getChildByID("build-tabs-menu")->setZOrder(6); 
 	getChildByID("editor-buttons-menu")->setZOrder(6);
@@ -54,12 +81,14 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	setupVanillaTabs();
 
 	const float scale = getBetterEditInterfaceScale();
+	const bool isNewTabUI = isCreativeModeNewTabUI();
 
 	m_fields->rowMenu = setupRowMenu(scale);
 	m_fields->toggleMenu = setupToggleMenu(scale);
 
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
 	frame->setAnchorPoint({0,0});
+	frame->setColor(isNewTabUI ? ccc3(0, 255, 255) : ccc3(255, 255, 0));
 	m_fields->buttonFrame = CCNode::create();
 	m_fields->buttonFrame->addChild(frame);
 	m_fields->buttonFrame->setID("frame"_spr);

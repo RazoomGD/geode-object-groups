@@ -1,9 +1,6 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-#include <Geode/modify/EditorUI.hpp>
-#include <Geode/modify/EditButtonBar.hpp>
-#include <Geode/modify/BoomScrollLayer.hpp>
 
 #include <alphalaneous.editortab_api/include/EditorTabs.hpp>
 
@@ -39,7 +36,7 @@ struct Global {
     bool m_isFirstEditorEnter = true;
     bool m_isCurrentVersionSafe = true; // async
 
-    // Group Config (index in array is a build tab index)
+    // Arrays of groups (index in array is a build tab index)
     std::array<Ref<CCArray>, 20> m_groups; 
 
     struct {
@@ -97,7 +94,6 @@ inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text,
 void shortAlert(const char* text, float timeSec=1.5);
 
 // replacement for getCreateBtn
-// this supports custom colors and can remove button from editor->m_createButtonArray
 CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 
 // brighten or darken the CreateMenuItem (decompiled function)
@@ -112,6 +108,7 @@ int getGroupBtnColor();
 
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);
+std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 

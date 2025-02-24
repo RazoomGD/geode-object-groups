@@ -190,7 +190,7 @@ std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*>
     float rowLast = rowBegin;
     int rowIdx = 0;
 
-    for (auto& obj : objects) {
+    for (auto* obj : objects) {
         if (obj->getPositionY() < rowLast - minGap) {
             // found a gap => start a new row from this object
             rowIdx++;
@@ -217,7 +217,7 @@ std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*>
     float columnLast = columnBegin;
     int columnIdx = 0;
     
-    for (auto& obj : objects) {
+    for (auto* obj : objects) {
         if (obj->getPositionX() > columnLast + minGap) {
             // found a gap => start a new column from this object
             columnIdx++;
@@ -337,4 +337,18 @@ bool isObjIdExistsFast(short id) {
     uint64_t mask = 0b1000000000000000000000000000000000000000000000000000000000000000Ui64 >> index;
     bool exists = (num & mask);
     return exists;
+}
+
+// get ids without duplicates preserving their order
+std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects) {
+    std::set<short> idsOnce;
+    std::vector<short> ids;
+    for (auto* obj : objects) {
+        short id = obj->m_objectID;
+        if (!idsOnce.contains(id)) {
+            idsOnce.insert(id);
+            ids.push_back(id);
+        }
+    }
+    return ids;
 }

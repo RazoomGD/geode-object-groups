@@ -171,10 +171,10 @@ private:
         createQuickPopup("Extra options explanation", 
 "- <co>Group name</c>: name of the group. Name isn't shown if it's empty or \
 if this option is disabled in mod settings.\n\
-- <co>Add (...)</c>: create new empty row/column at the specified location \
+- <co>Add (...)</c>: creates new empty row/column at the specified location \
 relative to the <cj>focused button</c>.\n\
-- <co>Remove (...)</c>: remove row/column with the <cj>focused button</c>.\n\
-- <co>Set icon</c>: set object shown on the group button (for that, exactly 1 object must be selected in editor).\n\
+- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>.\n\
+- <co>Set icon</c>: sets object shown on the group button (for that, exactly 1 object must be selected in editor).\n\
 - <cy>Note</c>: If there is no <cj>focused button</c> within the group, <co>Add</c> and <co>Remove</c> \
 buttons will be inactive",
             "ok", nullptr, winWidth * .8, nullptr, true, true

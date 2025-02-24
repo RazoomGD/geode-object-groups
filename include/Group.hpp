@@ -74,18 +74,11 @@ public:
     void deleteRow(uint32_t index);
     void updateObjId(short newObjId);
 
-    // debug
-    Group() {
-        log::debug("group constructed");
-    }
-
-    ~Group() {
-        log::debug("group de-constructed");
-    }
-
     // getters, setters
     std::string getName() const {return m_groupName;}
     bool isSingle() const {return m_isSingle;}
+    bool isUserCreated() const {return m_isUserCreated;}
+    short getObjId() const {return m_objectId;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setName(std::string name) {m_groupName = name;}
 };

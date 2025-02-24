@@ -299,7 +299,7 @@ void Group::onArrowButton(CCObject* sender) {
 void Group::onDeleteObjButton(CCObject*) {
     uint32_t btnX, btnY;
     if (!getSelectedItemPosition(&btnX, &btnY)) {
-        alert("No focused button within the group. Select the object you want to remove from group!");
+        alert("No focused button within the group. <cj>Select the object you want to remove from group!</c>");
         return;
     }
     m_matrix[btnY][btnX] = 0;
@@ -311,26 +311,13 @@ void Group::onDeleteObjButton(CCObject*) {
 
 void Group::onAddObjectButton(CCObject* sender) {
     auto selected = Global::get().m_editorUI->getSelectedObjects();
-//     if (selected->count() != 1) {
-//         alert(fmt::format("To add new object to the group you must select exactly <cy>1</c> \
-// object in editor.\n(Now selected <cy>{}</c>)", selected->count()).c_str());
-//         return;
-//     }
 
     if (selected->count() == 0) {
         alert("To add new object to the group you must select at least <cy>1</c> object in editor");
         return;
     }
 
-    std::set<short> idsOnce;
-    std::vector<short> ids;
-    for (int i = 0; i < selected->count(); i++) {
-        short id = static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID;
-        if (!idsOnce.contains(id)) {
-            idsOnce.insert(id);
-            ids.push_back(id);
-        }
-    }
+    std::vector<short> ids = getUniqueIds(selected);
 
     uint32_t colSt, rowSt;
     if (!getSelectedItemPosition(&colSt, &rowSt)) {
@@ -368,23 +355,6 @@ void Group::onAddObjectButton(CCObject* sender) {
 void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
     auto editor = Global::get().m_editorUI;
-
-    // if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-    //     if (group == editor->getOpenedGroup()) {
-    //         // close
-    //         editor->setNewOpenedGroup(nullptr, nullptr);
-    //     } else {
-    //         // open
-    //         editor->setNewOpenedGroup(group, cmi);
-            
-    //         if (group->m_isUpdateRequired || Global::get().m_isEditMode != group->m_isInEditMode) {
-    //             group->updateMenu();
-    //             group->m_isUpdateRequired = false;
-    //             group->m_isInEditMode = Global::get().m_isEditMode;
-    //         }
-    //     }
-    //     editor->setNewFocusedCmi(cmi);
-    // }
 
     if (this == editor->getOpenedGroup()) {
         // close
