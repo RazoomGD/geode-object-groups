@@ -649,6 +649,10 @@ void Group::updateGroupView() {
             (top + spaceOnTop - bottom + oneDistance + border) * scaleFactor});
         m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / 2});
         m_bgSprite->setScale(1 / scaleFactor);
+        
+        auto bgCol = Global::get().m_settings.m_groupBgColor;
+        m_bgSprite->setColor(ccc3(bgCol.r, bgCol.g, bgCol.b));
+        m_bgSprite->setOpacity(bgCol.a);
     }
 
     // update control menus

@@ -55,6 +55,7 @@ class $modify(MyEditorUI, EditorUI) {
 	void createIconForTheTabFromSelectedObjects();
 	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
 	matjson::Value barToJsonValue(EditButtonBar* bar);
+	void execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab=-1);
 
 	void setNewFocusedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getFocusedCmi();

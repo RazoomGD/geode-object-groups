@@ -8,7 +8,7 @@ inline int mod(int a, int b) {return (a % b + b) % b;}
 
 CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	const auto rowMenu = CCMenu::create();
-	this->addChild(rowMenu); // todo: add children not to editorUI directly
+	this->addChild(rowMenu);
 	rowMenu->setAnchorPoint({0.5, 0});
 	rowMenu->setLayout(RowLayout::create()->setGap(30));
 	rowMenu->setPosition(ccp(CCDirector::get()->getWinSize().width / 2, 111 * scale));
@@ -558,6 +558,21 @@ matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar) {
 		}
 	}
 	return jsonArray;
+}
+
+
+void MyEditorUI::execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab) {
+	for (auto* bar : CCArrayExt<EditButtonBar*>(m_createButtonBars)) {
+		if (auto info = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
+			if (whatTab != -1 && whatTab != info->m_tabIndx) continue;
+			// foreach item in my tab
+			for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+				if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+					func(group, info->m_tabIndx);
+				}
+			}
+		}
+    }
 }
 
 

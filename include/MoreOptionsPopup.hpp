@@ -1,5 +1,7 @@
 #include "ObjectGroups.hpp"
 
+#include <Geode/ui/GeodeUI.hpp>
+
 class MoreOptionsPopup : public Popup<void*> {
 private:
     const float m_width = 220.f;
@@ -26,7 +28,7 @@ protected:
         menu->addChildAtPosition(infoBtn, Anchor::TopRight, ccp(-18, -18));
 
         const float scale1 = 0.8, scale2 = 0.35 / scale1; // adjust button padding
-        auto spr = ButtonSprite::create("Create tab icon from\nselected objects", "bigFont.fnt", "GJ_button_01.png", scale1);
+        CCSprite* spr = ButtonSprite::create("Create tab icon from\nselected objects", "bigFont.fnt", "GJ_button_01.png", scale1);
         spr->setScale(scale2);
         auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onCreateTabIcon));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -55));
@@ -50,6 +52,11 @@ protected:
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::pasteGroupsFromJson));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -175));
+
+        spr = CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
+        spr->setScale(0.6f);
+        btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onModSettings));
+        menu->addChildAtPosition(btn, Anchor::BottomRight, ccp(-30, 30));
 
         return true;
     }
@@ -78,6 +85,47 @@ private:
     void onGroupFromLayout(CCObject*) {
         Global::get().m_editorUI->onNewGroupFromLayoutButton(nullptr);
         onClose(nullptr);
+    }
+
+    void onModSettings(CCObject*) {
+        auto popup = openSettingsPopup(Mod::get(), true);
+        if (popup) popup->setID("mod-settings"_spr);
+        this->schedule(schedule_selector(MoreOptionsPopup::controlChangedSettings));
+    }
+
+    void controlChangedSettings(float) {
+        if (CCScene::get()->getChildByID("mod-settings"_spr)) {
+            return;
+        }
+        
+        this->unschedule(schedule_selector(MoreOptionsPopup::controlChangedSettings));
+
+        // handle changed settings
+        Global::OGSettings updatedSettings;
+        updatedSettings.update();
+
+        // editor reload required
+        bool editorReloadReq = (
+            Global::get().m_settings.m_groupBtnColor != updatedSettings.m_groupBtnColor ||
+            Global::get().m_settings.m_extraTabsCount != updatedSettings.m_extraTabsCount
+        );
+        if (editorReloadReq) {
+            alert("Some of the changed settings <co>require editor reload</c>");
+        }
+
+        // group reload required
+        bool groupReloadReq = (
+            Global::get().m_settings.m_showNames != updatedSettings.m_showNames ||
+            Global::get().m_settings.m_groupBgColor!= updatedSettings.m_groupBgColor
+        );
+        if (groupReloadReq) {
+            Global::get().m_settings.m_showNames = updatedSettings.m_showNames;
+            Global::get().m_settings.m_groupBgColor = updatedSettings.m_groupBgColor;
+            Global::get().m_editorUI->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
+        }
+
+        // nothing is required
+        Global::get().m_settings.m_autoClose = updatedSettings.m_autoClose;
     }
 
     void copyFocusedGroupAsJson(CCObject*) {

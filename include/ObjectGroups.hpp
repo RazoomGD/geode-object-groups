@@ -4,12 +4,14 @@
 
 #include <alphalaneous.editortab_api/include/EditorTabs.hpp>
 
-#include <string>
 #include <matjson.hpp>
+
+#include <string>
 #include <vector>
 #include <list>
 #include <set>
 #include <map>
+
 
 using namespace geode::prelude;
 
@@ -39,9 +41,9 @@ struct Global {
     // Arrays of groups (index in array is a build tab index)
     std::array<Ref<CCArray>, 20> m_groups; 
 
-    struct {
+    struct OGSettings {
         uint8_t m_extraTabsCount;
-        int m_groupColor;
+        int m_groupBtnColor;
         bool m_showNames;
         bool m_autoClose;
         ccColor4B m_groupBgColor;
@@ -50,7 +52,7 @@ struct Global {
             m_showNames = Mod::get()->getSettingValue<bool>("show-names");
             m_autoClose = Mod::get()->getSettingValue<bool>("auto-close");
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
-            m_groupColor = (col >= 1 && col <= 11) ? col : 1;
+            m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color-v2");
         }
     } m_settings;
@@ -102,9 +104,7 @@ CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);
 void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 
-// return number of rows and columns on editButtonBar
 void getBarSize(int* rows, int* cols);
-
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
 
@@ -112,7 +112,10 @@ std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);
 std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
 
+inline bool isDeveloperMode() {return Mod::get()->getSavedValue<uint64_t>("dev-pass", 0) == 291857115;} 
+
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
+
 
 // --------------------------- file --------------------------
 int readConfigFromJson(std::string filename);

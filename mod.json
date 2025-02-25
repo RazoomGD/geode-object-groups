@@ -16,18 +16,16 @@
 		"source": "https://github.com/RazoomGD/geode-object-groups",
 		"community": "https://discord.gg/wcWvtKHP8n"
 	},
-	"dependencies": [
-		{
-			"id": "geode.node-ids",
-			"version": ">=1.17.0",
-			"importance": "required"
+	"dependencies": {
+		"geode.node-ids": {
+			"importance": "required",
+			"version": ">=1.17.0"
 		},
-		{
-			"id": "alphalaneous.editortab_api",
-			"version": ">=1.0.10",
-			"importance": "required"
+		"alphalaneous.editortab_api": {
+			"importance": "required",
+			"version": ">=1.0.10"
 		}
-	],
+	},
 	"resources": {
         "sprites": [
 			"resources/*.png"

@@ -54,6 +54,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_isEditMode = false;
 	Global::get().m_hasUnsavedOGChanges = false;
 	Global::get().m_settings.update();
+
 	for (int i = 0; i < Global::get().m_groups.size(); i++) {
 		Global::get().m_groups[i] = nullptr;
 	}
@@ -103,6 +104,10 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		// notify user about an important update
 		UpdateNotificationManager::get()->goodMorning();
 		Global::get().m_isFirstEditorEnter = false;
+	}
+
+	if (isDeveloperMode()) {
+		log::info("Developer mode enabled");
 	}
 
 	return true;
@@ -155,5 +160,4 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 		}
 	}
 
-	log::debug("on create button");
 }

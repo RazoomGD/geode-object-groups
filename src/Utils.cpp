@@ -121,7 +121,7 @@ int getItemBtnColor(short objId) {
 }
 
 int getGroupBtnColor() {
-    return Global::get().m_settings.m_groupColor;
+    return Global::get().m_settings.m_groupBtnColor;
 }
 
 std::string toValidString(const char* txt) {
