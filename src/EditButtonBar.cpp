@@ -16,7 +16,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
         // load my tab
         loadCustomBarForTab(buttonArray, barInfo->m_tabIndx, p1, p2, p3);
-        log::debug("first load from items {}", barInfo->m_tabIndx);
+        // log::debug("first load from items {}", barInfo->m_tabIndx);
 
         barInfo->m_isLoaded = true;
 
@@ -33,41 +33,46 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
     // create bar according to object groups config
     void loadCustomBarForTab(CCArray* oldButtons, int tab, int p1, int p2, bool p3) {
-        if (tab >= 20 || Global::get().m_groups[tab] == nullptr) {
+        if (tab >= Global::get().m_groups.size() || Global::get().m_groups[tab] == nullptr) {
             return EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
         }
 
         Global::get().m_editorUI->m_createButtonArray->removeObjectsInArray(oldButtons);
 
-        std::set<short> allOldIds;
         std::vector<short> allOldIdsOrdered;
-        std::set<short> clearedIds;
-        for (unsigned i = 0; i < oldButtons->count(); i++) {
-            auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(i));
+        for (auto* btn : CCArrayExt<CreateMenuItem*>(oldButtons)) {
             allOldIdsOrdered.push_back(btn->m_objectID);
-            allOldIds.insert(btn->m_objectID);
         }
+
+        std::set<short> allOldIds(allOldIdsOrdered.begin(), allOldIdsOrdered.end());
+        std::set<short> clearedIds;
 
         auto buttons = CCArray::create();
         auto config = Global::get().m_groups[tab];
 
-		for (auto* group : CCArrayExt<Group*>(config)) {
-            if (group->isSingle() && !group->isUserCreated()) {
-                if (allOldIds.contains(group->getObjId())) {
-                    buttons->addObject(group->getCmi());
-                    clearedIds.insert(group->getObjId());
-                }
-            } else {
-                buttons->addObject(group->getCmi());
-                if (group->isSingle()) {
-                    clearedIds.insert(group->getObjId());
-                } else {
-                    auto matrix = group->getMatrix();
-                    for (int i = 0; i < matrix.size(); i++) {
-                        for (int j = 0; j < matrix[i].size(); j++) {
-                            clearedIds.insert(matrix[i][j]);
-                        }
+        // fill group-cleared ids
+        for (auto* group : CCArrayExt<Group*>(config)) {
+            if (!group->isSingle()) {
+                auto matrix = group->getMatrix();
+                for (int i = 0; i < matrix.size(); i++) {
+                    for (int j = 0; j < matrix[i].size(); j++) {
+                        clearedIds.insert(matrix[i][j]);
                     }
+                }
+            } else if (group->isUserCreated()) {
+                clearedIds.insert(group->getObjId());
+            }
+        }
+
+        // create new array obj buttons
+		for (auto* group : CCArrayExt<Group*>(config)) {
+            if (!group->isSingle() || group->isUserCreated()) {
+                buttons->addObject(group->getCmi());
+            } else {
+                short id = group->getObjId();
+                if (allOldIds.contains(id) && !clearedIds.contains(id)) {
+                    buttons->addObject(group->getCmi());
+                    clearedIds.insert(id);
                 }
             }
 		}

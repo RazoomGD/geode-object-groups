@@ -248,8 +248,10 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 
 	if (selected->count() == 1) { 
 		int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
-		auto newBtn = getCustomCreateBtn(newObjId, getItemBtnColor(newObjId));
-		setColorToCreateBtnNew(newBtn, true);
+
+		auto newGroup = Group::createSingle(newObjId, true);
+		auto newBtn = newGroup->getCmi();
+
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 		shortAlert("Created!");
 		Global::get().m_hasUnsavedOGChanges = true;
@@ -264,8 +266,8 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 				if (!btn2) {
 					auto arr = CCArray::create();
 					for (short id : ids) {
-						auto newBtn = getCustomCreateBtn(id, getItemBtnColor(id));
-						setColorToCreateBtnNew(newBtn, true);
+						auto newGroup = Group::createSingle(id, true);
+						auto newBtn = newGroup->getCmi();
 						arr->addObject(newBtn);
 					}
 					addButtonsAndReloadCurrentBar(arr);

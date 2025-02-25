@@ -57,6 +57,12 @@
 				"slider": false
 			}
 		},
+		"auto-close": {
+			"type": "bool",
+			"name": "Auto close groups",
+			"description": "Automatically close the group after selecting an object",
+			"default": false
+		},
 		"show-names": {
 			"type": "bool",
 			"name": "Show group names",

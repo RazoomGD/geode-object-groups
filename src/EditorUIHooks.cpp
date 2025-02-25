@@ -54,6 +54,9 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_isEditMode = false;
 	Global::get().m_hasUnsavedOGChanges = false;
 	Global::get().m_settings.update();
+	for (int i = 0; i < Global::get().m_groups.size(); i++) {
+		Global::get().m_groups[i] = nullptr;
+	}
 	
 	if (!EditorUI::init(editorLayer)) return false;
 
@@ -147,7 +150,9 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 	}
 
 	if (!Global::get().m_isEditMode) {
-		setNewOpenedGroup(nullptr, nullptr); // close
+		if (Global::get().m_settings.m_autoClose) {
+			setNewOpenedGroup(nullptr, nullptr); // close
+		}
 	}
 
 	log::debug("on create button");

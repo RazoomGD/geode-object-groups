@@ -33,17 +33,31 @@ int writeConfigToJson(std::string filename) {
     if (!jsonFile) return -1;
 
     Value config;
+    std::set<uint8_t> savedTabs;
     // foreach bar with my user object
     for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
     	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
             auto jsonArray = Global::get().m_editorUI->barToJsonValue(bar);
             auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
             config[tabIdx] = jsonArray;
+            savedTabs.insert(barInfo->m_tabIndx);
+        }
+    }
+
+    // foreach tab that might be not loaded
+    for (int i = 0; i < Global::get().m_groups.size(); i++) {
+        if (savedTabs.contains(i)) continue;
+        if (auto array = Global::get().m_groups[i]) {
+            std::vector<Value> groupsVec;
+            for (auto* group : CCArrayExt<Group*>(array)) {
+                groupsVec.push_back(group->toJson());
+            }
+            config[fmt::format("tab_{}", i)] = Value(groupsVec);
         }
     }
     
     Value jsonObj = makeObject({
-        {"comment", "DANGER! Don't edit this manually!"},
+        {"comment", "DANGER! Don't edit this manually unless you know what you're doing!"},
         {"config", config}
     });
 
@@ -90,3 +104,4 @@ int readConfigFromJson(std::string filename) {
 
     return 0;
 }
+

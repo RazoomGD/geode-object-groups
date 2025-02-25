@@ -36,12 +36,12 @@ protected:
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onGroupFromLayout));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -95));
         
-        spr = ButtonSprite::create("Copy group(s)\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
+        spr = ButtonSprite::create("Copy group\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyFocusedGroupAsJson));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(-btn->getScaledContentWidth()/2-5, -135));
         
-        spr = ButtonSprite::create("Copy tab\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
+        spr = ButtonSprite::create("Copy tab to\nclipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyCurrentTabAsJson));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(btn->getScaledContentWidth()/2+5, -135));
@@ -122,6 +122,7 @@ private:
             int groupCount = 0;
             for (auto& val : json) {
                 if (auto group = Group::createFromJsonValue(val, true)) {
+                    group->setUserCreated(true);
                     buttons->addObject(group->getCmi());
                     if (!group->isSingle()) groupCount++;
                 }

@@ -133,7 +133,7 @@ std::string toValidString(const char* txt) {
             (c >= '0' && c <= '9')) {
             s += c;
         } else {
-            const char* a = " -_.,!?()[]{}<>|/:=+*";
+            const char* a = " -_.,'!?()[]{}<>|/:=+*";
             for (; *a; a++) {
                 if (*a == c) {
                     s += c;

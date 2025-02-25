@@ -16,19 +16,6 @@ class $modify(MyEditorUI, EditorUI) {
 		} openedGroup;
 		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
-		Fields() {
-			// init global config and load data from json
-			// for (int i = 0; i < Global::get().m_groups.size(); i++) {
-			// 	Global::get().m_groups[i] = CCArray::create();
-			// }
-			// auto file = Mod::get()->getResourcesDir().append("OGv2_config.json");
-			// readConfigFromJson(file.string()); // todo: move the file to save directory
-		}
-		~Fields() {
-			// for (int i = 0; i < Global::get().m_groups.size(); i++) {
-			// 	Global::get().m_groups[i] = nullptr;
-			// }
-		}
 	};
 
 

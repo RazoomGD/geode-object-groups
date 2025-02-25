@@ -78,6 +78,7 @@ public:
     std::string getName() const {return m_groupName;}
     bool isSingle() const {return m_isSingle;}
     bool isUserCreated() const {return m_isUserCreated;}
+    void setUserCreated(bool val) {m_isUserCreated = val;}
     short getObjId() const {return m_objectId;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setName(std::string name) {m_groupName = name;}
