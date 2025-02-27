@@ -65,6 +65,7 @@ public:
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     matjson::Value toJson();
+    std::string toString(CCPoint bottomLeft, CCPoint* topRight);
 
     void clearAllCreateMenuItems();
 

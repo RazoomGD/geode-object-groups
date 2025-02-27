@@ -105,6 +105,15 @@ protected:
         menu->addChild(btn7);
         btn7->setPosition(20 + btn7->getScaledContentWidth() / 2, m_height - 180);
 
+        // secret buttons
+        if (isDeveloperMode()) {
+            spr = ButtonSprite::create("Create in\neditor", "bigFont.fnt", "GJ_button_01.png", scale1);
+            spr->setScale(scale2);
+            menu->addChildAtPosition(
+                CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::devCreateInEditor)), 
+                Anchor::TopRight, ccp(50, -20));
+        }
+
         updateGroupInfoLabel();
         updateGroupCmiInfo();
         
@@ -148,6 +157,17 @@ private:
             m_groupCmiInfo.m_groupHasSelectedCmi = false;
         }
         updateButtons();
+    }
+
+    void devCreateInEditor(CCObject*) {
+        if (auto obj = EditorUI::get()->m_selectedObject) {
+            CCPoint end;
+            auto str = m_myGroup->toString(obj->getPosition(), &end);
+            LevelEditorLayer::get()->createObjectsFromString(str, 1, 1);
+        } else {
+            shortAlert("Pivot object not selected");
+        }
+        onClose(nullptr);
     }
 
     void updateButtons() {

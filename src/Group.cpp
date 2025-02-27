@@ -177,6 +177,28 @@ matjson::Value Group::toJson() {
 }
 
 
+std::string Group::toString(CCPoint bottomLeft, CCPoint* topRight) {
+    if (isSingle()) {
+        *topRight = bottomLeft;
+        return fmt::format("1,{},2,{},3,{};", m_objectId, bottomLeft.x, bottomLeft.y);
+    } else {
+        std::string ret;
+        *topRight = bottomLeft + ccp((m_matrix[0].size() - 1) * 60, (m_matrix.size() - 1) * 60);
+        CCPoint pos = bottomLeft;
+        for (int i = m_matrix.size() - 1; i >= 0; i--) {
+            for (int j = 0; j < m_matrix[0].size(); j++) {
+                if (m_matrix[i][j] > 0) 
+                    ret.append(fmt::format("1,{},2,{},3,{};", m_matrix[i][j], pos.x, pos.y));
+                pos.x += 60;
+            }
+            pos.y += 60;
+            pos.x = bottomLeft.x;
+        }
+        return ret;
+    }
+}
+
+
 void Group::clearAllCreateMenuItems() {
     if (m_menu != nullptr) {
         if (auto buttons = m_menu->getChildren()) {
@@ -302,6 +324,7 @@ void Group::onDeleteObjButton(CCObject*) {
         alert("No focused button within the group. <cj>Select the object you want to remove from group!</c>");
         return;
     }
+    if (m_matrix[btnY][btnX] == 0) return;
     m_matrix[btnY][btnX] = 0;
     Global::get().m_editorUI->setNewFocusedCmi(nullptr);
     updateMenu(false);

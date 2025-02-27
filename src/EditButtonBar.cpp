@@ -11,23 +11,16 @@ class $modify(MyEditButtonBar, EditButtonBar) {
         auto barInfo = static_cast<BarInfo*>(this->getUserObject(BAR_USER_OBJ_ID));
         if (!barInfo || barInfo->m_isLoaded) {
             // not my tab or just reload
-            return EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
+            EditButtonBar::loadFromItems(buttonArray, p1, p2, p3);
+
+        } else {
+            // load my tab
+            loadCustomBarForTab(buttonArray, barInfo->m_tabIndx, p1, p2, p3);
+            barInfo->m_isLoaded = true;
         }
 
-        // load my tab
-        loadCustomBarForTab(buttonArray, barInfo->m_tabIndx, p1, p2, p3);
-        // log::debug("first load from items {}", barInfo->m_tabIndx);
-
-        barInfo->m_isLoaded = true;
-
-        // fix overlapping with arrows
-        if (auto myChildren = this->getChildren())
-        for (int i = 0; i < myChildren->count(); i++) {
-            if (auto bsl = typeinfo_cast<BoomScrollLayer*>(myChildren->objectAtIndex(i))) {
-                bsl->setZOrder(2);
-                break;
-            }
-        }
+        // fix arrows overlapping
+        if (m_scrollLayer) m_scrollLayer->setZOrder(2);
     }
 
 
