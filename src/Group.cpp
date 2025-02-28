@@ -91,6 +91,26 @@ Group* Group::createDefault() {
 }
 
 
+Group* Group::createFromArray(std::string name, short objId, std::vector<short>&& array) {
+    int total = array.size();
+    if (total == 0) return Group::createDefault();
+    
+    int rowCount = (total < 5) ? total : ((total < 7 || total == 9) ? 3 : 4);
+    int columnCount = ceil(total / (float)rowCount);
+    
+    std::vector<std::vector<short>> matrix;
+    for (int objIter = 0; objIter < total;) {
+        std::vector<short> newRow;
+        for (int j = 0; j < columnCount; j++) {
+            newRow.push_back(array[objIter++]);
+            if (objIter == total) break;
+        }
+        matrix.push_back(newRow);
+    }
+    return Group::createGroup(name, objId, std::move(matrix));
+}
+
+
 Group* Group::createSingle(short objId, bool isUserCreated) {
     auto ret = new Group();
     if (!ret || !ret->init()) {

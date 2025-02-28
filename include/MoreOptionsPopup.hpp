@@ -167,30 +167,28 @@ private:
     }
 
     void devPasteOldFormat(CCObject*) {
-        auto str = clipboard::read();
-        auto res = matjson::parse(fmt::format("[{}]", str));
-        if (res.isErr()) return;
-        auto json = res.unwrap();
-        std::vector<int> ids;
-        for (auto& val : json) {
-            ids.push_back(*val.asInt().ok());
-        }
-        if (ids.size() == 0) return;
-        if (!EditorUI::get()->m_selectedObject) {
-            return shortAlert("no selected pivot");
-        }
-        auto p = EditorUI::get()->m_selectedObject->getPosition() + ccp(60, 0);
-        std::string objStr;
-        int i = 0;
-        for (auto id : ids) {
-            objStr.append(fmt::format("1,{},2,{},3,{};", id, p.x, p.y));
-            p = p + ccp(60, 0);
-            if (i++ == 5) {
-                p = p - ccp(6*60, 60);
-                i = 0;
+
+        struct OldGroup {std::string name; short id; std::vector<short> objects;};
+        
+        std::vector<OldGroup> groups = {};
+
+        auto buttons = CCArray::create();
+
+        for (int i = 0; i < groups.size(); i++) {
+            auto oldGroup = groups[i];
+            auto total = oldGroup.objects.size();
+            if (total == 1) {
+                buttons->addObject(Group::createSingle(oldGroup.objects[0], 1)->getCmi());
+                continue;
             }
+            auto group = Group::createFromArray(oldGroup.name, oldGroup.id, std::move(oldGroup.objects));
+            auto newBtn = group->getCmi();
+            buttons->addObject(newBtn);
         }
-        LevelEditorLayer::get()->createObjectsFromString(objStr, false, false);
+
+        Global::get().m_editorUI->addButtonsAndReloadCurrentBar(buttons);
+        Global::get().m_hasUnsavedOGChanges = true;
+        shortAlert("Created!");
     }
 
     void pasteGroupsFromJson(CCObject*) {

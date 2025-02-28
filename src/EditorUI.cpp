@@ -411,21 +411,7 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 
 	} else {
 		auto ids = getUniqueIds(selected);
-		auto total = ids.size();
-		std::vector<std::vector<short>> matrix;
-
-		int rowCount = (total < 5) ? total : ((total < 7 || total == 9) ? 3 : 4);
-		int columnCount = ceil(total / (float)rowCount);
-
-		for (int objIter = 0; objIter < total;) {
-			std::vector<short> newRow;
-			for (int j = 0; j < columnCount; j++) {
-				newRow.push_back(ids[objIter++]);
-				if (objIter == total) break;
-			}
-			matrix.push_back(newRow);
-		}
-		group = Group::createGroup("New Group", ids[0], std::move(matrix));
+		group = Group::createFromArray("New Group", ids[0], std::move(ids));
 	}
 
 	auto newBtn = group->getCmi();
