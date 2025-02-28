@@ -440,7 +440,7 @@ bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
 
 
 void Group::addColumn(uint32_t index) {
-    if (index >= m_matrix[0].size()) index = m_matrix[0].size() - 1;
+    if (index > m_matrix[0].size()) index = m_matrix[0].size();
     for (int i = 0; i < m_matrix.size(); i++) {
         m_matrix[i].insert(m_matrix[i].begin() + index, 0);
     }
@@ -448,7 +448,7 @@ void Group::addColumn(uint32_t index) {
 
 
 void Group::addRow(uint32_t index) {
-    if (index >= m_matrix.size()) index = m_matrix.size() - 1;
+    if (index > m_matrix.size()) index = m_matrix.size();
     int rowLen = m_matrix[0].size();
     std::vector<short> newRow(rowLen, 0);
     m_matrix.insert(m_matrix.begin() + index, newRow);

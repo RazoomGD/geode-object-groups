@@ -27,10 +27,6 @@ $on_mod(Loaded) {
 
 // write config to json file. Return 0 on success, -1 on file error
 int writeConfigToJson(std::string filename) {
-    // open file
-    std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
-
-    if (!jsonFile) return -1;
 
     Value config;
     std::set<uint8_t> savedTabs;
@@ -62,6 +58,9 @@ int writeConfigToJson(std::string filename) {
     });
 
     // write file
+    std::ofstream jsonFile(filename, std::ios::out | std::ios::trunc);
+    if (!jsonFile) return -1;
+    
     jsonFile << jsonObj.dump() << std::endl;
     jsonFile.close();
     

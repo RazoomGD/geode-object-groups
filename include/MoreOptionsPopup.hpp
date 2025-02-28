@@ -57,6 +57,13 @@ protected:
         spr->setScale(0.6f);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onModSettings));
         menu->addChildAtPosition(btn, Anchor::BottomRight, ccp(-30, 30));
+        
+        if (isDeveloperMode()) {
+            spr = ButtonSprite::create("Paste old\nformat", "bigFont.fnt", "GJ_button_01.png", scale1);
+            spr->setScale(scale2);
+            btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::devPasteOldFormat));
+            menu->addChildAtPosition(btn, Anchor::TopRight, ccp(50, -50));
+        }
 
         return true;
     }
@@ -159,13 +166,47 @@ private:
         }
     }
 
+    void devPasteOldFormat(CCObject*) {
+        auto str = clipboard::read();
+        auto res = matjson::parse(fmt::format("[{}]", str));
+        if (res.isErr()) return;
+        auto json = res.unwrap();
+        std::vector<int> ids;
+        for (auto& val : json) {
+            ids.push_back(*val.asInt().ok());
+        }
+        if (ids.size() == 0) return;
+        if (!EditorUI::get()->m_selectedObject) {
+            return shortAlert("no selected pivot");
+        }
+        auto p = EditorUI::get()->m_selectedObject->getPosition() + ccp(60, 0);
+        std::string objStr;
+        int i = 0;
+        for (auto id : ids) {
+            objStr.append(fmt::format("1,{},2,{},3,{};", id, p.x, p.y));
+            p = p + ccp(60, 0);
+            if (i++ == 5) {
+                p = p - ccp(6*60, 60);
+                i = 0;
+            }
+        }
+        LevelEditorLayer::get()->createObjectsFromString(objStr, false, false);
+    }
+
     void pasteGroupsFromJson(CCObject*) {
         auto parsed = matjson::parse(clipboard::read());
         if (auto maybeJson = parsed.ok()) {
+
+            if (!Global::get().m_editorUI->m_createButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
+                alert("Can't create a button in this tab");
+                return;
+            }
+
             auto json = *maybeJson;
             if (!json.isArray()) {
                 json = matjson::Value(std::vector<matjson::Value>{json});
             }
+
             auto buttons = CCArray::create();
             int groupCount = 0;
             for (auto& val : json) {

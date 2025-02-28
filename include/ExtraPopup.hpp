@@ -71,7 +71,7 @@ protected:
         spr = ButtonSprite::create("Add column left", "bigFont.fnt", "GJ_button_01.png", scale1);
         spr->setScale(scale2);
         auto btn2 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onAddColLeft));
-        spr = ButtonSprite::create("Remove column", "bigFont.fnt", "GJ_button_06.png", scale1);
+        spr = ButtonSprite::create("Delete column", "bigFont.fnt", "GJ_button_06.png", scale1);
         spr->setScale(scale2);
         auto btn3 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onColRemove));
         spr = ButtonSprite::create("Add row below", "bigFont.fnt", "GJ_button_01.png", scale1);
@@ -80,7 +80,7 @@ protected:
         spr = ButtonSprite::create("Add row above", "bigFont.fnt", "GJ_button_01.png", scale1);
         spr->setScale(scale2);
         auto btn5 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onAddRowTop));
-        spr = ButtonSprite::create("Remove row", "bigFont.fnt", "GJ_button_06.png", scale1);
+        spr = ButtonSprite::create("Delete row", "bigFont.fnt", "GJ_button_06.png", scale1);
         spr->setScale(scale2);
         auto btn6 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onRowRemove));
 
