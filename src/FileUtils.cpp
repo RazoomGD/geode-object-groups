@@ -33,7 +33,7 @@ int writeConfigToJson(std::string filename) {
     // foreach bar with my user object
     for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
     	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-            auto jsonArray = Global::get().m_editorUI->barToJsonValue(bar);
+            auto jsonArray = Global::editor()->barToJsonValue(bar);
             auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
             config[tabIdx] = jsonArray;
             savedTabs.insert(barInfo->m_tabIndx);

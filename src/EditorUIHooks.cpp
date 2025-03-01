@@ -43,7 +43,7 @@ void MyEditorUI::showUI(bool show) {
 }
 
 // CreateMenuItem* MyEditorUI::getCreateBtn(int id, int bg) {
-// 	log::debug("call");
+// 	log::debug("call {}", id);
 // 	auto ret = EditorUI::getCreateBtn(id, bg);
 // 	log::debug("ret");
 // 	return ret;
@@ -65,7 +65,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
 	switch (readConfigFromJson(file.string())) {
 		case 0: break; // ok
-		case -1: { // file error
+		case -1: { // file error // todo: fix alert on transition
 			alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> configuration because of file error");
 			return true;
 		}
@@ -83,6 +83,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
 	setupVanillaTabs();
+	setupSearchTab();
 
 	const float scale = getBetterEditInterfaceScale();
 	const bool isNewTabUI = isCreativeModeNewTabUI();
@@ -108,6 +109,11 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	if (isDeveloperMode()) {
 		log::info("Developer mode enabled");
+	}
+
+	// don't need them anymore
+	for (int i = 0; i < Global::get().m_groups.size(); i++) {
+		Global::get().m_groups[i] = nullptr;
 	}
 
 	return true;
@@ -161,3 +167,27 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 	}
 
 }
+
+// todo: delete this
+
+// #include <Geode/modify/CreateMenuItem.hpp>
+
+// static int aaaaa = 0;
+
+// class $modify(MyCreateMenuItem, CreateMenuItem) {
+// 	struct Fields {
+// 		int a;
+// 		Fields() {
+// 			log::debug("CMI+ {}", ++aaaaa);
+// 		}
+// 		~Fields() {
+// 			log::debug("CMI- {}", --aaaaa);
+// 		}
+// 	};
+
+// 	static CreateMenuItem* create(CCNode* p0, CCNode* p1, CCObject* p2, SEL_MenuHandler p3) {
+// 		CreateMenuItem* ret = CreateMenuItem::create(p0, p1, p2, p3);
+// 		static_cast<MyCreateMenuItem*>(ret)->m_fields->a ++;
+// 		return ret;
+// 	}
+// };

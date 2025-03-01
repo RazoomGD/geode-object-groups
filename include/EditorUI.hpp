@@ -16,6 +16,8 @@ class $modify(MyEditorUI, EditorUI) {
 		} openedGroup;
 		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
+		Ref<EditButtonBar> searchButtonBar = nullptr;
+
 	};
 
 
@@ -29,6 +31,7 @@ class $modify(MyEditorUI, EditorUI) {
 	CCMenu* setupToggleMenu(float scale);
 	void setupExtraTabs(int count);
 	void setupVanillaTabs();
+	void setupSearchTab();
 
 	// hooks
 	$override bool init(LevelEditorLayer* editorLayer);
@@ -41,13 +44,13 @@ class $modify(MyEditorUI, EditorUI) {
 	// handlers for my menus 
 	void toggleEditGroupsMode(CCObject*);
 	void onNewObjectButton(CCObject*);
-	void onDeleteItemButton(CCObject*);
+	void onNewGroupButton(CCObject*);
 	void onMoveForwardButton(CCObject*);
 	void onMoveBackwardButton(CCObject*);
 	void onSaveButton(CCObject*);
-	void onNewGroupButton(CCObject*);
-	void onNewGroupFromLayoutButton(CCObject*);
+	void onDeleteItemButton(CCObject*);
 	void onMoreOptionsButton(CCObject*);
+	void onNewGroupFromLayoutButton(CCObject*);
 	
 	// various helper methods
 	void moveSelectedButton(bool forward);
@@ -63,4 +66,7 @@ class $modify(MyEditorUI, EditorUI) {
 	void setNewSelectedGroupCmi(CreateMenuItem* groupCmi);
 	void setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi);
 	Group* getOpenedGroup();
+
+	void toggleSearch();
+	void performSearchResult(const std::string& query);
 };

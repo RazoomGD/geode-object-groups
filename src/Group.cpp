@@ -3,13 +3,27 @@
 #include "ExtraPopup.hpp"
 
 
-struct GroupCoords : public CCObject {
+struct GroupItemInfo : public CCObject {
     uint32_t m_col;
     uint32_t m_row;
-    GroupCoords(uint32_t col, uint32_t row) : m_col(col), m_row(row) {
+    GroupItemInfo(uint32_t col, uint32_t row) : m_col(col), m_row(row) {
         this->autorelease();
     }
 };
+
+
+// (feature) set thumbnail object depending on the current tab
+short getIdForOpenedTab() {
+    static const short defaultObjectForTab[] = 
+        {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
+    short id = 3823; // :)
+    if (auto bar = Global::editor()->m_createButtonBar)
+    if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID)))
+    if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
+        id = defaultObjectForTab[obj->m_tabIndx];
+    }
+    return id;
+}
 
 
 Group* Group::createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix) {
@@ -68,19 +82,6 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->setID("RaZooM");
     ret->autorelease();
     return ret;
-}
-
-// (feature) set thumbnail object depending on the current tab
-short getIdForOpenedTab() {
-    static const short defaultObjectForTab[] = 
-        {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
-    short id = 3823; // :)
-    if (auto bar = Global::get().m_editorUI->m_createButtonBar)
-    if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID)))
-    if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
-        id = defaultObjectForTab[obj->m_tabIndx];
-    }
-    return id;
 }
 
 
@@ -225,7 +226,7 @@ void Group::clearAllCreateMenuItems() {
             for (int i = 0; i < buttons->count(); i++) {
                 auto cmi = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
                 if (cmi->m_objectID != 0) {
-                    Global::get().m_editorUI->m_createButtonArray->fastRemoveObject(cmi);
+                    Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
                 }
             }
         }
@@ -234,21 +235,20 @@ void Group::clearAllCreateMenuItems() {
 
 
 CreateMenuItem* Group::getCmi() {
-    CreateMenuItem* ret;
+    if (m_cmi) return m_cmi;
     if (m_isSingle) { // get classic cmi but with set userObject
-        ret = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
+        m_cmi = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
     } else { // get cmi with set userObject and custom selector
-        ret = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
-        ret->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
-        ret->m_pListener = this;
-        ret->m_objectID = 0;
-        ret->setTag(0); // compat with creative mode
-        ret->setUserObject(new GroupInfo()); // compat with creative mode x2
+        m_cmi = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
+        m_cmi->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
+        m_cmi->m_pListener = this;
+        m_cmi->m_objectID = 0;
+        m_cmi->setTag(0); // compat with creative mode
+        updateName(m_groupName); // update cmi user obj
     }
-    ret->setUserObject(CMI_USER_OBJ_ID, this);
-    setColorToCreateBtnNew(ret, true);
-    m_cmi = ret;
-    return ret;
+    m_cmi->setUserObject(CMI_USER_OBJ_ID, this); // set group
+    setColorToCreateBtnNew(m_cmi, true);
+    return m_cmi;
 }
 
 
@@ -320,7 +320,7 @@ void Group::onArrowButton(CCObject* sender) {
         // alert("No focused button within the group. Select the button first!");
         return;
     }
-    if (auto cmi = Global::get().m_editorUI->getFocusedCmi()) {
+    if (auto cmi = Global::editor()->getFocusedCmi()) {
         if (cmi->m_objectID == 0) return; // don't move plus buttons
     }
 
@@ -346,14 +346,14 @@ void Group::onDeleteObjButton(CCObject*) {
     }
     if (m_matrix[btnY][btnX] == 0) return;
     m_matrix[btnY][btnX] = 0;
-    Global::get().m_editorUI->setNewFocusedCmi(nullptr);
+    Global::editor()->setNewFocusedCmi(nullptr);
     updateMenu(false);
     Global::get().m_hasUnsavedOGChanges = true;
 }
 
 
 void Group::onAddObjectButton(CCObject* sender) {
-    auto selected = Global::get().m_editorUI->getSelectedObjects();
+    auto selected = Global::editor()->getSelectedObjects();
 
     if (selected->count() == 0) {
         alert("To add new object to the group you must select at least <cy>1</c> object in editor");
@@ -394,10 +394,9 @@ void Group::onAddObjectButton(CCObject* sender) {
 
 
 // selector for group button (not for single object).
-// this function will call one of onOpenGroupMenu or onCloseGroupMenu
 void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
-    auto editor = Global::get().m_editorUI;
+    auto editor = Global::editor();
 
     if (this == editor->getOpenedGroup()) {
         // close
@@ -419,13 +418,9 @@ void Group::onGroupBtnClick(CCObject* sender) {
 
 void Group::onInnerCreateButton(CCObject* sender) {
     auto btn = static_cast<CreateMenuItem*>(sender);
-    auto editor = Global::get().m_editorUI;
+    auto editor = Global::editor();
 
     EditorUI::get()->onCreateButton(btn); // avoid double call bug
-
-    // if (!Global::get().m_isEditMode) {
-    //     editor->setNewOpenedGroup(nullptr, nullptr);
-    // }
 
     bool thisIsNowSelected = (btn->m_objectID == editor->m_selectedObjectIndex);
     if (thisIsNowSelected) {
@@ -440,7 +435,7 @@ void Group::onInnerCreateButton(CCObject* sender) {
 // selector for plus button
 void Group::onInnerPlusButton(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
-    Global::get().m_editorUI->setNewFocusedCmi(cmi);
+    Global::editor()->setNewFocusedCmi(cmi);
 }
 
 
@@ -522,15 +517,25 @@ void Group::updateObjId(short newObjId) {
 }
 
 
+void Group::updateName(std::string name) {
+    m_groupName = name;
+    if (m_cmi) {
+        m_cmi->setUserObject(CMI_GROUP_NAME_USER_OBJ_ID, CCString::create(name));
+    }
+}
+
+
 bool Group::getSelectedItemPosition(uint32_t* col, uint32_t* row) {
-    auto cmi = Global::get().m_editorUI->getFocusedCmi();
-    if (cmi == nullptr) return false;
+    auto cmi = Global::editor()->getFocusedCmi();
+    if (!cmi) return false;
+
     auto myButtons = m_menu->getChildren();
     if (myButtons == nullptr) return false;
+
     for (int i = 0; i < myButtons->count(); i++) {
         auto btn = myButtons->objectAtIndex(i);
         if (btn == cmi) {
-            if (auto pos = static_cast<GroupCoords*>(cmi->getUserObject(COORDS_USER_OBJ_ID))) {
+            if (auto pos = static_cast<GroupItemInfo*>(cmi->getUserObject(INNER_CMI_USER_OBJ_ID))) {
                 *col = pos->m_col;
                 *row = pos->m_row;
                 return true;
@@ -548,9 +553,9 @@ bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
     if (buttons == nullptr) return false;
     for (int i = 0; i < buttons->count(); i++) {
         auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
-        if (auto uObj = static_cast<GroupCoords*>(btn->getUserObject(COORDS_USER_OBJ_ID))) {
+        if (auto uObj = static_cast<GroupItemInfo*>(btn->getUserObject(INNER_CMI_USER_OBJ_ID))) {
             if (uObj->m_row == row && uObj->m_col == col) {
-                Global::get().m_editorUI->setNewFocusedCmi(btn);
+                Global::editor()->setNewFocusedCmi(btn);
                 return true;
             }
         }
@@ -600,7 +605,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                 auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
                 if (btn->m_objectID == id) {
                     m_menu->addChild(btn);
-                    btn->setUserObject(COORDS_USER_OBJ_ID, new GroupCoords(j, i));
+                    btn->setUserObject(INNER_CMI_USER_OBJ_ID, new GroupItemInfo(j, i));
                     oldButtons->fastRemoveObjectAtIndex(k); // important to break immediately
                     found = true;
                     break;
@@ -615,17 +620,17 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                     btn = getCustomCreateBtn(id, getItemBtnColor(id));
                     btn->m_pfnSelector = menu_selector(Group::onInnerCreateButton);
                     btn->m_pListener = this;
-                    bool isSelected = (Global::get().m_editorUI->m_selectedObjectIndex == id);
+                    bool isSelected = (Global::editor()->m_selectedObjectIndex == id);
                     setColorToCreateBtnNew(btn, !isSelected);
                 }
                 m_menu->addChild(btn);
-                btn->setUserObject(COORDS_USER_OBJ_ID, new GroupCoords(j, i));
+                btn->setUserObject(INNER_CMI_USER_OBJ_ID, new GroupItemInfo(j, i));
             }
         }
     }
 
     // get rid of the buttons that we don't need anymore
-    auto registeredButtons = Global::get().m_editorUI->m_createButtonArray;
+    auto registeredButtons = Global::editor()->m_createButtonArray;
     for (int k = 0; k < oldButtons->count(); k++) {
         auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
         if (btn->m_objectID != 0) {
@@ -666,7 +671,7 @@ void Group::updateGroupView() {
 
     for (int i = 0; i < buttonArray->count(); i++) {
         auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
-        auto uObj = static_cast<GroupCoords*>(btn->getUserObject(COORDS_USER_OBJ_ID));
+        auto uObj = static_cast<GroupItemInfo*>(btn->getUserObject(INNER_CMI_USER_OBJ_ID));
         float x = left + (float)uObj->m_col * oneDistance;
         float y = top - (float)uObj->m_row * oneDistance;
         btn->setPosition(ccp(x, y));

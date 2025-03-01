@@ -6,16 +6,20 @@
 		"mac": "2.2074",
 		"ios": "2.2074"
 	},
+
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"description": "A mod for grouping objects in the editor tabs",
 	"version": "v0.1.343",
 	"developer": "RaZooM",
+	"description": "A mod for grouping objects in the editor tabs",
+
 	"tags": ["editor", "enhancement", "utility", "customization", "interface"],
+
 	"links": {
 		"source": "https://github.com/RazoomGD/geode-object-groups",
 		"community": "https://discord.gg/wcWvtKHP8n"
 	},
+
 	"dependencies": {
 		"geode.node-ids": {
 			"importance": "required",
@@ -26,6 +30,7 @@
 			"version": ">=1.0.10"
 		}
 	},
+
 	"resources": {
         "sprites": [
 			"resources/*.png"
@@ -34,6 +39,7 @@
 			"resources/OGv2_config_default.json"
 		]
     },
+
 	"settings": {
 		"group-button-color-v2": {
 			"type": "string",
@@ -71,7 +77,7 @@
 			"type": "rgba",
 			"name": "Background color",
 			"description": "Color and opacity of menu background",
-			"default": [0, 0, 0, 170]
+			"default": [0, 0, 0, 150]
 		}
 	}
 }

@@ -52,7 +52,8 @@ protected:
         nameInput->setCallback([nameInput, group](const std::string& str) {
             auto name = toValidString(str.c_str());
             nameInput->setString(name, false);
-            group->setName(name);
+            group->updateName(name);
+            Global::get().m_hasUnsavedOGChanges = true;
         });
         m_mainLayer->addChild(nameInput);
         nameInput->setAnchorPoint({0,0.5});
@@ -244,7 +245,7 @@ buttons will be inactive",
     void onColRemove(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteColumn(m_groupCmiInfo.m_column);
-        Global::get().m_editorUI->setNewFocusedCmi(nullptr);
+        Global::editor()->setNewFocusedCmi(nullptr);
         m_myGroup->updateMenu(false);
         Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);
@@ -253,7 +254,7 @@ buttons will be inactive",
     void onRowRemove(CCObject*) {
         if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
         m_myGroup->deleteRow(m_groupCmiInfo.m_row);
-        Global::get().m_editorUI->setNewFocusedCmi(nullptr);
+        Global::editor()->setNewFocusedCmi(nullptr);
         m_myGroup->updateMenu(false);
         Global::get().m_hasUnsavedOGChanges = true;
         onClose(nullptr);

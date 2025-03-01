@@ -16,9 +16,10 @@
 using namespace geode::prelude;
 
 
-#define BAR_USER_OBJ_ID "OG-bar"
-#define CMI_USER_OBJ_ID "OG-cmi"
-#define COORDS_USER_OBJ_ID "OG-coord"
+#define BAR_USER_OBJ_ID "OG-bar"_spr
+#define CMI_USER_OBJ_ID "OG-cmi"_spr
+#define INNER_CMI_USER_OBJ_ID "OG-coord"_spr
+#define CMI_GROUP_NAME_USER_OBJ_ID "OG-name"_spr
 
 
 struct MyEditorUI;
@@ -29,6 +30,10 @@ struct Global {
     static Global& get() {
         static Global instance;
         return instance;
+    }
+
+    static MyEditorUI* editor() {
+        return Global::get().m_editorUI;
     }
 
     MyEditorUI* m_editorUI;

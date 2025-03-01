@@ -2,23 +2,64 @@
 #include "EditorUI.hpp"
 
 
+static const char* bgIdToName[12] = {
+    "GJ_button_01.png", // 0
+    "GJ_button_01.png",
+    "GJ_button_02.png",
+    "GJ_button_03.png",
+    "GJ_button_04.png",
+    "GJ_button_05.png",
+    "GJ_button_06.png",
+    "OG_button_07.png"_spr,
+    "OG_button_08.png"_spr,
+    "OG_button_09.png"_spr,
+    "OG_button_10.png"_spr,
+    "OG_button_11.png"_spr,
+};
+
+
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
 CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
+    // if (avoidDefaultFunction) {
+    //     const char* bgName = bgIdToName[id];
+
+    //     // todo: temp
+    //     bgName = "GJ_button_06.png";
+
+    //     GameObject* obj;
+    //     if (id == 0x64f || id == 0x392) {
+    //         auto cache = cocos2d::CCTextureCache::sharedTextureCache();
+    //         auto text = TextGameObject::create(cache->addImage("bigFont.fnt", false));
+    //         if (id == 0x64f) {
+    //             text->updateTextObject("0", true);
+    //         } else {
+    //             text->updateTextObject("A", true);
+    //         }
+    //         obj = text;
+    //     } else {
+    //         obj = GameObject::createWithKey(id);
+    //         auto colorSprName = ObjectToolbox::sharedState()->intKeyToFrame(id);
+    //         obj->addColorSprite(colorSprName);
+    //         obj->setupCustomSprites(colorSprName);
+    //     }
+
+    //     auto btnSpr = ButtonSprite::create(obj, 32, 0, 32, 1, true, bgName, true);
+    //     auto cmi = CreateMenuItem::create(btnSpr, nullptr, Global::editor(), menu_selector(EditorUI::onCreateButton));
+    //     cmi->m_objectID = id;
+    //     if (doRegister) {
+    //         Global::editor()->m_createButtonArray->addObject(cmi);
+    //     }
+    //     return cmi;
+    // }
+
     CreateMenuItem* btn;
-    auto editor = Global::get().m_editorUI;
+    auto editor = Global::editor();
     if (bg <= 6) {
         btn = editor->getCreateBtn(id, bg);
     } else {
         btn = editor->getCreateBtn(id, 1);
         if (auto btnSpr = typeinfo_cast<ButtonSprite*>(btn->getChildren()->objectAtIndex(0)))
-        switch (bg) {
-            case 7: {btnSpr->updateBGImage("OG_button_07.png"_spr); break;}
-            case 8: {btnSpr->updateBGImage("OG_button_08.png"_spr); break;}
-            case 9: {btnSpr->updateBGImage("OG_button_09.png"_spr); break;}
-            case 10: {btnSpr->updateBGImage("OG_button_10.png"_spr); break;}
-            case 11: {btnSpr->updateBGImage("OG_button_11.png"_spr); break;}
-            default: break;
-        }
+        btnSpr->updateBGImage(bgIdToName[bg]);
     }
     if (!doRegister && editor->m_createButtonArray->lastObject() == btn) {
         editor->m_createButtonArray->removeLastObject();
@@ -95,7 +136,7 @@ LAB_14010dac2:
 
 // CreateMenuItem* getCreateMenuItemButton(CCSprite* sprite, SEL_MenuHandler selector, const char* buttonTexture) {
 //     auto buttonSpr = ButtonSprite::create(sprite, 0x20, 0x0, 32.0, 1.0, true /* ? */, buttonTexture, true);
-//     auto cmi = CreateMenuItem::create(buttonSpr, nullptr /* ? */, Global::get().m_editorUI, selector);
+//     auto cmi = CreateMenuItem::create(buttonSpr, nullptr /* ? */, Global::editor(), selector);
 //     cmi->m_objectID = 0;
 //     return cmi;
 // }
@@ -351,4 +392,27 @@ std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects) {
         }
     }
     return ids;
+}
+
+// idk search implementation (https://habr.com/ru/articles/671136/)
+int computeMatchRatio(const std::string& target, const std::string& query) {
+
+    int window = std::floor(std::max(query.size(), target.size()) / 2.0) - 1;
+    int z = 0;
+    int e = 0;
+    for (size_t i = 0; i < target.size(); i++) {
+        for (size_t j = std::max(i - window, 0ULL); j <= std::min(query.size(), i + window); j++) {
+            if (std::tolower(target[i]) == std::tolower(query[j])) {
+                (i == j) ? e++ : z++;
+            }
+        }
+    }
+    float m = e + z;
+    float t = z / 2.0;
+
+    float d = 0;
+    if (m != 0) {
+        d = (m / target.size() + m / query.size() + 1 - t / m) / 3;
+    }
+    return d;
 }

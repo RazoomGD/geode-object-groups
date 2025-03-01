@@ -85,12 +85,12 @@ public:
 
 private:
     void onCreateTabIcon(CCObject*) {
-        Global::get().m_editorUI->createIconForTheTabFromSelectedObjects();
+        Global::editor()->createIconForTheTabFromSelectedObjects();
         onClose(nullptr);
     }
 
     void onGroupFromLayout(CCObject*) {
-        Global::get().m_editorUI->onNewGroupFromLayoutButton(nullptr);
+        Global::editor()->onNewGroupFromLayoutButton(nullptr);
         onClose(nullptr);
     }
 
@@ -128,7 +128,7 @@ private:
         if (groupReloadReq) {
             Global::get().m_settings.m_showNames = updatedSettings.m_showNames;
             Global::get().m_settings.m_groupBgColor = updatedSettings.m_groupBgColor;
-            Global::get().m_editorUI->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
+            Global::editor()->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
         }
 
         // nothing is required
@@ -136,7 +136,7 @@ private:
     }
 
     void copyFocusedGroupAsJson(CCObject*) {
-        if (auto cmi = Global::get().m_editorUI->getFocusedCmi()) {
+        if (auto cmi = Global::editor()->getFocusedCmi()) {
             if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
                 if (!group->isSingle()) {
                     auto json = group->toJson();
@@ -156,8 +156,8 @@ private:
     }
 
     void copyCurrentTabAsJson(CCObject*) {
-        if (auto bar = Global::get().m_editorUI->m_createButtonBar) {
-            auto json = Global::get().m_editorUI->barToJsonValue(bar);
+        if (auto bar = Global::editor()->m_createButtonBar) {
+            auto json = Global::editor()->barToJsonValue(bar);
             clipboard::write(json.dump());
             shortAlert("Copied to clipboard!");
         } else {
@@ -186,7 +186,7 @@ private:
             buttons->addObject(newBtn);
         }
 
-        Global::get().m_editorUI->addButtonsAndReloadCurrentBar(buttons);
+        Global::editor()->addButtonsAndReloadCurrentBar(buttons);
         Global::get().m_hasUnsavedOGChanges = true;
         shortAlert("Created!");
     }
@@ -195,7 +195,7 @@ private:
         auto parsed = matjson::parse(clipboard::read());
         if (auto maybeJson = parsed.ok()) {
 
-            if (!Global::get().m_editorUI->m_createButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
+            if (!Global::editor()->m_createButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
                 alert("Can't create a button in this tab");
                 return;
             }
@@ -229,7 +229,7 @@ private:
                 "No", "Yes", 
                 [buttons, this] (auto, bool isBtn2) {
                     if (isBtn2) {
-                        Global::get().m_editorUI->addButtonsAndReloadCurrentBar(buttons);
+                        Global::editor()->addButtonsAndReloadCurrentBar(buttons);
                         Global::get().m_hasUnsavedOGChanges = true;
                         shortAlert(fmt::format("Pasted {} buttons!", buttons->count()).c_str(), 2);
                     } else {

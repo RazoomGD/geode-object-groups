@@ -1,5 +1,6 @@
 #include "EditorUI.hpp"
 #include "MoreOptionsPopup.hpp"
+#include "SearchPopup.hpp"
 
 
 // mathematically correct a % b
@@ -99,7 +100,7 @@ void MyEditorUI::setupExtraTabs(int count) {
 			[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 				// changed tab icon
 				auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", 13+i), "");
-				Global::get().m_editorUI->setSpiteToTabByIndexFromString(objStr, toggler, 13+i);
+				Global::editor()->setSpiteToTabByIndexFromString(objStr, toggler, 13+i);
 
 				auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
 
@@ -135,6 +136,31 @@ void MyEditorUI::setupVanillaTabs() {
 }
 
 
+void MyEditorUI::setupSearchTab() {
+	EditorTabs::addTab(this, TabType::BUILD, "search-tab"_spr,
+		// is called once on creation
+		[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
+			// changed tab icon
+			auto icon = CCLabelBMFont::create("?", "bigFont.fnt");
+			icon->setScale(0.5f);
+			EditorTabUtils::setTabIcon(toggler, icon);
+
+			auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
+			m_fields->searchButtonBar = ret;
+
+			return ret;
+		},
+		// is called on every tab click
+		[=](EditorUI*, bool state, CCNode* bar) {
+			if (!state) { // means other tab was opened
+				return;
+			};
+			toggleSearch();
+		}
+	);
+}
+
+
 // helper function that sets a frame to given cmi (cmi can be nullptr)
 void MyEditorUI::setNewFocusedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
@@ -153,14 +179,17 @@ void MyEditorUI::setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi) {
 	// close opened group if exists
 	if (m_fields->openedGroup.group) {
 		m_fields->openedGroup.group->removeFromParent();
-		m_fields->openedGroup = {nullptr, nullptr};
+		// m_fields->openedGroup = {nullptr, nullptr}; <-- memory leak
+		m_fields->openedGroup.cmi = nullptr;
+		m_fields->openedGroup.group = nullptr;
 	}
 	// open new group
 	if (newGroup != nullptr && cmi != nullptr) {
 		newGroup->removeFromParent();
 		cmi->getParent()->addChild(newGroup);
 		newGroup->setPosition(cmi->getPosition());
-		m_fields->openedGroup = {newGroup, cmi};
+		m_fields->openedGroup.group = newGroup;
+		m_fields->openedGroup.cmi = cmi;
 	}
 }
 
@@ -201,7 +230,7 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 				"No, save later", "Yes, save now", 
 				[this, btn] (auto, bool isBtn2) {
 					if (isBtn2) {
-						Global::get().m_editorUI->onSaveButton(nullptr);
+						Global::editor()->onSaveButton(nullptr);
 					}
 
 					setEditModeEnabled(this, btn, false);
@@ -471,7 +500,6 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 			std::string str;
 			for (auto* obj : CCArrayExt<GameObject*>(selected)) {
 				str = str.append(obj->getSaveString(levelLayer)).append(";");
-				// str += obj->getSaveString(levelLayer) + std::string(";");
 			}
 
 			if (setSpiteToTabByIndexFromString(str, tabIcon, uObj->m_tabIndx)) {
@@ -587,5 +615,23 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 		m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
 		m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
 	}
+}
+
+
+void MyEditorUI::toggleSearch() {
+	if (auto oldPopup = CCScene::get()->getChildByID("search-popup"_spr)) {
+		// already opened
+		static_cast<GroupSearchPopup*>(oldPopup)->onClose(nullptr);
+		return; 
+	}
+
+	auto popup = GroupSearchPopup::create(0);
+	popup->setID("search-popup"_spr);
+	popup->show();
+}
+
+
+void MyEditorUI::performSearchResult(const std::string& query) {
+	log::debug("search {}", query);
 }
 

@@ -30,7 +30,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
             return EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
         }
 
-        Global::get().m_editorUI->m_createButtonArray->removeObjectsInArray(oldButtons);
+        Global::editor()->m_createButtonArray->removeObjectsInArray(oldButtons);
 
         std::vector<short> allOldIdsOrdered;
         for (auto* btn : CCArrayExt<CreateMenuItem*>(oldButtons)) {

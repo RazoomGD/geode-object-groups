@@ -6,13 +6,7 @@
 #include <matjson/std.hpp>
 
 
-// this is needed only as marker object for compatibility with creative mode 
-struct GroupInfo : public CCObject {
-    GroupInfo() {
-        this->autorelease();
-    }
-};
-
+static int qqqqq = 0;
 
 class Group : public CCNode {
 private:
@@ -52,6 +46,13 @@ private:
     void onArrowButton(CCObject*);
 
 public:
+    // todo: DELETE THIS!
+    Group() {
+        log::debug("GROUP+ {}", ++qqqqq);
+    }
+    ~Group() {
+        log::debug("GROUP- {}", --qqqqq);
+    }
     // create method variants
     static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);
@@ -68,13 +69,14 @@ public:
     matjson::Value toJson();
     std::string toString(CCPoint bottomLeft, CCPoint* topRight);
 
-    void clearAllCreateMenuItems();
+    void clearAllCreateMenuItems(); // from editorUI button array
 
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
     void updateObjId(short newObjId);
+    void updateName(std::string name);
 
     // getters, setters
     std::string getName() const {return m_groupName;}
@@ -83,7 +85,6 @@ public:
     void setUserCreated(bool val) {m_isUserCreated = val;}
     short getObjId() const {return m_objectId;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
-    void setName(std::string name) {m_groupName = name;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
 };
     
