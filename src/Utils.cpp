@@ -394,26 +394,74 @@ std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects) {
     return ids;
 }
 
-// idk search implementation (https://habr.com/ru/articles/671136/)
-int computeMatchRatio(const std::string& target, const std::string& query) {
 
-    // int window = std::floor(std::max(query.size(), target.size()) / 2.0) - 1;
-    // int z = 0;
-    // int e = 0;
-    // for (size_t i = 0; i < target.size(); i++) {
-    //     for (size_t j = std::max(i - window, 0ULL); j <= std::min(query.size(), i + window); j++) {
-    //         if (std::tolower(target[i]) == std::tolower(query[j])) {
-    //             (i == j) ? e++ : z++;
-    //         }
-    //     }
-    // }
-    // float m = e + z;
-    // float t = z / 2.0;
+CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
+    CreateMenuItem* ret;
+    if (group->isSingle()) { // get classic cmi but with set userObject
+        // ret = getCustomCreateBtn(group->getObjId(), getItemBtnColor(group->getObjId()));
+        return nullptr; // error
+    } else { // get cmi with set userObject and custom selector
+        ret = getCustomCreateBtn(group->getObjId(), getGroupBtnColor(), false);
+        ret->m_pfnSelector = cmi->m_pfnSelector;
+        ret->m_pListener = cmi->m_pListener;
+        ret->m_objectID = 0;
+        ret->setTag(0); // compat with creative mode
+        group->updateName(group->getName(), ret); // update cmi user obj
+    }
+    ret->setUserObject(CMI_USER_OBJ_ID, group); // set group
+    setColorToCreateBtnNew(ret, true);
+    return ret;
+}
 
-    // float d = 0;
-    // if (m != 0) {
-    //     d = (m / target.size() + m / query.size() + 1 - t / m) / 3;
-    // }
-    // return d;
-    return 0;
+
+// inspired by https://habr.com/ru/articles/671136/ (Коэффициент Сёренсена)
+float computeMatchRatio(const std::string& target, const std::string& query) {
+
+    if (target.size() == 0 || query.size() == 0) return 0;
+
+    // do something for too short strings
+    if (target.size() == 1 || query.size() == 1) {
+        const std::string& str = (target.size() == 1) ? query : target;
+        char ch = (target.size() == 1) ? std::tolower(target[0]) : std::tolower(query[0]);
+        for (int i = 0; i < str.size(); i++) {
+            if (ch == std::tolower(str[i])) {
+                return 1.f / str.size();
+            }
+        }
+        return 0;
+    }
+    
+    // algorithm (amount of identical bi-grams + small bonus for sequential or close bi-grams)
+
+    std::map<uint16_t, uint16_t> queryBiGrams; // map<bi-gram, count>
+
+    // fill query bi-grams
+    for (int i = 0; i < query.size() - 1; i++) {
+        uint8_t two[2] = {(uint8_t)std::tolower(query[i]), (uint8_t)std::tolower(query[i+1])};
+        auto iter = queryBiGrams.find(*(uint16_t*)two);
+
+        if (iter != queryBiGrams.end()) {
+            (*iter).second++;
+        } else {
+            queryBiGrams.insert({*(uint16_t*)two, 1});
+        }
+    }
+
+    float count = 0;
+    float bonus = 1;
+    for (int i = 0; i < target.size() - 1; i++) {
+        uint8_t two[2] = {(uint8_t)std::tolower(target[i]), (uint8_t)std::tolower(target[i+1])};
+        auto iter = queryBiGrams.find(*(uint16_t*)two);
+
+        if (iter != queryBiGrams.end() && (*iter).second) {
+            (*iter).second--;
+            count += 1 + (bonus - 1);
+            bonus *= 1.3f;
+        } else {
+            bonus = std::max(1.f, bonus / 1.1f);
+        }
+    }
+
+    // return 2.f * count / (query.size() - 1 + target.size() - 1);
+    return count;
 }

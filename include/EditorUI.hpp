@@ -67,6 +67,6 @@ class $modify(MyEditorUI, EditorUI) {
 	void setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi);
 	Group* getOpenedGroup();
 
-	void toggleSearch();
+	void toggleSearch(bool forceToggleOff=false);
 	void performSearchResult(const std::string& query);
 };

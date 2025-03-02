@@ -6,6 +6,7 @@
 
 #include <matjson.hpp>
 
+#include <utility>
 #include <string>
 #include <vector>
 #include <list>
@@ -23,6 +24,7 @@ using namespace geode::prelude;
 
 
 struct MyEditorUI;
+class Group;
 
 
 // Mod global state (singleton)
@@ -52,6 +54,7 @@ struct Global {
         bool m_showNames;
         bool m_autoClose;
         ccColor4B m_groupBgColor;
+        bool m_enableSearchTab;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
             m_showNames = Mod::get()->getSettingValue<bool>("show-names");
@@ -59,6 +62,7 @@ struct Global {
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color-v2");
+            m_enableSearchTab = Mod::get()->getSettingValue<bool>("enable-search");
         }
     } m_settings;
 };
@@ -116,11 +120,13 @@ int getGroupBtnColor();
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);
 std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
+CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group);
 
 inline bool isDeveloperMode() {return Mod::get()->getSavedValue<uint64_t>("dev-pass", 0) == 291857115;} 
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 
+float computeMatchRatio(const std::string& target, const std::string& query);
 
 // --------------------------- file --------------------------
 int readConfigFromJson(std::string filename);

@@ -52,7 +52,7 @@ protected:
         nameInput->setCallback([nameInput, group](const std::string& str) {
             auto name = toValidString(str.c_str());
             nameInput->setString(name, false);
-            group->updateName(name);
+            group->updateName(name, group->getCmi());
             Global::get().m_hasUnsavedOGChanges = true;
         });
         m_mainLayer->addChild(nameInput);

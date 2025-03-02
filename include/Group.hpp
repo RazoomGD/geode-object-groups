@@ -76,7 +76,7 @@ public:
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
     void updateObjId(short newObjId);
-    void updateName(std::string name);
+    void updateName(std::string name, CreateMenuItem* cmi);
 
     // getters, setters
     std::string getName() const {return m_groupName;}

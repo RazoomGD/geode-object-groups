@@ -137,6 +137,7 @@ void MyEditorUI::setupVanillaTabs() {
 
 
 void MyEditorUI::setupSearchTab() {
+	if (!Global::get().m_settings.m_enableSearchTab) return;
 	EditorTabs::addTab(this, TabType::BUILD, "search-tab"_spr,
 		// is called once on creation
 		[this](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
@@ -153,6 +154,7 @@ void MyEditorUI::setupSearchTab() {
 		// is called on every tab click
 		[this](EditorUI*, bool state, CCNode* bar) {
 			if (!state) { // means other tab was opened
+				toggleSearch(true);
 				return;
 			};
 			toggleSearch();
@@ -618,20 +620,60 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 }
 
 
-void MyEditorUI::toggleSearch() {
+void MyEditorUI::toggleSearch(bool forceToggleOff) {
+	if (!m_fields->searchButtonBar) return;
 	if (auto oldPopup = CCScene::get()->getChildByID("search-popup"_spr)) {
 		// already opened
 		static_cast<GroupSearchPopup*>(oldPopup)->onClose(nullptr);
 		return; 
 	}
-
-	auto popup = GroupSearchPopup::create(0);
-	popup->setID("search-popup"_spr);
-	popup->show();
+	if (!forceToggleOff) {
+		auto popup = GroupSearchPopup::create(0);
+		popup->setID("search-popup"_spr);
+		popup->show();
+	}
 }
 
 
 void MyEditorUI::performSearchResult(const std::string& query) {
-	log::debug("search {}", query);
+	int rows, cols;
+	getBarSize(&rows, &cols);
+	int resultCount = rows * cols;
+	std::vector<std::pair<Group*, float>> res;
+	auto bar = m_fields->searchButtonBar;
+	if (!bar) return;
+
+	setNewOpenedGroup(nullptr, nullptr); // close
+
+	if (query.size() == 0) {
+		bar->m_buttonArray->removeAllObjects();
+		bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
+		return;
+	}
+
+	execForeachGroup([&query, &res](Group* g, int) {
+		if (!g->isSingle() && !g->getName().empty()) {
+			auto ratio = computeMatchRatio(g->getName(), query);
+			if (ratio > 0) res.push_back({g, ratio});
+		}
+	});
+
+	if (res.size() == 0) return;
+
+	std::sort(res.begin(), res.end(), 
+		[](std::pair<Group*, float> a, std::pair<Group*, float> b) {
+			return a.second > b.second;
+		}
+	);
+
+	const float ratioLimit = res[0].second * 0.5f;
+	bar->m_buttonArray->removeAllObjects();
+	for (int i = 0; i < res.size(); i++) {
+		if (i == resultCount || res[i].second <= ratioLimit) break;
+		if (auto newCmi = cloneGroupCmi(res[i].first->getCmi(), res[i].first)) {
+			bar->m_buttonArray->addObject(newCmi);
+		}
+	}
+	bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
 }
 

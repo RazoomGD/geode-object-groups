@@ -244,7 +244,7 @@ CreateMenuItem* Group::getCmi() {
         m_cmi->m_pListener = this;
         m_cmi->m_objectID = 0;
         m_cmi->setTag(0); // compat with creative mode
-        updateName(m_groupName); // update cmi user obj
+        updateName(m_groupName, m_cmi); // update cmi user obj
     }
     m_cmi->setUserObject(CMI_USER_OBJ_ID, this); // set group
     setColorToCreateBtnNew(m_cmi, true);
@@ -517,10 +517,10 @@ void Group::updateObjId(short newObjId) {
 }
 
 
-void Group::updateName(std::string name) {
+void Group::updateName(std::string name, CreateMenuItem* cmi) {
     m_groupName = name;
-    if (m_cmi) {
-        m_cmi->setUserObject(CMI_GROUP_NAME_USER_OBJ_ID, CCString::create(name));
+    if (cmi) {
+        cmi->setUserObject(CMI_GROUP_NAME_USER_OBJ_ID, CCString::create(name));
     }
 }
 
