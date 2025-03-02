@@ -139,7 +139,7 @@ void MyEditorUI::setupVanillaTabs() {
 void MyEditorUI::setupSearchTab() {
 	EditorTabs::addTab(this, TabType::BUILD, "search-tab"_spr,
 		// is called once on creation
-		[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
+		[this](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 			// changed tab icon
 			auto icon = CCLabelBMFont::create("?", "bigFont.fnt");
 			icon->setScale(0.5f);
@@ -151,7 +151,7 @@ void MyEditorUI::setupSearchTab() {
 			return ret;
 		},
 		// is called on every tab click
-		[=](EditorUI*, bool state, CCNode* bar) {
+		[this](EditorUI*, bool state, CCNode* bar) {
 			if (!state) { // means other tab was opened
 				return;
 			};
