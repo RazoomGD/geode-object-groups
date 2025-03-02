@@ -397,22 +397,23 @@ std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects) {
 // idk search implementation (https://habr.com/ru/articles/671136/)
 int computeMatchRatio(const std::string& target, const std::string& query) {
 
-    int window = std::floor(std::max(query.size(), target.size()) / 2.0) - 1;
-    int z = 0;
-    int e = 0;
-    for (size_t i = 0; i < target.size(); i++) {
-        for (size_t j = std::max(i - window, 0ULL); j <= std::min(query.size(), i + window); j++) {
-            if (std::tolower(target[i]) == std::tolower(query[j])) {
-                (i == j) ? e++ : z++;
-            }
-        }
-    }
-    float m = e + z;
-    float t = z / 2.0;
+    // int window = std::floor(std::max(query.size(), target.size()) / 2.0) - 1;
+    // int z = 0;
+    // int e = 0;
+    // for (size_t i = 0; i < target.size(); i++) {
+    //     for (size_t j = std::max(i - window, 0ULL); j <= std::min(query.size(), i + window); j++) {
+    //         if (std::tolower(target[i]) == std::tolower(query[j])) {
+    //             (i == j) ? e++ : z++;
+    //         }
+    //     }
+    // }
+    // float m = e + z;
+    // float t = z / 2.0;
 
-    float d = 0;
-    if (m != 0) {
-        d = (m / target.size() + m / query.size() + 1 - t / m) / 3;
-    }
-    return d;
+    // float d = 0;
+    // if (m != 0) {
+    //     d = (m / target.size() + m / query.size() + 1 - t / m) / 3;
+    // }
+    // return d;
+    return 0;
 }
