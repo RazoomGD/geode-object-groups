@@ -75,9 +75,9 @@
 		},
 		"enable-search": {
 			"type": "bool",
-			"name": "Search groups (experiment)",
-			"description": "Show tab for searching groups by name",
-			"default": true
+			"name": "Group search (experiment)",
+			"description": "Add a tab for searching for groups\n<cj>(and Ctrl+Shift+F keybind)</c>",
+			"default": false
 		},
 		"bg-color-v2": {
 			"type": "rgba",

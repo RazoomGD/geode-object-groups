@@ -1,6 +1,7 @@
 #include "EditorUI.hpp"
 #include "MoreOptionsPopup.hpp"
 #include "SearchPopup.hpp"
+// #include <geode.custom-keybinds/include/Keybinds.hpp>
 
 
 // mathematically correct a % b
@@ -36,10 +37,6 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 		CCSprite::create("OG_rowBtn_save.png"_spr), this, 
 		menu_selector(MyEditorUI::onSaveButton)
 	);
-	// auto newGroupFromLayoutBtn = CCMenuItemSpriteExtra::create(
-	// 	ButtonSprite::create("New group\nfrom layout"), this, 
-	// 	menu_selector(MyEditorUI::onNewGroupFromLayoutButton)
-	// );
 	auto deleteItemButton = CCMenuItemSpriteExtra::create(
 		CCSprite::create("OG_rowBtn_deleteButton.png"_spr), this, 
 		menu_selector(MyEditorUI::onDeleteItemButton)
@@ -54,7 +51,6 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	rowMenu->addChild(moveBackwardBtn);
 	rowMenu->addChild(moveForwardBtn);
 	rowMenu->addChild(saveMeBtn);
-	// rowMenu->addChild(newGroupFromLayoutBtn);
 	rowMenu->addChild(deleteItemButton);
 	rowMenu->addChild(moreOptionsButton);
 	
@@ -142,12 +138,13 @@ void MyEditorUI::setupSearchTab() {
 		// is called once on creation
 		[this](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
 			// changed tab icon
-			auto icon = CCLabelBMFont::create("?", "bigFont.fnt");
-			icon->setScale(0.5f);
+			auto icon = CCSprite::create("OG_search_icon.png"_spr);
+			icon->setScale(0.4);
 			EditorTabUtils::setTabIcon(toggler, icon);
 
 			auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
-			m_fields->searchButtonBar = ret;
+			m_fields->searchTab.bar= ret;
+			m_fields->searchTab.toggler = toggler;
 
 			return ret;
 		},
@@ -160,6 +157,19 @@ void MyEditorUI::setupSearchTab() {
 			toggleSearch();
 		}
 	);
+	// keybinds
+	// this->template addEventListener<keybinds::InvokeBindFilter>([this](keybinds::InvokeBindEvent* event) {
+	// 	static bool isHolding = false;
+	// 	if (event->isDown()) {
+	// 		if (!isHolding) {
+	// 			m_fields->searchTab.toggler->activate();
+	// 			isHolding = true;
+	// 		}
+	// 	} else {
+	// 		isHolding = false;
+	// 	}
+    //     return ListenerResult::Stop;
+    // }, "toggle-search"_spr);
 }
 
 
@@ -334,6 +344,9 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	}
 	
 	if (auto group = static_cast<Group*>(btn->getUserObject(CMI_USER_OBJ_ID))) {
+		btn->retain();
+		group->retain();
+
 		if (group->isSingle()) {
 			// single object
 			group->removeFromParent();
@@ -345,6 +358,14 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 			group->removeFromParent();
 			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
 		}
+
+		// basically swap parent and child roles to never lose original cmi
+		btn->setUserObject(CMI_USER_OBJ_ID, nullptr);
+		group->setUserObject("abc"_spr, btn);
+
+		btn->release();
+		group->release();
+
 	} else {
 		// not a group
 		if (btn->m_objectID == 0) {
@@ -410,7 +431,7 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 
 void MyEditorUI::onSaveButton(CCObject*) {
 	if (!Global::get().m_hasUnsavedOGChanges) {
-		shortAlert("No changes were made!", 2);
+		shortAlert("No changes were made!", 0.8);
 	} else {
 		auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
 		int result = writeConfigToJson(file.string());
@@ -621,7 +642,7 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 
 
 void MyEditorUI::toggleSearch(bool forceToggleOff) {
-	if (!m_fields->searchButtonBar) return;
+	if (!m_fields->searchTab.bar) return;
 	if (auto oldPopup = CCScene::get()->getChildByID("search-popup"_spr)) {
 		// already opened
 		static_cast<GroupSearchPopup*>(oldPopup)->onClose(nullptr);
@@ -630,6 +651,7 @@ void MyEditorUI::toggleSearch(bool forceToggleOff) {
 	if (!forceToggleOff) {
 		auto popup = GroupSearchPopup::create(0);
 		popup->setID("search-popup"_spr);
+		popup->setPositionY(popup->getPositionY() + 70);
 		popup->show();
 	}
 }
@@ -640,7 +662,7 @@ void MyEditorUI::performSearchResult(const std::string& query) {
 	getBarSize(&rows, &cols);
 	int resultCount = rows * cols;
 	std::vector<std::pair<Group*, float>> res;
-	auto bar = m_fields->searchButtonBar;
+	auto bar = m_fields->searchTab.bar;
 	if (!bar) return;
 
 	setNewOpenedGroup(nullptr, nullptr); // close

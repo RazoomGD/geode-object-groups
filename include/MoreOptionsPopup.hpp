@@ -232,7 +232,7 @@ private:
                     if (isBtn2) {
                         Global::editor()->addButtonsAndReloadCurrentBar(buttons);
                         Global::get().m_hasUnsavedOGChanges = true;
-                        shortAlert(fmt::format("Pasted {} buttons!", buttons->count()).c_str(), 2);
+                        shortAlert(fmt::format("Pasted {} buttons!", buttons->count()).c_str());
                     } else {
                         shortAlert("Nothing happened!");
                     }

@@ -16,7 +16,10 @@ class $modify(MyEditorUI, EditorUI) {
 		} openedGroup;
 		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
-		Ref<EditButtonBar> searchButtonBar = nullptr;
+		struct {
+			Ref<EditButtonBar> bar = nullptr;
+			Ref<CCMenuItemToggler> toggler = nullptr;
+		} searchTab;
 
 	};
 

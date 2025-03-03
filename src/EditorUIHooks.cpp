@@ -1,5 +1,19 @@
 #include "EditorUI.hpp"
 #include "UpdateNotificationManager.hpp"
+// #include <geode.custom-keybinds/include/Keybinds.hpp>
+
+
+// keybinds
+// $execute {
+//     keybinds::BindManager::get()->registerBindable({
+//         "toggle-search"_spr,
+//         "Toggle Group Search",
+//         "Open group search text field",
+//         { keybinds::Keybind::create(KEY_F, keybinds::Modifier::Control | keybinds::Modifier::Shift) },
+//         "Object Groups"
+//     });
+// }
+
 
 // support for BetterEdit scale factor
 inline float getBetterEditInterfaceScale() {

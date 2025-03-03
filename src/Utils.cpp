@@ -188,30 +188,8 @@ std::string toValidString(const char* txt) {
 
 // floating alert
 void shortAlert(const char* text, float timeSec) {
-    const float scale = 0.7;
-    const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed
-    auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-
-    auto bg = CCScale9Sprite::create("OG_info_label_bg.png"_spr, {0,0,80,80});
-    bg->setContentSize(label->getContentSize() * scaleFactor + ccp(20,20));
-    bg->setScale(1 / scaleFactor);
-    
-    auto base = CCNodeRGBA::create();
-    base->setCascadeOpacityEnabled(true);
-    base->setID("info-label"_spr);
-    base->addChild(bg, 1);
-    base->addChild(label, 2);
-    base->setPosition(CCDirector::get()->getWinSize() / 2);
-    base->setScale(scale);
-    CCScene::get()->addChild(base, 199);
-
-    auto endFunc = CallFuncExt::create([base](){base->setVisible(false);}); // fix screen blink
-    auto endFunc2 = CallFuncExt::create([base](){base->removeFromParent();});
-
-    base->runAction(CCSequence::create(
-        CCDelayTime::create(timeSec/2), CCFadeTo::create(timeSec/2, 0), endFunc, 
-        CCDelayTime::create(0.2), endFunc2, nullptr
-    ));
+    auto alert = TextAlertPopup::create(text, timeSec, 0.6, 150, "bigFont.fnt");
+    EditorUI::get()->addChild(alert, 199);
 }
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {
