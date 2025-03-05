@@ -124,11 +124,13 @@ private:
         // group reload required
         bool groupReloadReq = (
             Global::get().m_settings.m_showNames != updatedSettings.m_showNames ||
-            Global::get().m_settings.m_groupBgColor!= updatedSettings.m_groupBgColor
+            Global::get().m_settings.m_groupBgColor != updatedSettings.m_groupBgColor ||
+            Global::get().m_settings.m_font != updatedSettings.m_font
         );
         if (groupReloadReq) {
             Global::get().m_settings.m_showNames = updatedSettings.m_showNames;
             Global::get().m_settings.m_groupBgColor = updatedSettings.m_groupBgColor;
+            Global::get().m_settings.m_font = updatedSettings.m_font;
             Global::editor()->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
         }
 

@@ -41,12 +41,9 @@
     },
 
 	"settings": {
-		"group-button-color-v2": {
-			"type": "string",
-			"name": "Button color",
-			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast",
-			"default": "8: blue",
-			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink", "11: dark green"]
+		"title-01": {
+			"type": "title",
+			"name": "Functional"
 		},
 		"extra-tabs-count": {
 			"type": "int",
@@ -61,17 +58,17 @@
 				"slider": false
 			}
 		},
-		"auto-close": {
-			"type": "bool",
-			"name": "Auto close groups",
-			"description": "Automatically close the group after selecting an object",
-			"default": false
-		},
 		"show-names": {
 			"type": "bool",
 			"name": "Show group names",
 			"description": "Show the name of the group above objects when group is opened.\n<cy>Note:</c> if the name is empty, it will not be shown",
 			"default": true
+		},
+		"auto-close": {
+			"type": "bool",
+			"name": "Auto close groups",
+			"description": "Automatically close the group after selecting an object",
+			"default": false
 		},
 		"enable-search": {
 			"type": "bool",
@@ -79,11 +76,36 @@
 			"description": "Add a tab for searching for groups\n<cj>(and Ctrl+Shift+F keybind)</c>",
 			"default": false
 		},
+
+		"title-02": {
+			"type": "title",
+			"name": "Customization"
+		},
+		"group-button-color-v2": {
+			"type": "string",
+			"name": "Button color",
+			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast",
+			"default": "8: blue",
+			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink", "11: dark green"]
+		},
 		"bg-color-v2": {
 			"type": "rgba",
 			"name": "Background color",
 			"description": "Color and opacity of menu background",
 			"default": [0, 0, 0, 150]
+		},
+		"used-font": {
+			"type": "int",
+			"name": "Used font",
+			"description": "The font used to display the names of the groups\n0: goldFont, 1-60: the same fonts as in editor font selection menu",
+			"default": 0,
+			"min": 0,
+			"max": 60,
+			"control": {
+				"arrows": true,
+				"arrow-step": 1,
+				"slider": false
+			}
 		}
 	}
 }

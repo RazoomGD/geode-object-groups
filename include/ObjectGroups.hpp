@@ -43,7 +43,7 @@ struct Global {
     bool m_hasUnsavedOGChanges;
     // update notification related
     bool m_isFirstEditorEnter = true;
-    bool m_isCurrentVersionSafe = true; // async
+    bool m_isCurrentVersionSafe = true;
 
     // Arrays of groups (index in array is a build tab index)
     std::array<Ref<CCArray>, 20> m_groups; 
@@ -51,12 +51,14 @@ struct Global {
     struct OGSettings {
         uint8_t m_extraTabsCount;
         int m_groupBtnColor;
+        int m_font;
         bool m_showNames;
         bool m_autoClose;
         ccColor4B m_groupBgColor;
         bool m_enableSearchTab;
         void update() {
             m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
+            m_font = Mod::get()->getSettingValue<int64_t>("used-font");
             m_showNames = Mod::get()->getSettingValue<bool>("show-names");
             m_autoClose = Mod::get()->getSettingValue<bool>("auto-close");
             int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
@@ -116,6 +118,7 @@ void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 void getBarSize(int* rows, int* cols);
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
+std::string getFontFileById(int id);
 
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);

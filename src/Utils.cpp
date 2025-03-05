@@ -165,25 +165,38 @@ int getGroupBtnColor() {
     return Global::get().m_settings.m_groupBtnColor;
 }
 
+std::string getFontFileById(int id) {
+    id--;
+    if (id == -1) {
+        return "goldFont.fnt";
+    } else if (id == 0) {
+        return "bigFont.fnt";
+    } else if (id < 10) {
+        return fmt::format("gjFont0{}.fnt", id);
+    } else {
+        return fmt::format("gjFont{}.fnt", id);
+    }
+}
+
 std::string toValidString(const char* txt) {
-    std::string s;
+    std::stringstream s;
     for (; *txt; txt++) {
         char c = *txt;
         if ((c >= 'a' && c <= 'z') ||
             (c >= 'A' && c <= 'Z') ||
             (c >= '0' && c <= '9')) {
-            s += c;
+            s << c;
         } else {
             const char* a = " -_.,'!?()[]{}<>|/:=+*";
             for (; *a; a++) {
                 if (*a == c) {
-                    s += c;
+                    s << c;
                     break;
                 }
             }
         }
     }
-    return s;
+    return s.str();
 }
 
 // floating alert

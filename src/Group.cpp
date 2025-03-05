@@ -65,7 +65,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     ret->m_bgSprite->setZOrder(-10);
 
     // text node
-    ret->m_textNode = CCLabelBMFont::create("", "goldFont.fnt");
+    ret->m_textNode = CCLabelBMFont::create("", "bigFont.fnt");
     ret->addChild(ret->m_textNode);
     ret->m_textNode->setZOrder(-9);
     ret->m_textNode->setAnchorPoint({0.5, 0});
@@ -680,10 +680,11 @@ void Group::updateGroupView() {
     // update name text
     float spaceOnTop = 0;
     if (Global::get().m_settings.m_showNames && !m_groupName.empty() && m_textNode) {
+        m_textNode->setFntFile(getFontFileById(Global::get().m_settings.m_font).c_str());
         m_textNode->setString(m_groupName.c_str());
         float availableSpace = right - left + oneDistance;
         float takenSpace = m_textNode->getContentWidth();
-        m_textNode->setScale(std::min(1.1f, availableSpace / takenSpace));
+        m_textNode->setScale(std::min(22.f / m_textNode->getContentHeight(), availableSpace / takenSpace));
         spaceOnTop = m_textNode->getScaledContentHeight();
         m_textNode->setPosition({0, top + oneDistance * 0.63f});
     } else if (m_textNode) {
