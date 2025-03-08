@@ -26,7 +26,7 @@ short getIdForOpenedTab() {
 }
 
 
-Group* Group::createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix) {
+Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
     if (!ret || !ret->init()) {
         CC_SAFE_DELETE(ret);
@@ -34,7 +34,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
     }
     // properties
     ret->m_groupName = name;
-    ret->m_objectId = objId;
+    ret->m_objectIds = objIds;
     ret->m_matrix = matrix;
     ret->m_isSingle = false;
     ret->m_isInEditMode = false;
@@ -43,7 +43,7 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
 
     // in case of empty matrix (it shouldn't be passed here though)
     if (ret->m_matrix.size() == 0) {
-        ret->m_matrix.push_back({objId});
+        ret->m_matrix.push_back({});
     }
 
     // fix issue when inner vectors have different sizes
@@ -88,11 +88,11 @@ Group* Group::createGroup(std::string name, short objId, std::vector<std::vector
 Group* Group::createDefault() {
     short id = getIdForOpenedTab();
     std::vector<std::vector<short>> matrix = {{0, 0}, {0, 0}};
-    return Group::createGroup("New Group", id, std::move(matrix));
+    return Group::createGroup("New Group", {id,0,0,0}, std::move(matrix));
 }
 
 
-Group* Group::createFromArray(std::string name, short objId, std::vector<short>&& array) {
+Group* Group::createFromArray(std::string name, std::array<short,4> objIds, std::vector<short>&& array) {
     int total = array.size();
     if (total == 0) return Group::createDefault();
     
@@ -108,7 +108,7 @@ Group* Group::createFromArray(std::string name, short objId, std::vector<short>&
         }
         matrix.push_back(newRow);
     }
-    return Group::createGroup(name, objId, std::move(matrix));
+    return Group::createGroup(name, objIds, std::move(matrix));
 }
 
 
@@ -118,7 +118,7 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
         CC_SAFE_DELETE(ret);
         return nullptr;
     }
-    ret->m_objectId = objId;
+    ret->m_objectIds[0] = objId;
     ret->m_isSingle = true;
     ret->m_isUserCreated = isUserCreated;
 
@@ -130,12 +130,29 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 
 Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
     matjson::Value obj = json["obj"];
-    if (!obj.isExactlyUInt()) return nullptr;
+    std::array<short,4> objIds = {0};
 
-    int objectId = obj.asInt().unwrap();
-
-    if (validateIds && !isObjIdExistsFast(objectId)) {
-        objectId = getIdForOpenedTab();
+    if (obj.isExactlyUInt()) {
+        objIds[0] = obj.asInt().unwrap();
+        if (validateIds && !isObjIdExistsFast(objIds[0])) {
+            objIds[0] = getIdForOpenedTab();
+        }
+    } else if (obj.isArray()) {
+        int iter = 0;
+        for (matjson::Value& el : obj) {
+            if (el.isExactlyUInt()) {
+                short tmp = el.asInt().unwrap();
+                if (tmp <= 0) continue;
+                if (validateIds && !isObjIdExistsFast(tmp)) continue;
+                objIds[iter] = tmp;    
+                if (++iter >= 4) break;
+            }
+        }
+        if (objIds[0] == 0) {
+            objIds[0] = getIdForOpenedTab();
+        };
+    } else {
+        return nullptr;
     }
 
     std::string name;
@@ -163,7 +180,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
     Group* group;
     if (matrix.empty()) {
         matjson::Value isUserObj = json["isUsr"];
-        group = Group::createSingle(objectId, isUserObj.asBool().unwrapOr(false));
+        group = Group::createSingle(objIds[0], isUserObj.asBool().unwrapOr(false));
     } else {
         if (validateIds) {
             for (auto& row : matrix) {
@@ -174,7 +191,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
                 }
             }
         }
-        group = Group::createGroup(name, objectId, std::move(matrix));
+        group = Group::createGroup(name, objIds, std::move(matrix));
     }
     return group;
 }
@@ -182,14 +199,23 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
 
 matjson::Value Group::toJson() {
     matjson::Value jsonGroup;
-    jsonGroup.set("obj", m_objectId);
     if (!m_isSingle) { // group
+        std::vector<short> idsVec;
+        for (int i = 0; i < 4 && m_objectIds[i] > 0; i++) {
+            idsVec.push_back(m_objectIds[i]);
+        }
+        if (idsVec.size() == 1) {
+            jsonGroup.set("obj", idsVec[0]);
+        } else {
+            jsonGroup.set("obj", idsVec);
+        }
         jsonGroup.set("group", m_matrix);
-
+        
         if (!m_groupName.empty()) {
             jsonGroup.set("name", m_groupName);
         }
     } else { // single object
+        jsonGroup.set("obj", m_objectIds[0]);
         if (m_isUserCreated) {
             jsonGroup.set("isUsr", m_isUserCreated);
         }
@@ -201,7 +227,7 @@ matjson::Value Group::toJson() {
 std::string Group::toString(CCPoint bottomLeft, CCPoint* topRight) {
     if (isSingle()) {
         *topRight = bottomLeft;
-        return fmt::format("1,{},2,{},3,{};", m_objectId, bottomLeft.x, bottomLeft.y);
+        return fmt::format("1,{},2,{},3,{};", m_objectIds[0], bottomLeft.x, bottomLeft.y);
     } else {
         std::string ret;
         *topRight = bottomLeft + ccp((m_matrix[0].size() - 1) * 60, (m_matrix.size() - 1) * 60);
@@ -237,9 +263,9 @@ void Group::clearAllCreateMenuItems() {
 CreateMenuItem* Group::getCmi() {
     if (m_cmi) return m_cmi;
     if (m_isSingle) { // get classic cmi but with set userObject
-        m_cmi = getCustomCreateBtn(m_objectId, getItemBtnColor(m_objectId));
+        m_cmi = getCustomCreateBtn(m_objectIds, getItemBtnColor(m_objectIds[0]));
     } else { // get cmi with set userObject and custom selector
-        m_cmi = getCustomCreateBtn(m_objectId, getGroupBtnColor(), false);
+        m_cmi = getCustomCreateBtn(m_objectIds, getGroupBtnColor(), false);
         m_cmi->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
         m_cmi->m_pListener = this;
         m_cmi->m_objectID = 0;
@@ -497,10 +523,10 @@ CreateMenuItem* Group::getPlusButton() {
 }
 
 
-void Group::updateObjId(short newObjId) {
+void Group::updateObjId(std::array<short,4> newObjIds) {
     if (!m_cmi) return;
-    m_objectId = newObjId;
-    auto otherCmi = getCustomCreateBtn(newObjId, getGroupBtnColor(), false);
+    m_objectIds = newObjIds;
+    auto otherCmi = getCustomCreateBtn(newObjIds, getGroupBtnColor(), false);
     bool selected = false; // preserve selected
     if (auto spr = m_cmi->getChildByType<ButtonSprite>(0)) {
         if (spr->m_subBGSprite) {

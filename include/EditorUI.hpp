@@ -14,12 +14,19 @@ class $modify(MyEditorUI, EditorUI) {
 			Ref<Group> group = nullptr;
 			Ref<CreateMenuItem> cmi = nullptr;
 		} openedGroup;
+		
 		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
 		struct {
 			Ref<EditButtonBar> bar = nullptr;
 			Ref<CCMenuItemToggler> toggler = nullptr;
 		} searchTab;
+
+		~Fields() { // on editor exit
+			for (int i = 0; i < Global::get().m_groups.size(); i++) {
+				Global::get().m_groups[i] = nullptr;
+			}
+		}
 
 	};
 

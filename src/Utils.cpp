@@ -17,53 +17,71 @@ static const char* bgIdToName[12] = {
     "OG_button_11.png"_spr,
 };
 
+// fix color sprite bad position bug
+void setGameObjScalePosition(GameObject* obj, CCPoint pos, float scaleMultiplier) {
+    if (obj->m_colorSprite) {
+        auto sprPos = obj->m_colorSprite->getPosition();
+        auto sprSc = obj->m_colorSprite->getScale();
+        obj->setPosition(pos);
+        obj->setScale(obj->getScale() * scaleMultiplier);
+        obj->m_colorSprite->setPosition(sprPos);
+        obj->m_colorSprite->setScale(sprSc);
+    } else {
+        obj->setPosition(pos);
+        obj->setScale(obj->getScale() * scaleMultiplier);
+    }
+}
+
+CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister) {
+    std::array<short,4> a = {id, 0, 0, 0};
+    return getCustomCreateBtn(a, bg, doRegister);
+}
 
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
-CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister) {
-    // if (avoidDefaultFunction) {
-    //     const char* bgName = bgIdToName[id];
-
-    //     // todo: temp
-    //     bgName = "GJ_button_06.png";
-
-    //     GameObject* obj;
-    //     if (id == 0x64f || id == 0x392) {
-    //         auto cache = cocos2d::CCTextureCache::sharedTextureCache();
-    //         auto text = TextGameObject::create(cache->addImage("bigFont.fnt", false));
-    //         if (id == 0x64f) {
-    //             text->updateTextObject("0", true);
-    //         } else {
-    //             text->updateTextObject("A", true);
-    //         }
-    //         obj = text;
-    //     } else {
-    //         obj = GameObject::createWithKey(id);
-    //         auto colorSprName = ObjectToolbox::sharedState()->intKeyToFrame(id);
-    //         obj->addColorSprite(colorSprName);
-    //         obj->setupCustomSprites(colorSprName);
-    //     }
-
-    //     auto btnSpr = ButtonSprite::create(obj, 32, 0, 32, 1, true, bgName, true);
-    //     auto cmi = CreateMenuItem::create(btnSpr, nullptr, Global::editor(), menu_selector(EditorUI::onCreateButton));
-    //     cmi->m_objectID = id;
-    //     if (doRegister) {
-    //         Global::editor()->m_createButtonArray->addObject(cmi);
-    //     }
-    //     return cmi;
-    // }
-
+CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister) {
     CreateMenuItem* btn;
     auto editor = Global::editor();
     if (bg <= 6) {
-        btn = editor->getCreateBtn(id, bg);
+        btn = editor->getCreateBtn(ids[0], bg);
     } else {
-        btn = editor->getCreateBtn(id, 1);
-        if (auto btnSpr = typeinfo_cast<ButtonSprite*>(btn->getChildren()->objectAtIndex(0)))
-        btnSpr->updateBGImage(bgIdToName[bg]);
+        btn = editor->getCreateBtn(ids[0], 1);
+        static_cast<ButtonSprite*>(btn->getNormalImage())->updateBGImage(bgIdToName[bg]);        
     }
     if (!doRegister && editor->m_createButtonArray->lastObject() == btn) {
         editor->m_createButtonArray->removeLastObject();
     }
+
+    // handle extra objects
+    GameObject* objects[4];
+    short objCount = 1;
+    if (ids[1] != 0) objects[objCount++] = static_cast<GameObject*>(
+        static_cast<ButtonSprite*>(getCustomCreateBtn(ids[1], 1, false)->getNormalImage())->m_subSprite);
+    if (ids[2] != 0) objects[objCount++] = static_cast<GameObject*>(
+        static_cast<ButtonSprite*>(getCustomCreateBtn(ids[2], 1, false)->getNormalImage())->m_subSprite);
+    if (ids[3] != 0) objects[objCount++] = static_cast<GameObject*>(
+        static_cast<ButtonSprite*>(getCustomCreateBtn(ids[3], 1, false)->getNormalImage())->m_subSprite);
+
+    if (objCount > 1) {
+        auto btnSpr = static_cast<ButtonSprite*>(btn->getNormalImage());
+        objects[0] = static_cast<GameObject*>(btnSpr->m_subSprite);
+        for (int i = 0; i < objCount; i++) {
+            if (i != 0) btnSpr->addChild(objects[i], 1);
+        }
+        if (objCount == 2) {
+            setGameObjScalePosition(objects[0], ccp(12,22), 0.48);
+            setGameObjScalePosition(objects[1], ccp(28,22), 0.48);
+        } else {
+            setGameObjScalePosition(objects[0], ccp(12,30), 0.48);
+            setGameObjScalePosition(objects[1], ccp(28,30), 0.48);
+            if (objCount == 4) {
+                setGameObjScalePosition(objects[2], ccp(12,13), 0.48);
+                setGameObjScalePosition(objects[3], ccp(28,13), 0.48);
+            } else {
+                setGameObjScalePosition(objects[2], ccp(20,13), 0.48);
+            }
+        }
+    }
+    
     btn->m_baseScale = 1;
     btn->setScale(1);
     btn->updateSprite();
@@ -76,8 +94,10 @@ void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright) {
         if (spr->m_subBGSprite) {
             spr->m_subBGSprite->setColor(color); // button bg sprite
         }
-        if (auto gameObj = typeinfo_cast<GameObject*>(spr->m_subSprite)) {
-            setColorToGameObjectNew(gameObj, isBright);
+        for (int i = 0; ; i++) {
+            if (auto gameObj = spr->getChildByType<GameObject>(i)) {
+                setColorToGameObjectNew(gameObj, isBright);
+            } else break;
         }
     }
 }
@@ -392,7 +412,7 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
         // ret = getCustomCreateBtn(group->getObjId(), getItemBtnColor(group->getObjId()));
         return nullptr; // error
     } else { // get cmi with set userObject and custom selector
-        ret = getCustomCreateBtn(group->getObjId(), getGroupBtnColor(), false);
+        ret = getCustomCreateBtn(group->getObjIds(), getGroupBtnColor(), false);
         ret->m_pfnSelector = cmi->m_pfnSelector;
         ret->m_pListener = cmi->m_pListener;
         ret->m_objectID = 0;

@@ -11,7 +11,7 @@ static int qqqqq = 0;
 class Group : public CCNode {
 private:
     std::string m_groupName;
-    short m_objectId;
+    std::array<short, 4> m_objectIds = {0};
     bool m_isUserCreated;
     std::vector<std::vector<short>> m_matrix;
     bool m_isSingle; // single object or group
@@ -54,10 +54,10 @@ public:
         log::debug("GROUP- {}", --qqqqq);
     }
     // create method variants
-    static Group* createGroup(std::string name, short objId, std::vector<std::vector<short>>&& matrix);
+    static Group* createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);
     static Group* createDefault();
-    static Group* createFromArray(std::string name, short objId, std::vector<short>&& array);
+    static Group* createFromArray(std::string name, std::array<short,4> objIds, std::vector<short>&& array);
     static Group* createFromJsonValue(matjson::Value json, bool validateIds=false); // always check for null!
     static Group* create() = delete;
 
@@ -75,7 +75,7 @@ public:
     void addRow(uint32_t index);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
-    void updateObjId(short newObjId);
+    void updateObjId(std::array<short,4> newObjIds);
     void updateName(std::string name, CreateMenuItem* cmi);
 
     // getters, setters
@@ -83,7 +83,7 @@ public:
     bool isSingle() const {return m_isSingle;}
     bool isUserCreated() const {return m_isUserCreated;}
     void setUserCreated(bool val) {m_isUserCreated = val;}
-    short getObjId() const {return m_objectId;}
+    const std::array<short,4>& getObjIds() const {return m_objectIds;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
 };

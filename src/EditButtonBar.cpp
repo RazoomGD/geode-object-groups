@@ -53,7 +53,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
                     }
                 }
             } else if (group->isUserCreated()) {
-                clearedIds.insert(group->getObjId());
+                clearedIds.insert(group->getObjIds()[0]);
             }
         }
 
@@ -62,7 +62,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
             if (!group->isSingle() || group->isUserCreated()) {
                 buttons->addObject(group->getCmi());
             } else {
-                short id = group->getObjId();
+                short id = group->getObjIds()[0];
                 if (allOldIds.contains(id) && !clearedIds.contains(id)) {
                     buttons->addObject(group->getCmi());
                     clearedIds.insert(id);
@@ -78,6 +78,9 @@ class $modify(MyEditButtonBar, EditButtonBar) {
         }
 
         EditButtonBar::loadFromItems(buttons, p1, p2, p3);
+
+        // don't need it anymore, release buttons
+        Global::get().m_groups[tab] = nullptr;
 
     }
 };

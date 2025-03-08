@@ -125,11 +125,6 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		log::info("Developer mode enabled");
 	}
 
-	// don't need them anymore
-	for (int i = 0; i < Global::get().m_groups.size(); i++) {
-		Global::get().m_groups[i] = nullptr;
-	}
-
 	return true;
 }
 

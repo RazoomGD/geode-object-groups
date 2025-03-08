@@ -109,7 +109,8 @@ inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text,
 void shortAlert(const char* text, float timeSec=0.5);
 
 // replacement for getCreateBtn
-CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true);
+CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister=true);
+CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister=true);
 
 // brighten or darken the CreateMenuItem (decompiled function)
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);

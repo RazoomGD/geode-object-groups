@@ -59,10 +59,10 @@ protected:
         menu->addChildAtPosition(btn, Anchor::BottomRight, ccp(-30, 30));
         
         if (isDeveloperMode()) {
-            spr = ButtonSprite::create("Paste old\nformat", "bigFont.fnt", "GJ_button_01.png", scale1);
-            spr->setScale(scale2);
-            btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::devPasteOldFormat));
-            menu->addChildAtPosition(btn, Anchor::TopRight, ccp(50, -50));
+            // spr = ButtonSprite::create("Paste old\nformat", "bigFont.fnt", "GJ_button_01.png", scale1);
+            // spr->setScale(scale2);
+            // btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::devPasteOldFormat));
+            // menu->addChildAtPosition(btn, Anchor::TopRight, ccp(50, -50));
         }
 
         return true;
@@ -149,10 +149,9 @@ private:
                     return;
                 }
             }
-            auto idStr = std::to_string(cmi->m_objectID);
-            auto str = std::string("[{\n    \"obj\": ") + idStr + "\n}]";
-            clipboard::write(str);
+            clipboard::write(std::string("[{\n    \"obj\": ") + std::to_string(cmi->m_objectID) + "\n}]");
             shortAlert("Copied to clipboard!");
+            onClose(nullptr);
             return;
         }
         alert("<cr>Group is not selected</c>");
@@ -160,38 +159,13 @@ private:
 
     void copyCurrentTabAsJson(CCObject*) {
         if (auto bar = Global::editor()->m_createButtonBar) {
-            auto json = Global::editor()->barToJsonValue(bar);
-            clipboard::write(json.dump());
+            clipboard::write(Global::editor()->barToJsonValue(bar).dump());
             shortAlert("Copied to clipboard!");
+            onClose(nullptr);
         } else {
             alert("Can't copy contents of the current tab\n"
                         "(because it is not controlled by <cy>Object Groups</c>)");
         }
-    }
-
-    void devPasteOldFormat(CCObject*) {
-
-        struct OldGroup {std::string name; short id; std::vector<short> objects;};
-        
-        std::vector<OldGroup> groups = {};
-
-        auto buttons = CCArray::create();
-
-        for (int i = 0; i < groups.size(); i++) {
-            auto oldGroup = groups[i];
-            auto total = oldGroup.objects.size();
-            if (total == 1) {
-                buttons->addObject(Group::createSingle(oldGroup.objects[0], 1)->getCmi());
-                continue;
-            }
-            auto group = Group::createFromArray(oldGroup.name, oldGroup.id, std::move(oldGroup.objects));
-            auto newBtn = group->getCmi();
-            buttons->addObject(newBtn);
-        }
-
-        Global::editor()->addButtonsAndReloadCurrentBar(buttons);
-        Global::get().m_hasUnsavedOGChanges = true;
-        shortAlert("Created!");
     }
 
     void pasteGroupsFromJson(CCObject*) {

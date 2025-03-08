@@ -463,7 +463,7 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 
 	} else {
 		auto ids = getUniqueIds(selected);
-		group = Group::createFromArray("New Group", ids[0], std::move(ids));
+		group = Group::createFromArray("New Group", {ids[0],0,0,0}, std::move(ids));
 	}
 
 	auto newBtn = group->getCmi();
@@ -493,7 +493,7 @@ void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 	short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
 
 	if (!res.empty()) {
-		auto group = Group::createGroup("New Group", firstId, std::move(res));
+		auto group = Group::createGroup("New Group", {firstId,0,0,0}, std::move(res));
 		auto newBtn = group->getCmi();
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
 		Global::get().m_hasUnsavedOGChanges = true;

@@ -195,7 +195,7 @@ if this option is disabled in mod settings.\n\
 - <co>Add (...)</c>: creates new empty row/column at the specified location \
 relative to the <cj>focused button</c>.\n\
 - <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>.\n\
-- <co>Set icon</c>: sets object shown on the group button (for that, exactly 1 object must be selected in editor).\n\
+- <co>Set icon</c>: updates object(s) shown on the group button (you can use from 1 to 4 objects).\n\
 - <cy>Note</c>: If there is no <cj>focused button</c> within the group, <co>Add</c> and <co>Remove</c> \
 buttons will be inactive",
             "ok", nullptr, winWidth * .8, nullptr, true, true
@@ -261,13 +261,16 @@ buttons will be inactive",
     }
 
     void onSetIcon(CCObject*) {
-        auto selected = EditorUI::get()->m_selectedObject;
-        if (selected == nullptr) {
-            alert("<cr>Icon not updated!</c> You must select \
-exactly 1 object in editor to update group icon");
+        auto selected = EditorUI::get()->getSelectedObjects();
+        if (selected->count() == 0 || selected->count() > 4) {
+            alert(fmt::format("<cr>Icon not updated!</c> You must select 1, 2, 3 or 4 \
+object(s) in editor to update group icon\n(Now selected <cy>{}</c>)", selected->count()).c_str());
         } else {
-            short id = selected->m_objectID;
-            m_myGroup->updateObjId(id);
+            std::array<short, 4> ids = {0};
+            for (int i = 0; i < selected->count(); i++) {
+                ids[i] = static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID;
+            }
+            m_myGroup->updateObjId(ids);
             Global::get().m_hasUnsavedOGChanges = true;
         }
         onClose(nullptr);
