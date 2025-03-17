@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v0.1.343",
+	"version": "v2.0.0",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -27,7 +27,7 @@
 		},
 		"alphalaneous.editortab_api": {
 			"importance": "required",
-			"version": ">=1.0.10"
+			"version": ">=1.0.13"
 		}
 	},
 
@@ -68,12 +68,12 @@
 			"type": "bool",
 			"name": "Auto close groups",
 			"description": "Automatically close the group after selecting an object",
-			"default": false
+			"default": true
 		},
 		"enable-search": {
 			"type": "bool",
 			"name": "Group search (experiment)",
-			"description": "Add a tab for searching for groups\n<cj>(and Ctrl+Shift+F keybind)</c>",
+			"description": "Add a tab for searching for groups\n<cy>Note:</c> it searches only for the groups, NOT for the individual objects",
 			"default": false
 		},
 

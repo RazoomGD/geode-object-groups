@@ -49,7 +49,6 @@ class $modify(MyEditorUI, EditorUI) {
 	$override void updateCreateMenu(bool p0);
 	$override void onCreateButton(CCObject* sender);
 	$override void showUI(bool show);
-	// $override CreateMenuItem* getCreateBtn(int id, int bg); // todo: tmp for test
 	
 	// handlers for my menus 
 	void toggleEditGroupsMode(CCObject*);

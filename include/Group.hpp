@@ -6,8 +6,6 @@
 #include <matjson/std.hpp>
 
 
-static int qqqqq = 0;
-
 class Group : public CCNode {
 private:
     std::string m_groupName;
@@ -46,13 +44,6 @@ private:
     void onArrowButton(CCObject*);
 
 public:
-    // todo: DELETE THIS!
-    Group() {
-        log::debug("GROUP+ {}", ++qqqqq);
-    }
-    ~Group() {
-        log::debug("GROUP- {}", --qqqqq);
-    }
     // create method variants
     static Group* createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix);
     static Group* createSingle(short objId, bool isUserCreated);

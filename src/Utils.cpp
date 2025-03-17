@@ -225,6 +225,25 @@ void shortAlert(const char* text, float timeSec) {
     EditorUI::get()->addChild(alert, 199);
 }
 
+static std::list<std::function<void()>> tatQueue;
+
+struct WaitTransitionObject : public CCObject {
+    void checkScene(float) {
+        auto scene = CCScene::get();
+        if (typeinfo_cast<CCTransitionScene*>(scene)) {
+            return; // means we are in transition scene now
+        }
+        GameManager::get()->unschedule(schedule_selector(WaitTransitionObject::checkScene));
+        for(auto& func : tatQueue) func();
+        tatQueue.clear();
+    }
+};
+
+void callAfterTransition(std::function<void()> func) {
+    tatQueue.push_back(func);
+    GameManager::get()->schedule(schedule_selector(WaitTransitionObject::checkScene), 0);
+}
+
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {
     const float minGap = 15.0;
     const float maxWidth = 30.0;

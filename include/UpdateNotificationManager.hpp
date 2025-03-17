@@ -74,51 +74,26 @@ private:
 
         for (auto& el : config) {
             auto version = el["version"];
-            if (version.isString()) {
-                if (*version.asString() == currVersion) {
-                    bool isUnsafe = el["isUnsafe"].asBool().unwrapOr(false);
-                    std::string updateMsg = el["userMessage"].asString().unwrapOr("");
+            if (version.isString() && *version.asString() == currVersion) {
+                bool isUnsafe = el["isUnsafe"].asBool().unwrapOr(false);
+                std::string updateMsg = el["userMessage"].asString().unwrapOr("");
 
-                    Global::get().m_isCurrentVersionSafe = !isUnsafe;
-                    m_updateMessage = updateMsg;
-                    scheduleAnnoyingPopupAfterTransition();
-                    
-                    return true;
-                }
+                Global::get().m_isCurrentVersionSafe = !isUnsafe;
+                m_updateMessage = updateMsg;
+                // scheduleAnnoyingPopupAfterTransition();
+                callAfterTransition([](){
+                    createQuickPopup("Object Groups Update",
+                        UpdateNotificationManager::get()->getUpdateMsg(),
+                        "Open Geode", "I don't want",
+                        [](auto, bool isBtn2) {
+                            if (isBtn2) return;
+                            openInfoPopup(Mod::get());
+                        }, true, true
+                    );
+                });
+                return true;
             }
         }
         return false;
-    }
-
-    void scheduleAnnoyingPopupAfterTransition() {
-        GameManager::get()->schedule(schedule_selector(
-            UpdateNotificationManager::showAnnoyingPopupAfterTransition), 0);
-    }
-
-    void showAnnoyingPopupAfterTransition(float) {
-        auto scene = CCScene::get();
-        if (typeinfo_cast<CCTransitionScene*>(scene)) {
-            // means we are in transition scene now
-            return;
-        }
-
-        GameManager::get()->unschedule(schedule_selector(
-            UpdateNotificationManager::showAnnoyingPopupAfterTransition));
-
-        showAnnoyingPopup(); // finally
-    }
-
-    void showAnnoyingPopup() {
-        // create annoying popup
-        createQuickPopup("Object Groups Update",
-            UpdateNotificationManager::get()->getUpdateMsg(),
-            "Open Geode", "I don't want",
-            [](auto, bool isBtn2) {
-                if (isBtn2) return;
-                openInfoPopup(Mod::get());
-            },
-            true, true
-        );
-        
     }
 };

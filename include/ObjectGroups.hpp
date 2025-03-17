@@ -107,6 +107,7 @@ struct {
 // shorter alert create
 inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text, "ok")->show();}
 void shortAlert(const char* text, float timeSec=0.5);
+void callAfterTransition(std::function<void()> func);
 
 // replacement for getCreateBtn
 CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister=true);

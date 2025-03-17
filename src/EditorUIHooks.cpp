@@ -42,16 +42,20 @@ inline bool isCreativeModeNewTabUI() {
 
 void MyEditorUI::showUI(bool show) {
 	EditorUI::showUI(show);
-	if (auto children = m_fields->rowMenu->getChildren()) {
-		for (int i = 0; i < children->count(); i++) {
-			auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
-			btn->setVisible(show);
+	if (m_fields->rowMenu) {
+		if (auto children = m_fields->rowMenu->getChildren()) {
+			for (int i = 0; i < children->count(); i++) {
+				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
+				btn->setVisible(show);
+			}
 		}
 	}
-	if (auto children = m_fields->toggleMenu->getChildren()) {
-		for (int i = 0; i < children->count(); i++) {
-			auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
-			btn->setVisible(show);
+	if (m_fields->toggleMenu) {
+		if (auto children = m_fields->toggleMenu->getChildren()) {
+			for (int i = 0; i < children->count(); i++) {
+				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
+				btn->setVisible(show);
+			}
 		}
 	}
 }
@@ -79,12 +83,18 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
 	switch (readConfigFromJson(file.string())) {
 		case 0: break; // ok
-		case -1: { // file error // todo: fix alert on transition
-			alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> configuration because of file error");
+		case -1: { // file error
+			callAfterTransition([](){
+				alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> "
+					"configuration because of file error");
+			});
 			return true;
 		}
 		case -2: { // json error
-			alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> configuration because of JSON format error");
+			callAfterTransition([](){
+				alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> "
+					"configuration because of JSON format error");
+			});
 			return true;
 		}
 		default: return true;
