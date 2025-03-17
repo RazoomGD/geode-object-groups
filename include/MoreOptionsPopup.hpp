@@ -146,6 +146,7 @@ private:
                     matjson::Value arr(std::vector<matjson::Value>{json});
                     clipboard::write(arr.dump());
                     shortAlert("Copied to clipboard!");
+                    onClose(nullptr);
                     return;
                 }
             }

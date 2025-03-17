@@ -81,23 +81,24 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	// try to load saved configuration
 	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
+	bool fileOk = false;
 	switch (readConfigFromJson(file.string())) {
-		case 0: break; // ok
+		case 0: {fileOk = true; break;}; // ok
 		case -1: { // file error
 			callAfterTransition([](){
 				alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> "
 					"configuration because of file error");
 			});
-			return true;
+			break;
 		}
 		case -2: { // json error
 			callAfterTransition([](){
 				alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> "
 					"configuration because of JSON format error");
 			});
-			return true;
+			break;
 		}
-		default: return true;
+		default: break;
 	}
 
 	// prevent overlapping with my menus
@@ -105,15 +106,16 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	getChildByID("editor-buttons-menu")->setZOrder(6);
 	getChildByID("layer-menu")->setZOrder(6);
 
-	setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
-	setupVanillaTabs();
-	setupSearchTab();
-
 	const float scale = getBetterEditInterfaceScale();
 	const bool isNewTabUI = isCreativeModeNewTabUI();
 
-	m_fields->rowMenu = setupRowMenu(scale);
-	m_fields->toggleMenu = setupToggleMenu(scale);
+	if (fileOk) {
+		setupVanillaTabs();
+		setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
+		setupSearchTab();
+		m_fields->rowMenu = setupRowMenu(scale);
+		m_fields->toggleMenu = setupToggleMenu(scale);
+	}
 
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
 	frame->setAnchorPoint({0,0});
@@ -122,8 +124,10 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	m_fields->buttonFrame->addChild(frame);
 	m_fields->buttonFrame->setID("frame"_spr);
 
-	toggleEditGroupsMode(nullptr);
-	toggleEditGroupsMode(nullptr);
+	if (fileOk) {
+		toggleEditGroupsMode(nullptr);
+		toggleEditGroupsMode(nullptr);
+	}
 
 	if (Global::get().m_isFirstEditorEnter || !Global::get().m_isCurrentVersionSafe) {
 		// notify user about an important update
