@@ -45,9 +45,6 @@ struct Global {
     bool m_isFirstEditorEnter = true;
     bool m_isCurrentVersionSafe = true;
 
-    // Arrays of groups (index in array is a build tab index)
-    std::array<Ref<CCArray>, 20> m_groups; 
-
     struct OGSettings {
         uint8_t m_extraTabsCount;
         int m_groupBtnColor;

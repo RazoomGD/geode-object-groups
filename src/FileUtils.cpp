@@ -41,9 +41,10 @@ int writeConfigToJson(std::string filename) {
     }
 
     // foreach tab that might be not loaded
-    for (int i = 0; i < Global::get().m_groups.size(); i++) {
+    auto &allGroups = Global::editor()->m_fields->GROUPS;
+    for (int i = 0; i < allGroups.size(); i++) {
         if (savedTabs.contains(i)) continue;
-        if (auto array = Global::get().m_groups[i]) {
+        if (auto array = allGroups[i]) {
             std::vector<Value> groupsVec;
             for (auto* group : CCArrayExt<Group*>(array)) {
                 groupsVec.push_back(group->toJson());
@@ -86,7 +87,8 @@ int readConfigFromJson(std::string filename) {
         return -2;
     }
 
-    for (int i = 0; i < Global::get().m_groups.size(); i++) { // foreach tab
+    auto &allGroups = Global::editor()->m_fields->GROUPS;
+    for (int i = 0; i < allGroups.size(); i++) { // foreach tab
         Value tab = config[fmt::format("tab_{}", i)];
         if (tab.isArray()) {
             auto tabArray = CCArray::create();
@@ -95,9 +97,9 @@ int readConfigFromJson(std::string filename) {
                     tabArray->addObject(group);
                 }
             }
-            Global::get().m_groups[i] = tabArray;
+            allGroups[i] = tabArray;
         } else {
-            Global::get().m_groups[i] = nullptr;
+            allGroups[i] = nullptr;
         }
     }
 

@@ -10,6 +10,9 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> toggleMenu = nullptr;
 		Ref<CCNode> buttonFrame = nullptr;
 
+		// Arrays of groups (index in array is a build tab index)
+		std::array<Ref<CCArray>, 20> GROUPS; 
+
 		struct {
 			Ref<Group> group = nullptr;
 			Ref<CreateMenuItem> cmi = nullptr;
@@ -23,8 +26,8 @@ class $modify(MyEditorUI, EditorUI) {
 		} searchTab;
 
 		~Fields() { // on editor exit
-			for (int i = 0; i < Global::get().m_groups.size(); i++) {
-				Global::get().m_groups[i] = nullptr;
+			for (int i = 0; i < GROUPS.size(); i++) {
+				GROUPS[i] = nullptr;
 			}
 		}
 

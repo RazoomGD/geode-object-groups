@@ -73,8 +73,8 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_hasUnsavedOGChanges = false;
 	Global::get().m_settings.update();
 
-	for (int i = 0; i < Global::get().m_groups.size(); i++) {
-		Global::get().m_groups[i] = nullptr;
+	for (int i = 0; i < m_fields->GROUPS.size(); i++) {
+		m_fields->GROUPS[i] = nullptr;
 	}
 	
 	if (!EditorUI::init(editorLayer)) return false;

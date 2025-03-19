@@ -26,7 +26,8 @@ class $modify(MyEditButtonBar, EditButtonBar) {
 
     // create bar according to object groups config
     void loadCustomBarForTab(CCArray* oldButtons, int tab, int p1, int p2, bool p3) {
-        if (tab >= Global::get().m_groups.size() || Global::get().m_groups[tab] == nullptr) {
+        auto &allGroups = Global::editor()->m_fields->GROUPS;
+        if (tab >= allGroups.size() || allGroups[tab] == nullptr) {
             return EditButtonBar::loadFromItems(oldButtons, p1, p2, p3);
         }
 
@@ -41,7 +42,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
         std::set<short> clearedIds;
 
         auto buttons = CCArray::create();
-        auto config = Global::get().m_groups[tab];
+        auto config = allGroups[tab];
 
         // fill group-cleared ids
         for (auto* group : CCArrayExt<Group*>(config)) {
@@ -80,7 +81,7 @@ class $modify(MyEditButtonBar, EditButtonBar) {
         EditButtonBar::loadFromItems(buttons, p1, p2, p3);
 
         // don't need it anymore, release buttons
-        Global::get().m_groups[tab] = nullptr;
+        allGroups[tab] = nullptr;
 
     }
 };
