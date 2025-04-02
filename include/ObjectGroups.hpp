@@ -46,7 +46,8 @@ struct Global {
     bool m_isCurrentVersionSafe = true;
 
     struct OGSettings {
-        uint8_t m_extraTabsCount;
+        // uint8_t m_extraTabsCount;
+        std::string m_extraTabs;
         int m_groupBtnColor;
         int m_font;
         bool m_showNames;
@@ -54,14 +55,17 @@ struct Global {
         ccColor4B m_groupBgColor;
         bool m_enableSearchTab;
         void update() {
-            m_extraTabsCount = Mod::get()->getSettingValue<int64_t>("extra-tabs-count");
-            m_font = Mod::get()->getSettingValue<int64_t>("used-font");
-            m_showNames = Mod::get()->getSettingValue<bool>("show-names");
-            m_autoClose = Mod::get()->getSettingValue<bool>("auto-close");
-            int col = std::atoi(Mod::get()->getSettingValue<std::string>("group-button-color-v2").c_str());
+            auto mod = Mod::get();
+            if (auto sett = typeinfo_pointer_cast<SettingBaseValueV3<std::string>>(mod->getSetting("extra-tabs"))) {
+                m_extraTabs = sett->getValue();
+            }
+            m_font = mod->getSettingValue<int64_t>("used-font");
+            m_showNames = mod->getSettingValue<bool>("show-names");
+            m_autoClose = mod->getSettingValue<bool>("auto-close");
+            int col = std::atoi(mod->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
-            m_groupBgColor = Mod::get()->getSettingValue<ccColor4B>("bg-color-v2");
-            m_enableSearchTab = Mod::get()->getSettingValue<bool>("enable-search");
+            m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
+            m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
         }
     } m_settings;
 };

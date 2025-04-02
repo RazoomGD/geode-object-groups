@@ -86,11 +86,12 @@ CCMenu* MyEditorUI::setupToggleMenu(float scale) {
 }
 
 
-void MyEditorUI::setupExtraTabs(int count) {
+void MyEditorUI::setupExtraTabs(std::set<uint8_t> const &which) {
 	int rows, cols;
 	getBarSize(&rows, &cols);
 
-	for (int i = 0; i < count; i++) {
+	for (int i = 0; i < 6; i++) {
+		if (!which.contains(i)) continue;
 		EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}"_spr, i+1),
 			// is called once on creation
 			[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {

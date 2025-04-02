@@ -39,6 +39,7 @@ private:
     void onInnerPlusButton(CCObject*);
 
     void onExtraButton(CCObject*);
+    void onPinButton(CCObject*);
     void onDeleteObjButton(CCObject*);
     void onAddObjectButton(CCObject*);
     void onArrowButton(CCObject*);

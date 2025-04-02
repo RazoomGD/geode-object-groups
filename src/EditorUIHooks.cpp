@@ -111,7 +111,13 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	if (fileOk) {
 		setupVanillaTabs();
-		setupExtraTabs(Global::get().m_settings.m_extraTabsCount);
+		std::string tmp;
+		std::set<uint8_t> tabs;
+		std::istringstream ss(Global::get().m_settings.m_extraTabs);
+		while (std::getline(ss, tmp, ',')) {
+			tabs.insert(std::atoi(tmp.c_str()));
+		}
+		setupExtraTabs(tabs);
 		setupSearchTab();
 		m_fields->rowMenu = setupRowMenu(scale);
 		m_fields->toggleMenu = setupToggleMenu(scale);
@@ -123,6 +129,10 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	m_fields->buttonFrame = CCNode::create();
 	m_fields->buttonFrame->addChild(frame);
 	m_fields->buttonFrame->setID("frame"_spr);
+
+	m_fields->pinnedGroups = CCNode::create();
+	m_fields->pinnedGroups->setID("pinned-groups"_spr);
+	addChild(m_fields->pinnedGroups, 15);
 
 	if (fileOk) {
 		toggleEditGroupsMode(nullptr);

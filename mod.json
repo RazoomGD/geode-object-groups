@@ -1,5 +1,5 @@
 {
-	"geode": "4.2.0",
+	"geode": "4.3.1",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -45,18 +45,12 @@
 			"type": "title",
 			"name": "Functional"
 		},
-		"extra-tabs-count": {
-			"type": "int",
+		"extra-tabs": {
+			"type": "custom:razoom.object_groups/multi-bool",
 			"name": "Extra tabs",
-			"description": "Number of additional <cy>tabs</c> in editor\n(extra space for your <cg>objects</c> and <cg>groups</c>)",
-			"default": 2,
-			"min": 0,
-			"max": 5,
-			"control": {
-				"arrows": true,
-				"arrow-step": 1,
-				"slider": false
-			}
+			"labels": [" 1", " 2", " 3", " 4", " 5"],
+			"default": "0,1",
+			"description": "Which extra tabs should enabled\n(extra tabs are the extra space for your <cg>objects</c> and <cg>groups</c>)\nAll tabs are equivalent, but you can use them for different purposes"
 		},
 		"show-names": {
 			"type": "bool",

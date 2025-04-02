@@ -9,6 +9,7 @@ class $modify(MyEditorUI, EditorUI) {
 		Ref<CCMenu> rowMenu = nullptr;
 		Ref<CCMenu> toggleMenu = nullptr;
 		Ref<CCNode> buttonFrame = nullptr;
+		Ref<CCNode> pinnedGroups = nullptr;
 
 		// Arrays of groups (index in array is a build tab index)
 		std::array<Ref<CCArray>, 20> GROUPS; 
@@ -42,7 +43,7 @@ class $modify(MyEditorUI, EditorUI) {
 	// setup methods
 	CCMenu* setupRowMenu(float scale);
 	CCMenu* setupToggleMenu(float scale);
-	void setupExtraTabs(int count);
+	void setupExtraTabs(std::set<uint8_t> const &which);
 	void setupVanillaTabs();
 	void setupSearchTab();
 

@@ -114,7 +114,7 @@ private:
         // editor reload required
         bool editorReloadReq = (
             Global::get().m_settings.m_groupBtnColor != updatedSettings.m_groupBtnColor||
-            Global::get().m_settings.m_extraTabsCount != updatedSettings.m_extraTabsCount ||
+            Global::get().m_settings.m_extraTabs != updatedSettings.m_extraTabs ||
             Global::get().m_settings.m_enableSearchTab != updatedSettings.m_enableSearchTab
         );
         if (editorReloadReq) {

@@ -300,6 +300,9 @@ void Group::setupControlMenus() {
     auto btn7 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_small_plus.png"_spr),
         this, menu_selector(Group::onExtraButton));
+    auto btn8 = CCMenuItemToggler::createWithSize(
+        "GJ_lock_001.png", "GJ_lockGray_001.png", 
+        this, menu_selector(Group::onPinButton), 0.55f);
     
     m_topMenu = CCMenu::create();
     this->addChild(m_topMenu);
@@ -334,6 +337,7 @@ void Group::setupControlMenus() {
 
     m_leftMenu->setAnchorPoint({1, 1});
     m_leftMenu->addChild(btn7);
+    m_leftMenu->addChild(btn8);
     m_leftMenu->setLayout(ColumnLayout::create()->setAxisAlignment(AxisAlignment::End));
 }
 
@@ -467,6 +471,15 @@ void Group::onInnerPlusButton(CCObject* sender) {
 
 void Group::onExtraButton(CCObject*) {
     ExtraOptionsPopup::create(this)->show();
+}
+
+void Group::onPinButton(CCObject* sender) {
+    auto tog = static_cast<CCMenuItemToggler*>(sender);
+    if (tog->isOn()) {
+        log::debug("pinned");
+    } else {
+        log::debug("un pinned");
+    }
 }
 
 

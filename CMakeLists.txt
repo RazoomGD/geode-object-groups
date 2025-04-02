@@ -15,6 +15,7 @@ add_library(${PROJECT_NAME} SHARED
     src/FileUtils.cpp
     src/Group.cpp
     src/Utils.cpp
+    src/settings/MultiBool.cpp
     # Add any extra C++ source files here
 )
 
