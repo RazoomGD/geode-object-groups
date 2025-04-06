@@ -58,6 +58,9 @@ void MyEditorUI::showUI(bool show) {
 			}
 		}
 	}
+	if (m_fields->pinnedGroups) {
+		m_fields->pinnedGroups->setVisible(show);
+	}
 }
 
 // CreateMenuItem* MyEditorUI::getCreateBtn(int id, int bg) {
@@ -110,6 +113,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	const bool isNewTabUI = isCreativeModeNewTabUI();
 
 	if (fileOk) {
+		// re-setup tabs
 		setupVanillaTabs();
 		std::string tmp;
 		std::set<uint8_t> tabs;
@@ -123,6 +127,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		m_fields->toggleMenu = setupToggleMenu(scale);
 	}
 
+	// frame
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
 	frame->setAnchorPoint({0,0});
 	frame->setColor(isNewTabUI ? ccc3(0, 255, 255) : ccc3(255, 255, 0));
@@ -130,6 +135,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	m_fields->buttonFrame->addChild(frame);
 	m_fields->buttonFrame->setID("frame"_spr);
 
+	// pin layer
 	m_fields->pinnedGroups = CCNode::create();
 	m_fields->pinnedGroups->setID("pinned-groups"_spr);
 	addChild(m_fields->pinnedGroups, 15);
@@ -179,10 +185,43 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 
 
 void MyEditorUI::onCreateButton(CCObject* sender) {
+	auto cmi = static_cast<CreateMenuItem*>(sender);
+
+#ifdef GEODE_IS_DESKTOP
+	// on shift-click add/remove new object to one of the pinned groups (if possible)
+	if (Global::get().m_isEditMode && Global::get().m_settings.m_shiftAddToPinned && cmi->m_objectID > 0 && CCKeyboardDispatcher::get()->getShiftKeyPressed()) {
+		if (auto pinned = m_fields->pinnedGroups->getChildren()) {
+
+			// if the object is in pinned group, delete it
+			for (auto group : CCArrayExt<Group*>(pinned)) {
+				if (group->tryDeleteButtonByValue(cmi)) return;
+			}
+			
+			// otherwise add object to the pinned group
+			if (pinned->count() == 1) {
+				static_cast<Group*>(pinned->firstObject())->addObjects({(short)cmi->m_objectID});
+				return;
+			} 
+			
+			if (pinned->count() > 1) {
+				for (auto group : CCArrayExt<Group*>(pinned)) {
+					uint32_t stub;
+					if (group->getSelectedItemPosition(&stub, &stub)) {
+						group->addObjects({(short)cmi->m_objectID});
+						return;
+					}
+				}
+				alert("<cy>When you have more than 1 pinned group, one of them must "
+					"have a focused button within it to add new objects</c>");
+				return;
+			}
+		}
+	}
+#endif // GEODE_IS_DESKTOP
+
 	int indexBefore = m_selectedObjectIndex;
 	EditorUI::onCreateButton(sender);
 	
-	auto cmi = static_cast<CreateMenuItem*>(sender);
 	if (cmi && m_selectedObjectIndex == cmi->m_objectID) {
 		setNewFocusedCmi(cmi);
 	} else {
@@ -198,7 +237,6 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 			setNewOpenedGroup(nullptr, nullptr); // close
 		}
 	}
-
 }
 
 // todo: delete this

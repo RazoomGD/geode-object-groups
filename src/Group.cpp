@@ -1,6 +1,7 @@
 #include "Group.hpp"
 #include "EditorUI.hpp"
 #include "ExtraPopup.hpp"
+#include "DragLayer.hpp"
 
 
 struct GroupItemInfo : public CCObject {
@@ -26,6 +27,21 @@ short getIdForOpenedTab() {
 }
 
 
+// absolute scale for cmi-s
+float getTabScale() {
+	if (auto someBar = Global::editor()->getChildByID("pixel-tab-bar")) {
+        if (auto pgs = static_cast<EditButtonBar*>(someBar)->m_scrollLayer->m_pages) {
+            if (auto p = static_cast<CCNode*>(pgs->firstObject())) {
+                if (auto menu = static_cast<ButtonPage*>(p)->getChildByType<CCMenu>(0)) {
+                    return someBar->getScale() * menu->getScale();
+                }
+            }
+        }
+    }
+	return 0.8; // idk
+}
+
+
 Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
     if (!ret || !ret->init()) {
@@ -39,7 +55,7 @@ Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vec
     ret->m_isSingle = false;
     ret->m_isInEditMode = false;
     ret->m_isUserCreated = true;
-    ret->m_isUpdateRequired = true; // lazy init
+    ret->m_isUpdateRequired = true; // for lazy init
 
     // in case of empty matrix (it shouldn't be passed here though)
     if (ret->m_matrix.size() == 0) {
@@ -69,6 +85,22 @@ Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vec
     ret->addChild(ret->m_textNode);
     ret->m_textNode->setZOrder(-9);
     ret->m_textNode->setAnchorPoint({0.5, 0});
+
+    // pin button
+    auto pinMenu = CCMenu::create();
+    ret->addChild(pinMenu);
+    pinMenu->setPosition({0,0});
+    pinMenu->setContentSize({0,0});
+    pinMenu->setTouchPriority(-502);
+    ret->m_pinBtn = CCMenuItemToggler::create(
+        CCSprite::create("OG_pin1.png"_spr), CCSprite::create("OG_pin0.png"_spr), 
+        ret, menu_selector(Group::onPinButton));
+    ret->m_pinBtn->toggle(false);
+    pinMenu->addChild(ret->m_pinBtn);
+
+    // drag zone (layer)
+    ret->m_dragLayer = GroupDragLayer::create(ret);
+    ret->addChild(ret->m_dragLayer, -12);
 
     // menu for buttons
     ret->m_menu = CCMenu::create();
@@ -224,26 +256,26 @@ matjson::Value Group::toJson() {
 }
 
 
-std::string Group::toString(CCPoint bottomLeft, CCPoint* topRight) {
-    if (isSingle()) {
-        *topRight = bottomLeft;
-        return fmt::format("1,{},2,{},3,{};", m_objectIds[0], bottomLeft.x, bottomLeft.y);
-    } else {
-        std::string ret;
-        *topRight = bottomLeft + ccp((m_matrix[0].size() - 1) * 60, (m_matrix.size() - 1) * 60);
-        CCPoint pos = bottomLeft;
-        for (int i = m_matrix.size() - 1; i >= 0; i--) {
-            for (int j = 0; j < m_matrix[0].size(); j++) {
-                if (m_matrix[i][j] > 0) 
-                    ret.append(fmt::format("1,{},2,{},3,{};", m_matrix[i][j], pos.x, pos.y));
-                pos.x += 60;
-            }
-            pos.y += 60;
-            pos.x = bottomLeft.x;
-        }
-        return ret;
-    }
-}
+// std::string Group::toString(CCPoint bottomLeft, CCPoint* topRight) {
+//     if (isSingle()) {
+//         *topRight = bottomLeft;
+//         return fmt::format("1,{},2,{},3,{};", m_objectIds[0], bottomLeft.x, bottomLeft.y);
+//     } else {
+//         std::string ret;
+//         *topRight = bottomLeft + ccp((m_matrix[0].size() - 1) * 60, (m_matrix.size() - 1) * 60);
+//         CCPoint pos = bottomLeft;
+//         for (int i = m_matrix.size() - 1; i >= 0; i--) {
+//             for (int j = 0; j < m_matrix[0].size(); j++) {
+//                 if (m_matrix[i][j] > 0) 
+//                     ret.append(fmt::format("1,{},2,{},3,{};", m_matrix[i][j], pos.x, pos.y));
+//                 pos.x += 60;
+//             }
+//             pos.y += 60;
+//             pos.x = bottomLeft.x;
+//         }
+//         return ret;
+//     }
+// }
 
 
 void Group::clearAllCreateMenuItems() {
@@ -300,9 +332,6 @@ void Group::setupControlMenus() {
     auto btn7 = CCMenuItemSpriteExtra::create(
         CCSprite::create("OG_button_small_plus.png"_spr),
         this, menu_selector(Group::onExtraButton));
-    auto btn8 = CCMenuItemToggler::createWithSize(
-        "GJ_lock_001.png", "GJ_lockGray_001.png", 
-        this, menu_selector(Group::onPinButton), 0.55f);
     
     m_topMenu = CCMenu::create();
     this->addChild(m_topMenu);
@@ -337,7 +366,6 @@ void Group::setupControlMenus() {
 
     m_leftMenu->setAnchorPoint({1, 1});
     m_leftMenu->addChild(btn7);
-    m_leftMenu->addChild(btn8);
     m_leftMenu->setLayout(ColumnLayout::create()->setAxisAlignment(AxisAlignment::End));
 }
 
@@ -382,16 +410,34 @@ void Group::onDeleteObjButton(CCObject*) {
 }
 
 
+bool Group::tryDeleteButtonByValue(CreateMenuItem* cmi) {
+    if (auto menu = cmi->getParent()) {
+        if (menu->getParent() == this) {
+            if (auto pos = static_cast<GroupItemInfo*>(cmi->getUserObject(INNER_CMI_USER_OBJ_ID))) {
+                if (m_matrix[pos->m_row][pos->m_col] != 0) {
+                    m_matrix[pos->m_row][pos->m_col] = 0;
+                    updateMenu(Global::editor()->getFocusedCmi() != cmi);
+                    Global::get().m_hasUnsavedOGChanges = true;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+
 void Group::onAddObjectButton(CCObject* sender) {
     auto selected = Global::editor()->getSelectedObjects();
-
     if (selected->count() == 0) {
         alert("To add new object to the group you must select at least <cy>1</c> object in editor");
         return;
     }
+    addObjects(getUniqueIds(selected));
+}
 
-    std::vector<short> ids = getUniqueIds(selected);
 
+void Group::addObjects(std::vector<short> ids) {
     uint32_t colSt, rowSt;
     if (!getSelectedItemPosition(&colSt, &rowSt)) {
         colSt = rowSt = 0;
@@ -411,7 +457,7 @@ void Group::onAddObjectButton(CCObject* sender) {
             if (++row == rowEnd) row = 0;
         }
     } while (col != colSt || row != rowSt); // full cycle
-    
+
     if (iter != ids.begin()) { // at least 1 added
         updateMenu();
         Global::get().m_hasUnsavedOGChanges = true;
@@ -428,21 +474,22 @@ void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
     auto editor = Global::editor();
 
-    if (this == editor->getOpenedGroup()) {
-        // close
+    if (this == editor->getOpenedGroup()) { // close
         editor->setNewOpenedGroup(nullptr, nullptr);
-    } else {
-        // open
+
+    } else { // open
+
+        if (isPinned()) {
+            m_pinBtn->activate(); // unpin
+        }
+
         editor->setNewOpenedGroup(this, cmi);
 
         if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
             updateMenu();
-            m_isUpdateRequired = false;
-            m_isInEditMode = Global::get().m_isEditMode;
         }
     }
     editor->setNewFocusedCmi(cmi);
-
 }
 
 
@@ -473,12 +520,34 @@ void Group::onExtraButton(CCObject*) {
     ExtraOptionsPopup::create(this)->show();
 }
 
+
 void Group::onPinButton(CCObject* sender) {
     auto tog = static_cast<CCMenuItemToggler*>(sender);
-    if (tog->isOn()) {
-        log::debug("pinned");
-    } else {
-        log::debug("un pinned");
+    if (tog->isToggled()) { // unpin
+        removeFromParent();
+        if (m_cmi) {
+            m_cmi->removeChildByID("pin"_spr);
+        }
+    } else { // pin
+        auto pinLayer = Global::editor()->m_fields->pinnedGroups;
+        float tabScale = getTabScale();
+        if (pinLayer->getScale() != tabScale) {
+            pinLayer->setScale(tabScale);
+        }
+
+        auto worldPos = this->convertToWorldSpace(ccp(0,0));
+        Global::editor()->setNewOpenedGroup(nullptr, nullptr);
+        pinLayer->addChild(this);
+        setPosition(pinLayer->convertToNodeSpace(worldPos));
+        if (m_cmi) {
+            auto mark = CCSprite::create("OG_pin2.png"_spr);
+            mark->setID("pin"_spr);
+            mark->setAnchorPoint({1,1});
+            mark->setScale(1.3);
+            mark->setRotation(20);
+            m_cmi->addChildAtPosition(mark, Anchor::TopRight, ccp(11,-2));
+            mark->setZOrder(5);
+        }
     }
 }
 
@@ -607,11 +676,8 @@ void Group::updateMenu(bool preserveSelectedCmi) {
     const int szY = m_matrix.size();
     if (szY == 0) return;
     const int szX = m_matrix[0].size();
-    const bool isEditMode = Global::get().m_isEditMode;
-
-    if (isEditMode && (!m_topMenu || !m_rightMenu || !m_leftMenu)) {
-        setupControlMenus(); // lazy setup
-    }
+    m_isInEditMode = Global::get().m_isEditMode;
+    m_isUpdateRequired = false;
 
     uint32_t focusedRow, focusedColumn; // try to preserve it
     bool hasSelectedCmi = preserveSelectedCmi ? 
@@ -634,7 +700,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
         for (uint32_t j = 0; j < szX; j++) {
             const short id = m_matrix[i][j];
 
-            if (id == 0 && !isEditMode) {
+            if (id == 0 && !m_isInEditMode) {
                 continue; // we need plus buttons only in edit mode
             }
 
@@ -683,7 +749,6 @@ void Group::updateMenu(bool preserveSelectedCmi) {
     if (hasSelectedCmi) {
         setSelectedCmiWithPosition(focusedColumn, focusedRow);
     }
-
 }
 
 
@@ -718,16 +783,25 @@ void Group::updateGroupView() {
 
     // update name text
     float spaceOnTop = 0;
-    if (Global::get().m_settings.m_showNames && !m_groupName.empty() && m_textNode) {
-        m_textNode->setFntFile(getFontFileById(Global::get().m_settings.m_font).c_str());
-        m_textNode->setString(m_groupName.c_str());
-        float availableSpace = right - left + oneDistance;
-        float takenSpace = m_textNode->getContentWidth();
-        m_textNode->setScale(std::min(22.f / m_textNode->getContentHeight(), availableSpace / takenSpace));
-        spaceOnTop = m_textNode->getScaledContentHeight();
-        m_textNode->setPosition({0, top + oneDistance * 0.63f});
-    } else if (m_textNode) {
-        m_textNode->setString("");
+    if (m_textNode) {
+        if (Global::get().m_settings.m_showNames && !m_groupName.empty()) {
+            m_textNode->setFntFile(getFontFileById(Global::get().m_settings.m_font).c_str());
+            m_textNode->setString(m_groupName.c_str());
+            float availableSpace = right - left + oneDistance;
+            float takenSpace = m_textNode->getContentWidth();
+            m_textNode->setScale(std::min(22.f / m_textNode->getContentHeight(), availableSpace / takenSpace));
+            spaceOnTop = m_textNode->getScaledContentHeight();
+            m_textNode->setPosition({0, top + oneDistance * 0.63f});
+        } else {
+            m_textNode->setString("");
+        }
+    }
+
+    // update drag zone
+    if (m_dragLayer) {
+        m_dragLayer->setContentSize({right - left + oneDistance + border + 5, 
+            top + spaceOnTop - bottom + oneDistance + border + 5});
+        m_dragLayer->setPosition({0, (top + spaceOnTop + bottom) / 2});
     }
     
     // update bg
@@ -743,29 +817,50 @@ void Group::updateGroupView() {
         m_bgSprite->setOpacity(bgCol.a);
     }
 
-    // update control menus
-    if (m_topMenu && m_rightMenu && m_leftMenu) {
-        if (Global::get().m_isEditMode) {
-            m_topMenu->setVisible(true);
-            m_topMenu->setPosition({0, top + spaceOnTop + oneDistance * 0.8f});
-            m_topMenu->setContentWidth(right - left + oneDistance * 2);
-            m_topMenu->updateLayout();
-            
-            m_rightMenu->setVisible(true);
-            m_rightMenu->setPosition({right + oneDistance * 0.8f, 
-                top + spaceOnTop + oneDistance / 2});
-            m_rightMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance + border);
-            m_rightMenu->updateLayout();
+    bool menusSet = (m_topMenu && m_rightMenu && m_leftMenu);
 
-            m_leftMenu->setVisible(true);
-            m_leftMenu->setPosition({left - oneDistance * 0.8f, 
-                top + spaceOnTop + oneDistance / 2});
-            m_leftMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance * 2);
-            m_leftMenu->updateLayout();
-        } else {
+    // update control menus
+    if (m_isInEditMode) {
+        if (!menusSet) {
+            setupControlMenus(); // lazy setup
+        }
+        
+        m_topMenu->setVisible(true);
+        m_topMenu->setPosition({0, top + spaceOnTop + oneDistance * 0.8f});
+        m_topMenu->setContentWidth(right - left + oneDistance * 2);
+        m_topMenu->updateLayout();
+        
+        m_rightMenu->setVisible(true);
+        m_rightMenu->setPosition({right + oneDistance * 0.8f, 
+            top + spaceOnTop + oneDistance / 2});
+        m_rightMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance + border);
+        m_rightMenu->updateLayout();
+
+        m_leftMenu->setVisible(true);
+        m_leftMenu->setPosition({left - oneDistance * 0.8f, 
+            top + spaceOnTop + oneDistance / 2});
+        m_leftMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance * 2);
+        m_leftMenu->updateLayout();
+    } else {
+        if (menusSet) {
             m_topMenu->setVisible(false);
             m_rightMenu->setVisible(false);
             m_leftMenu->setVisible(false);
+        }
+    }
+
+    // update pin button
+    if (m_pinBtn) {
+        if (!Global::get().m_settings.m_pinButton) {
+            m_pinBtn->setVisible(false);
+        } else {
+            m_pinBtn->setVisible(true);
+            float extra = m_isInEditMode ? m_leftMenu->getPositionX() - 10 : 0;
+            if (m_isInEditMode) {
+                m_pinBtn->setPosition({0, m_topMenu->getPositionY() + m_topMenu->getScaledContentHeight() + 25});
+            } else {
+                m_pinBtn->setPosition({0, (top + spaceOnTop + oneDistance / 2 + 25)});
+            }
         }
     }
 }

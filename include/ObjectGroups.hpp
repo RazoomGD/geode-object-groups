@@ -41,12 +41,12 @@ struct Global {
     MyEditorUI* m_editorUI;
     bool m_isEditMode;
     bool m_hasUnsavedOGChanges;
+
     // update notification related
     bool m_isFirstEditorEnter = true;
     bool m_isCurrentVersionSafe = true;
 
     struct OGSettings {
-        // uint8_t m_extraTabsCount;
         std::string m_extraTabs;
         int m_groupBtnColor;
         int m_font;
@@ -54,10 +54,18 @@ struct Global {
         bool m_autoClose;
         ccColor4B m_groupBgColor;
         bool m_enableSearchTab;
+        bool m_pinButton;
+        bool m_pinGestures;
+        bool m_shiftAddToPinned;
+
         void update() {
             auto mod = Mod::get();
             if (auto sett = typeinfo_pointer_cast<SettingBaseValueV3<std::string>>(mod->getSetting("extra-tabs"))) {
                 m_extraTabs = sett->getValue();
+            }
+            if (auto sett = typeinfo_pointer_cast<SettingBaseValueV3<std::string>>(mod->getSetting("enable-pinning"))) {
+                m_pinButton = (sett->getValue().find('0') != std::string::npos);
+                m_pinGestures = (sett->getValue().find('1') != std::string::npos);
             }
             m_font = mod->getSettingValue<int64_t>("used-font");
             m_showNames = mod->getSettingValue<bool>("show-names");
@@ -66,10 +74,10 @@ struct Global {
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
             m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
+            m_shiftAddToPinned = mod->getSettingValue<bool>("shift-add");
         }
     } m_settings;
 };
-
 
 
 struct BarInfo : public CCObject {

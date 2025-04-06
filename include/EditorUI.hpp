@@ -6,10 +6,10 @@
 
 class $modify(MyEditorUI, EditorUI) {
 	struct Fields {
-		Ref<CCMenu> rowMenu = nullptr;
-		Ref<CCMenu> toggleMenu = nullptr;
+		CCMenu* rowMenu = nullptr;
+		CCMenu* toggleMenu = nullptr;
+		CCNode* pinnedGroups = nullptr; // there must be only groups and nothing else
 		Ref<CCNode> buttonFrame = nullptr;
-		Ref<CCNode> pinnedGroups = nullptr;
 
 		// Arrays of groups (index in array is a build tab index)
 		std::array<Ref<CCArray>, 20> GROUPS; 
@@ -31,12 +31,12 @@ class $modify(MyEditorUI, EditorUI) {
 				GROUPS[i] = nullptr;
 			}
 		}
-
 	};
 
 
 	static void onModify(auto& self) {
         (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
+		(void) self.setHookPriorityPre("EditorUI::onCreateButton", Priority::EarlyPre);
     }
 
 

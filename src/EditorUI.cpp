@@ -14,7 +14,6 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	rowMenu->setAnchorPoint({0.5, 0});
 	rowMenu->setLayout(RowLayout::create()->setGap(30));
 	rowMenu->setPosition(ccp(CCDirector::get()->getWinSize().width / 2, 111 * scale));
-	// rowMenu->setScale(scale * 0.5); ignore
 	rowMenu->setID("row_menu"_spr);
 
 	auto newObjectBtn = CCMenuItemSpriteExtra::create(
@@ -53,11 +52,13 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	rowMenu->addChild(saveMeBtn);
 	rowMenu->addChild(deleteItemButton);
 	rowMenu->addChild(moreOptionsButton);
+
+	rowMenu->setContentWidth(570);
 	
 	rowMenu->updateLayout();
 
-	// maxWidth = 320
-	rowMenu->setScale(320.f / rowMenu->getContentWidth());
+	float maxWidth = std::min(320.f, CCDirector::get()->getWinSize().width - 96 * 2 + 10);
+	rowMenu->setScale(maxWidth / rowMenu->getContentWidth());
 
 	return rowMenu;
 }
@@ -222,6 +223,7 @@ void MyEditorUI::setNewSelectedGroupCmi(CreateMenuItem* groupCmi) {
 	m_fields->selectedGroupCmi = groupCmi;
 }
 
+
 inline void setEditModeEnabled(MyEditorUI* editor, CCNodeRGBA* btn, bool enable) {
 	editor->m_fields->rowMenu->setVisible(enable);
 	if (btn) btn->setColor(enable ? ccc3(127, 127, 127) : ccc3(255, 255, 255));
@@ -258,6 +260,14 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 	} else if (m_selectedMode == 2 /* build mode */) {
 		// enable
 		setEditModeEnabled(this, btn, true);
+	}
+
+	// update all pinned groups
+	if (auto pinned = m_fields->pinnedGroups->getChildren()) {
+		for (auto group : CCArrayExt<Group*>(pinned)) {
+			group->setUpdateRequired(true);
+			group->updateMenu(true);
+		}
 	}
 }
 

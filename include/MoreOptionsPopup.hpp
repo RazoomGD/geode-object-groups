@@ -108,14 +108,15 @@ private:
         this->unschedule(schedule_selector(MoreOptionsPopup::controlChangedSettings));
 
         // handle changed settings
-        Global::OGSettings updatedSettings;
-        updatedSettings.update();
+        Global::OGSettings _new;
+        _new.update();
+        auto &old = Global::get().m_settings;
 
         // editor reload required
         bool editorReloadReq = (
-            Global::get().m_settings.m_groupBtnColor != updatedSettings.m_groupBtnColor||
-            Global::get().m_settings.m_extraTabs != updatedSettings.m_extraTabs ||
-            Global::get().m_settings.m_enableSearchTab != updatedSettings.m_enableSearchTab
+            old.m_groupBtnColor != _new.m_groupBtnColor||
+            old.m_extraTabs != _new.m_extraTabs ||
+            old.m_enableSearchTab != _new.m_enableSearchTab
         );
         if (editorReloadReq) {
             alert("Some of the changed settings <co>require editor reload</c>");
@@ -123,19 +124,23 @@ private:
 
         // group reload required
         bool groupReloadReq = (
-            Global::get().m_settings.m_showNames != updatedSettings.m_showNames ||
-            Global::get().m_settings.m_groupBgColor != updatedSettings.m_groupBgColor ||
-            Global::get().m_settings.m_font != updatedSettings.m_font
+            old.m_showNames != _new.m_showNames ||
+            old.m_groupBgColor != _new.m_groupBgColor ||
+            old.m_font != _new.m_font ||
+            old.m_pinButton != _new.m_pinButton
         );
         if (groupReloadReq) {
-            Global::get().m_settings.m_showNames = updatedSettings.m_showNames;
-            Global::get().m_settings.m_groupBgColor = updatedSettings.m_groupBgColor;
-            Global::get().m_settings.m_font = updatedSettings.m_font;
+            old.m_showNames = _new.m_showNames;
+            old.m_groupBgColor = _new.m_groupBgColor;
+            old.m_font = _new.m_font;
+            old.m_pinButton = _new.m_pinButton;
             Global::editor()->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
         }
-
+        
         // nothing is required
-        Global::get().m_settings.m_autoClose = updatedSettings.m_autoClose;
+        old.m_pinGestures = _new.m_pinGestures;
+        old.m_autoClose = _new.m_autoClose;
+        old.m_shiftAddToPinned = _new.m_shiftAddToPinned;
     }
 
     void copyFocusedGroupAsJson(CCObject*) {

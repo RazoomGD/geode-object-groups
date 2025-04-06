@@ -24,6 +24,7 @@ std::string setToStr(std::set<int> set) {
 class MultiBoolSetting : public SettingBaseValueV3<std::string> {
 public:
     std::vector<std::string> m_labels;
+    float m_menuWidth = 100;
 
     static Result<std::shared_ptr<SettingV3>> parse(std::string const& key, std::string const& modID, matjson::Value const& json) {
         auto res = std::make_shared<MultiBoolSetting>();
@@ -40,6 +41,9 @@ public:
                 }
             }
         }
+        if (auto val = root.has("menu-width"); val && val.isNumber()) {
+            res->m_menuWidth = *val.json().asDouble();
+        }
         return root.ok(std::static_pointer_cast<SettingV3>(res));
     }
 
@@ -51,25 +55,30 @@ protected:
 
     std::vector<CCMenuItemToggler*> m_togglers;
 
-    bool init(std::shared_ptr<MultiBoolSetting> setting, float width) {
-        if (!SettingValueNodeV3::init(setting, width)) return false;
+    bool init(std::shared_ptr<MultiBoolSetting> setting, float wid) {
+        if (!SettingValueNodeV3::init(setting, wid)) return false;
 
         auto set = strToSet(getValue());
+        auto menu = getButtonMenu();
 
         for (int i = 0; i < setting->m_labels.size(); i++) {
             auto txt = CCLabelBMFont::create(setting->m_labels[i].c_str(), "bigFont.fnt");
             txt->setScale(0.5f);
-            auto tog = CCMenuItemToggler::createWithStandardSprites(this, menu_selector(MultiBoolSettingNodeV3::onToggle), 0.55f);
+            txt->setAnchorPoint({0,0});
+            auto txtBase = CCNode::create();
+            txtBase->setContentSize(txt->getScaledContentSize());
+            txtBase->addChild(txt);
+            auto tog = CCMenuItemToggler::createWithStandardSprites(this, menu_selector(MultiBoolSettingNodeV3::onToggle), 0.5);
             tog->toggle(set.contains(i));
             tog->setTag(i);
-            getButtonMenu()->addChild(txt);
-            getButtonMenu()->addChild(tog);
+            menu->addChild(txtBase);
+            menu->addChild(tog);
             m_togglers.push_back(tog);
         }
 
-        getButtonMenu()->setContentWidth(220);
-        getButtonMenu()->setLayout(RowLayout::create()->setAutoScale(false)->setGap(-5)->setAxisAlignment(AxisAlignment::End));
-
+        menu->setContentWidth(setting->m_menuWidth);
+        menu->setLayout(RowLayout::create()->setGap(-5)->setAxisAlignment(AxisAlignment::End));
+        
         updateState(nullptr);
         
         return true;

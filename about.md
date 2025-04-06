@@ -1,9 +1,10 @@
 # Object Groups
 
-This mod gives you the ability to group objects in the editor tabs. 
+Object Groups helps you organize editor objects by dividing them into groups. It allows you to <cp>create</c> and <cp>edit</c> groups directly from the game. And introduces other useful features such as <cy>group pinning</c> and <cy>group search</c>. 
 
 - Check the [gallery](https://github.com/RazoomGD/geode-object-groups/blob/v2/Gallery.md) for some pictures of the mod
 - Check the changelog for the exact list of features
+- You can ask me any questions about Object Groups on my [Discord server](https://discord.gg/wcWvtKHP8n)
 
 ***
 
@@ -20,7 +21,6 @@ You can find the detailed explanation of the group editing features [here](https
 You have several ways how you can contribute to the mod:
 - You can contribute to the code on [GitHub](https://github.com/RazoomGD/geode-object-groups)
 - You can report a bug or suggest a feature on my [Discord server](https://discord.gg/wcWvtKHP8n)
-- You can suggest changes for the default configuration on my [Discord server](https://discord.gg/wcWvtKHP8n)
 
 ***
 

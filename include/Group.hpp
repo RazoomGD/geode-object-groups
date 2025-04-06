@@ -5,6 +5,7 @@
 #include <matjson.hpp>
 #include <matjson/std.hpp>
 
+class GroupDragLayer;
 
 class Group : public CCNode {
 private:
@@ -17,6 +18,8 @@ private:
     bool m_isInEditMode; // is menu setup for edit mode
 
     CCMenu* m_menu = nullptr; // there must be only buttons and nothing else
+    CCMenuItemToggler* m_pinBtn = nullptr;
+    GroupDragLayer* m_dragLayer = nullptr;
     CCScale9Sprite* m_bgSprite = nullptr;
     CCLabelBMFont* m_textNode = nullptr;
     CCMenu* m_topMenu = nullptr;
@@ -59,24 +62,27 @@ public:
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     matjson::Value toJson();
-    std::string toString(CCPoint bottomLeft, CCPoint* topRight);
 
     void clearAllCreateMenuItems(); // from editorUI button array
 
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
+    void addObjects(std::vector<short> ids);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
     void updateObjId(std::array<short,4> newObjIds);
     void updateName(std::string name, CreateMenuItem* cmi);
+    bool tryDeleteButtonByValue(CreateMenuItem* cmi);
 
     // getters, setters
     std::string getName() const {return m_groupName;}
     bool isSingle() const {return m_isSingle;}
+    bool isPinned() const {return m_pinBtn ? m_pinBtn->m_toggled : false;}
     bool isUserCreated() const {return m_isUserCreated;}
     void setUserCreated(bool val) {m_isUserCreated = val;}
     const std::array<short,4>& getObjIds() const {return m_objectIds;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
+    CCMenuItemToggler* getPinBtn() const {return m_pinBtn;}
 };
     

@@ -22,6 +22,14 @@
 
 ![alt text](assets/Gallery/1741480398286_image.png)
 
+- Starting from Object Groups `v2.1.0` you can **pin** one or more groups in the editor:
+
+![alt text](assets/Gallery/1743979495770_image.png)
+
+You can drag the across the screen and close them by moving to the edge of screen:
+
+![alt text](assets/Gallery/1743979518198_image.png)
+
 ---
 
 ### The mod also has advanced functionality, such as:

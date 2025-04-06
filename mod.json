@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.0.1",
+	"version": "v2.1.0",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -50,6 +50,7 @@
 			"name": "Extra tabs",
 			"labels": [" 1", " 2", " 3", " 4", " 5"],
 			"default": "0,1",
+			"menu-width": 200,
 			"description": "Which extra tabs should enabled\n(extra tabs are the extra space for your <cg>objects</c> and <cg>groups</c>)\nAll tabs are equivalent, but you can use them for different purposes"
 		},
 		"show-names": {
@@ -63,6 +64,21 @@
 			"name": "Auto close groups",
 			"description": "Automatically close the group after selecting an object",
 			"default": true
+		},
+		"enable-pinning": {
+			"type": "custom:razoom.object_groups/multi-bool",
+			"name": "Group pinning",
+			"description": "<co>Allows you to pin groups so that they stay on the screen. This also allows you to DRAG groups across the screen</c>\n- <cy>Button</c>: press the button to <cg>pin</c>/<cr>unpin</c> the group (then you'll be able to drag it across the screen)\n- <cy>Gestures</c>: group is <cg>pinned</c> automatically when you start dragging it, drag it to the edge of the screen to <cr>unpin</c>",
+			"labels": [" Button", " Gestures"],
+			"menu-width": 180,
+			"default": "0,1"
+		},
+		"shift-add": {
+			"type": "bool",
+			"name": "Shift-add/remove",
+			"default": false,
+			"platforms": ["desktop"],
+			"description": "Faster way to add/remove objects to the <cg>pinned</c> groups (without having to place an object in editor).\n Pin the group, then press \"shift\", then press on the object button you want to add/remove."
 		},
 		"enable-search": {
 			"type": "bool",
