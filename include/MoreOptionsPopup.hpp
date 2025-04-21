@@ -140,7 +140,7 @@ private:
         // nothing is required
         old.m_pinGestures = _new.m_pinGestures;
         old.m_autoClose = _new.m_autoClose;
-        old.m_shiftAddToPinned = _new.m_shiftAddToPinned;
+        old.m_shiftAdd = _new.m_shiftAdd;
     }
 
     void copyFocusedGroupAsJson(CCObject*) {
@@ -169,7 +169,7 @@ private:
             shortAlert("Copied to clipboard!");
             onClose(nullptr);
         } else {
-            alert("Can't copy contents of the current tab\n"
+            alert("You can't copy contents of the current tab\n"
                         "(because it is not controlled by <cy>Object Groups</c>)");
         }
     }
@@ -179,7 +179,7 @@ private:
         if (auto maybeJson = parsed.ok()) {
 
             if (!Global::editor()->m_createButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
-                alert("Can't create a button in this tab");
+                alert("You can't create a button in this tab");
                 return;
             }
 
@@ -231,14 +231,15 @@ private:
     void onInfoBtn(CCObject*) {
         auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
         createQuickPopup("More Options", 
-"- <co>Create tab icon from selected</c>: creates new icon for the current \
-tab from selected objects (select nothing to reset to default)\n\
-- <co>New group from layout</c>: tries to put selected objects in a new group while \
-preserving their relative positions from editor\n\
-- <co>Copy group/tab</c>: copies focused group or entire tab to clipboard in <cl>json</c> format\n\
-- <co>Paste group(s)</c>: adds groups from <cl>json</c> content of clipboard to the current tab\n\
-- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> copy/paste json options for creating groups. \
-Instead, use <cp>'New group'</c> and <cp>'New group from layout'</c>",
+            "- <co>Create tab icon from selected</c>: creates new icon for the current "
+            "tab from selected objects (select nothing to reset to default)\n"
+            "- <co>New group from layout</c>: tries to put selected objects in a new group while "
+            "preserving their relative positions from editor\n"
+            "- <co>Copy group/tab</c>: copies focused group or entire tab to clipboard in <cl>json</c> format\n"
+            "- <co>Paste group(s)</c>: adds groups from <cl>json</c> content of clipboard to the current tab\n"
+            "- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> copy/paste json options for creating groups. "
+            "Instead, use <cp>'New group'</c> and <cp>'New group from layout'</c>",
+            
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );
     }

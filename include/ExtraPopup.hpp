@@ -1,7 +1,5 @@
 #include "Group.hpp"
 
-
-// specify parameters for the setup function in the Popup<...> template
 class ExtraOptionsPopup : public Popup<Group*> {
 private:
     Ref<Group> m_myGroup;
@@ -102,7 +100,7 @@ protected:
         
         spr = ButtonSprite::create("Set icon", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
-        auto btn7 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onSetIcon));
+        auto btn7 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onSetGroupIcon));
         menu->addChild(btn7);
         btn7->setPosition(20 + btn7->getScaledContentWidth() / 2, m_height - 180);
 
@@ -190,14 +188,15 @@ private:
     void onInfoBtn(CCObject*) {
         auto winWidth = CCDirector::sharedDirector()->getWinSize().width;
         createQuickPopup("Extra options explanation", 
-"- <co>Group name</c>: name of the group. Name isn't shown if it's empty or \
-if this option is disabled in mod settings.\n\
-- <co>Add (...)</c>: creates new empty row/column at the specified location \
-relative to the <cj>focused button</c>.\n\
-- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>.\n\
-- <co>Set icon</c>: updates object(s) shown on the group button (you can use from 1 to 4 objects).\n\
-- <cy>Note</c>: If there is no <cj>focused button</c> within the group, <co>Add</c> and <co>Remove</c> \
-buttons will be inactive",
+            "- <co>Group name</c>: name of the group. Name isn't shown if it's empty or "
+            "if this option is disabled in mod settings.\n"
+            "- <co>Add (...)</c>: creates new empty row/column at the specified location "
+            "relative to the <cj>focused button</c>.\n"
+            "- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>.\n"
+            "- <co>Set icon</c>: updates object(s) shown on the group button (you can use from 1 to 4 objects).\n"
+            "- <cy>Note</c>: If there is no <cj>focused button</c> within the group, "
+            "<co>Add</c> and <co>Remove</c> buttons will be inactive",
+
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );
     }
@@ -260,11 +259,13 @@ buttons will be inactive",
         onClose(nullptr);
     }
 
-    void onSetIcon(CCObject*) {
+    void onSetGroupIcon(CCObject*) {
         auto selected = EditorUI::get()->getSelectedObjects();
         if (selected->count() == 0 || selected->count() > 4) {
-            alert(fmt::format("<cr>Icon not updated!</c> You must select 1, 2, 3 or 4 \
-object(s) in editor to update group icon\n(Now selected <cy>{}</c>)", selected->count()).c_str());
+            alert(fmt::format("<cr>Icon not updated!</c> You must select 1, 2, 3 or 4 "
+                "object(s) in editor to update group icon\n"
+                "(Now selected <cy>{}</c>)", selected->count()).c_str()
+            );
         } else {
             std::array<short, 4> ids = {0};
             for (int i = 0; i < selected->count(); i++) {

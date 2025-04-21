@@ -44,6 +44,9 @@ public:
 
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        if (!static_cast<MyEditorUI*>(EditorUI::get())->m_fields->pinnedGroups->isVisible()) {
+            return false;
+        }
         auto const point = m_group->convertToNodeSpace(touch->getLocation());
         if (this->boundingBox().containsPoint(point)) {
             if (!m_group->isPinned()) {
