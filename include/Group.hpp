@@ -7,6 +7,8 @@
 
 class GroupDragLayer;
 
+// static int groupCountAAA = 0;
+
 class Group : public CCNode {
 private:
     std::string m_groupName;
@@ -26,6 +28,10 @@ private:
     CCMenu* m_rightMenu = nullptr;
     CCMenu* m_leftMenu = nullptr;
     CreateMenuItem* m_cmi = nullptr;
+
+    // todo: delete this
+    // Group() {log::debug("group+ {}", ++groupCountAAA);}
+    // ~Group() {log::debug("group- {}", --groupCountAAA);}
 
     void setupControlMenus();
     
@@ -59,9 +65,12 @@ public:
     // the most important methods here
     CreateMenuItem* getCmi();
     void updateMenu(bool preserveSelectedCmi=true);
+    bool containsButton(CreateMenuItem* cmi);
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
-    matjson::Value toJson();
+    matjson::Value toJson(std::set<short> &custom);
+
+    void remapCustomObjects(std::map<int, std::string> const &customObjects);
 
     void clearAllCreateMenuItems(); // from editorUI button array
 
@@ -72,7 +81,6 @@ public:
     void deleteRow(uint32_t index);
     void updateObjId(std::array<short,4> newObjIds);
     void updateName(std::string name, CreateMenuItem* cmi);
-    bool tryDeleteButtonByValue(CreateMenuItem* cmi);
 
     // getters, setters
     std::string getName() const {return m_groupName;}
@@ -83,6 +91,6 @@ public:
     const std::array<short,4>& getObjIds() const {return m_objectIds;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
-    CCMenuItemToggler* getPinBtn() const {return m_pinBtn;}
+    void switchPinState() {onPinButton(nullptr);}
 };
     

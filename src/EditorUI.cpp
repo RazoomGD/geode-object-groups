@@ -43,7 +43,7 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 	auto moreOptionsButton = CCMenuItemSpriteExtra::create(
 		CCSprite::create("OG_rowBtn_options.png"_spr), this, 
 		menu_selector(MyEditorUI::onMoreOptionsButton)
-	);	
+	); 
 
 	rowMenu->addChild(newObjectBtn);
 	rowMenu->addChild(newGroupBtn);
@@ -225,7 +225,7 @@ void MyEditorUI::setNewSelectedGroupCmi(CreateMenuItem* groupCmi) {
 
 
 inline void setEditModeEnabled(MyEditorUI* editor, CCNodeRGBA* btn, bool enable) {
-	editor->m_fields->rowMenu->setVisible(enable);
+	if (auto menu = editor->m_fields->rowMenu) menu->setVisible(enable);
 	if (btn) btn->setColor(enable ? ccc3(127, 127, 127) : ccc3(255, 255, 255));
 	editor->m_fields->buttonFrame->setVisible(enable);
 }
@@ -281,7 +281,7 @@ inline bool isMyTab(EditButtonBar* tab) {
 void MyEditorUI::onNewObjectButton(CCObject*) {
 	// make sure this is my tab (current bar is editor->m_createButtonBar)
 	if (!isMyTab(m_createButtonBar)) {
-		alert("Can't create a button in this tab");
+		alert("You can't create a button in this tab");
 		return;
 	}
 	// get selected object
@@ -290,14 +290,8 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 		alert("You must select at least one object to create a new object button.");
 		return;
 	}
+
 	// create item on EditButtonBar for this obj
-	int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
-							m_createButtonBar->m_scrollLayer->getTotalPages());
-
-	int rows, cols;
-	getBarSize(&rows, &cols);
-	int firstIndex = cols * rows * currentPage; // index the first obj on current page
-
 	if (selected->count() == 1) { 
 		int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
 
@@ -330,6 +324,38 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 			true, true
 		);
 	}
+}
+
+
+void MyEditorUI::onAddAsSingleCustomObjectButton(CCObject*) {
+	// make sure this is my tab (current bar is editor->m_createButtonBar)
+	if (!isMyTab(m_createButtonBar)) {
+		alert("You can't create a button in this tab");
+		return;
+	}
+	// get selected object
+	auto selected = getSelectedObjects();
+	if (selected->count() < 2) {
+		alert("You must select at least 2 objects to create a new <cy>custom object</c> button.");
+		return;
+	}
+
+	// create custom
+	auto levelLayer = LevelEditorLayer::get();
+	std::string str;
+	for (auto* obj : CCArrayExt<GameObject*>(selected)) {
+		str = str.append(obj->getSaveString(levelLayer)).append(";");
+	}
+	short newId = registerNewCustomObject(str);
+
+	// create item on EditButtonBar for this obj
+	auto newGroup = Group::createSingle(newId, true);
+	newGroup->setUserCreated(true);
+	auto newBtn = newGroup->getCmi();
+	addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
+
+	shortAlert("Created!");
+	Global::get().m_hasUnsavedOGChanges = true;
 }
 
 
@@ -380,11 +406,11 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	} else {
 		// not a group
 		if (btn->m_objectID == 0) {
-			alert("Can't delete this button");
+			alert("You can't delete this button");
 			return;
 		}
 		m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
-		m_createButtonArray->removeObject(btn);
+		m_createButtonArray->fastRemoveObject(btn);
 	}
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 	shortAlert("Deleted!");
@@ -462,7 +488,7 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 
 	// make sure this is my tab (current bar is editor->m_createButtonBar)
 	if (!isMyTab(m_createButtonBar)) {
-		alert("You can not create a group in this tab");
+		alert("You can't create a group in this tab");
 		return;
 	}
 
@@ -483,6 +509,97 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 	shortAlert("Created!");
 
 	newBtn->activate(); // instant open
+}
+
+
+inline bool isGroupOnScreen(Group* g) {
+	auto posX = g->convertToWorldSpace(ccp(0,0)).x;
+	bool res =  posX > 0 && posX < CCDirector::get()->getWinSize().width;
+	if (!res) return false;
+	CCNode* par = g;
+	while (true) {
+		auto nextPar = par->getParent();
+		if (nextPar) {
+			if (nextPar->getID() == "EditorUI") {
+				return par->isVisible();
+			}
+		} else {
+			return false;
+		}
+		par = nextPar;
+	}
+}
+
+
+bool MyEditorUI::addItemToActiveGroupByCmi(CreateMenuItem* cmi) {
+	// this function is used in "shift-add" feature
+	if (cmi->m_objectID == 0) return false;
+
+	const std::vector<short> objId = {(short)cmi->m_objectID};
+	const auto pinned = m_fields->pinnedGroups->getChildren();
+	const auto focusedCmi = getFocusedCmi();
+	std::vector<Group*> candidates;
+
+	if (auto gr = getOpenedGroup(); gr && isGroupOnScreen(gr)) {
+		if (gr->containsButton(focusedCmi)) {
+			gr->addObjects(objId);
+			return true;
+		}
+		candidates.push_back(gr);
+	}
+
+	for (auto gr : CCArrayExt<Group*>(pinned)) { 
+		if (gr->containsButton(focusedCmi)) {
+			gr->addObjects(objId);
+			return true;
+		}
+		candidates.push_back(gr);
+	}
+
+	if (candidates.size() == 0) {
+		alert("<co>Object wasn't added to the group</c> because there are no opened "
+			"groups on screen. \n<cy>Tip:</c>You can <cp>pin</c> groups to keep them on screen");
+		return false;
+	}
+	if (candidates.size() == 1) {
+		candidates[0]->addObjects(objId);
+		return true;
+	}
+	if (candidates.size() == 2) {
+		if (candidates[0]->containsButton(cmi)) {
+			candidates[1]->addObjects(objId);
+			return true;
+		}
+		if (candidates[1]->containsButton(cmi)) {
+			candidates[0]->addObjects(objId);
+			return true;
+		}
+	}
+	alert("<cj>Object wasn't added to the group</c> because the group choice is ambiguous");
+	return false;
+}
+
+
+short MyEditorUI::registerNewCustomObject(std::string oldStr) {
+	// get next free id
+	int id = CUSTOM_OBJECT_ID_OFFSET - 1;
+	auto &custom = m_fields->myCustomObjects;
+	while (custom.contains(std::to_string(id))) id--;
+
+	// get original string and save to the map
+	custom.insert({std::to_string(id), oldStr});
+
+	Global::get().m_hasUnsavedOGChanges = true;
+	return id;
+}
+
+
+std::map<std::string, std::string> MyEditorUI::getCustomObjects(std::set<short> const &which) {
+	std::map<std::string, std::string> ret;
+	for (short id : which) {
+		ret.insert({std::to_string(id), GameManager::get()->stringForCustomObject(id)});
+	}
+	return ret;
 }
 
 
@@ -591,17 +708,18 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenu
 }
 
 // return json array
-matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar) {
+matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<short> &custom) {
 	matjson::Value jsonArray(std::vector<int>{});
 	if (isMyTab(bar)) {
 		// foreach item in my tab
 		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
 			if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-				jsonArray.push(group->toJson());
+				jsonArray.push(group->toJson(custom));
 			} else if (cmi->m_objectID != 0) {
 				// single not user-created object without any info
 				auto unkObj = matjson::makeObject({{"obj", cmi->m_objectID}});
 				jsonArray.push(unkObj);
+				if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
 			}
 		}
 	}

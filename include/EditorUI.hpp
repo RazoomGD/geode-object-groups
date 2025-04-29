@@ -10,6 +10,7 @@ class $modify(MyEditorUI, EditorUI) {
 		CCMenu* toggleMenu = nullptr;
 		CCNode* pinnedGroups = nullptr; // there must be only groups and nothing else
 		Ref<CCNode> buttonFrame = nullptr;
+		std::map<std::string, std::string> myCustomObjects; // negative id as string : obj-string
 
 		// Arrays of groups (index in array is a build tab index)
 		std::array<Ref<CCArray>, 20> GROUPS; 
@@ -30,12 +31,14 @@ class $modify(MyEditorUI, EditorUI) {
 			for (int i = 0; i < GROUPS.size(); i++) {
 				GROUPS[i] = nullptr;
 			}
+			Global::get().m_editorUI = nullptr;
 		}
 	};
 
 
 	static void onModify(auto& self) {
         (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
+        (void) self.setHookPriorityBeforePost("EditorUI::init", "viper.object_pinning");
 		(void) self.setHookPriorityPre("EditorUI::onCreateButton", Priority::EarlyPre);
     }
 
@@ -52,11 +55,15 @@ class $modify(MyEditorUI, EditorUI) {
 	$override void toggleMode(CCObject* sender);
 	$override void updateCreateMenu(bool p0);
 	$override void onCreateButton(CCObject* sender);
+	// $override void onDeleteCustomItem(CCObject* sender);
+	// $override void onNewCustomItem(CCObject* sender);
 	$override void showUI(bool show);
+	// $override CCArray* createCustomItems();
 	
 	// handlers for my menus 
 	void toggleEditGroupsMode(CCObject*);
 	void onNewObjectButton(CCObject*);
+	void onAddAsSingleCustomObjectButton(CCObject*);
 	void onNewGroupButton(CCObject*);
 	void onMoveForwardButton(CCObject*);
 	void onMoveBackwardButton(CCObject*);
@@ -70,8 +77,11 @@ class $modify(MyEditorUI, EditorUI) {
 	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons);
 	void createIconForTheTabFromSelectedObjects();
 	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
-	matjson::Value barToJsonValue(EditButtonBar* bar);
+	matjson::Value barToJsonValue(EditButtonBar* bar, std::set<short> &custom);
 	void execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab=-1);
+	bool addItemToActiveGroupByCmi(CreateMenuItem* cmi);
+	short registerNewCustomObject(std::string oldStr);
+	std::map<std::string, std::string> getCustomObjects(std::set<short> const &which);
 
 	void setNewFocusedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getFocusedCmi();

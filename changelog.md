@@ -1,12 +1,24 @@
 # 2.1.0
-- Group pinning
+- Group pinning:
   - <cp>Pinning</c> groups so that they stay on the screen
   - Dragging pinned groups across the screen
-  - Faster addition/removal of objects in pinned groups (without having to place the object in the editor)
+- Separate checkboxes for enabling each custom tab
+- Many UX improvements:
+  - Adding objects to the groups straight from the editor tabs (without having to place them in the editor)
+  - Adding objects to the group with 'shift' key (can be enabled in mod settings)
+  - Add row/column buttons are now always active and add rows/columns on the sides of the group when there are no focused button within the group
+  - Option to automatically extend the group when it is full
+- Support for <cy>custom objects</c>:
+  - Custom objects in groups
+  - Custom objects in any of the editor tabs
+- Sharing options:
+  - Exporting and importing groups/objects/tabs as <cl>JSON</c>
+  - Support for exporting/importing custom objects
+
 
 # 2.0.0 (a complete mod rewrite)
 - Group names
-- <cg>Full-fledged in-game group configuration</c>
+- <cg>Full-fledged in-game group configuration</c>:
   - Creating groups
   - Creating classic object buttons
   - Changing button positions within the build tabs

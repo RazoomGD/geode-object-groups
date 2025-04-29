@@ -9,7 +9,7 @@ private:
         uint32_t m_column;
     } m_groupCmiInfo;
 
-    Ref<CCArray> m_addAndRemoveButtons;
+    Ref<CCArray> m_removeButtons;
     CCLabelBMFont* m_groupSizeLabel;
     const float m_width = 260.f;
     const float m_height = 210.f;
@@ -17,7 +17,7 @@ private:
 protected:
     bool setup(Group* group) override {
         m_myGroup = group;
-        m_addAndRemoveButtons = CCArray::create();
+        m_removeButtons = CCArray::create();
         m_closeBtn->setVisible(false);
         setTitle("Extra Group Options");
 
@@ -92,17 +92,24 @@ protected:
                 menu->addChild(btn);
                 float offset = btn->getScaledContentWidth() / 2;
                 btn->setPosition(posX + offset, posY);
-                m_addAndRemoveButtons->addObject(btn);
                 posY -= 20;
             }
             posX = m_width / 2;
         }
+        m_removeButtons->addObject(btn3);
+        m_removeButtons->addObject(btn6);
         
         spr = ButtonSprite::create("Set icon", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         auto btn7 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onSetGroupIcon));
         menu->addChild(btn7);
         btn7->setPosition(20 + btn7->getScaledContentWidth() / 2, m_height - 180);
+
+        spr = ButtonSprite::create("New custom obj.", "bigFont.fnt", "GJ_button_03.png", scale1);
+        spr->setScale(scale2);
+        auto btn8 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onCreateAndAddCustomObject));
+        menu->addChild(btn8);
+        btn8->setPosition(m_width / 2 + btn8->getScaledContentWidth() / 2, m_height - 180);
 
         // secret buttons
         if (isDeveloperMode()) {
@@ -171,8 +178,8 @@ private:
 
     void updateButtons() {
         bool active = m_groupCmiInfo.m_groupHasSelectedCmi;
-        for (int i = 0; i < m_addAndRemoveButtons->count(); i++) {
-            auto btn = static_cast<CCMenuItemSpriteExtra*>(m_addAndRemoveButtons->objectAtIndex(i));
+        for (int i = 0; i < m_removeButtons->count(); i++) {
+            auto btn = static_cast<CCMenuItemSpriteExtra*>(m_removeButtons->objectAtIndex(i));
             btn->setEnabled(active);
             auto btnSpr = static_cast<ButtonSprite*>(btn->getChildByTag(1));
             btnSpr->m_BGSprite->setOpacity(active ? 255 : 100);
@@ -192,50 +199,66 @@ private:
             "if this option is disabled in mod settings.\n"
             "- <co>Add (...)</c>: creates new empty row/column at the specified location "
             "relative to the <cj>focused button</c>.\n"
-            "- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>.\n"
+            "- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>. "
+            "(If there is no <cj>focused button</c> within the group, these buttons will be inactive)\n"
             "- <co>Set icon</c>: updates object(s) shown on the group button (you can use from 1 to 4 objects).\n"
-            "- <cy>Note</c>: If there is no <cj>focused button</c> within the group, "
-            "<co>Add</c> and <co>Remove</c> buttons will be inactive",
+            "- <co>New custom obj</c>: creates <cy>custom object</c> from selected objects and adds it to the group.\n",
 
             "ok", nullptr, winWidth * .8, nullptr, true, true
         );
     }
 
     void onAddColRight(CCObject*) {
-        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
-        m_myGroup->addColumn(m_groupCmiInfo.m_column+1);
-        m_myGroup->updateMenu(false);
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) {
+            m_myGroup->addColumn(m_myGroup->getMatrix()[0].size());
+            m_myGroup->updateMenu(false);
+        } else {
+            m_myGroup->addColumn(m_groupCmiInfo.m_column+1);
+            m_myGroup->updateMenu(false);
+            m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
+        }
         updateGroupInfoLabel();
         updateGroupCmiInfo();
         Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddColLeft(CCObject*) {
-        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
-        m_myGroup->addColumn(m_groupCmiInfo.m_column);
-        m_myGroup->updateMenu(false);
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column+1, m_groupCmiInfo.m_row);
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) {
+            m_myGroup->addColumn(0);
+            m_myGroup->updateMenu(false);
+        } else {
+            m_myGroup->addColumn(m_groupCmiInfo.m_column);
+            m_myGroup->updateMenu(false);
+            m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column+1, m_groupCmiInfo.m_row);
+        }
         updateGroupInfoLabel();
         updateGroupCmiInfo();
         Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddRowTop(CCObject*) { 
-        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
-        m_myGroup->addRow(m_groupCmiInfo.m_row);
-        m_myGroup->updateMenu(false);
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row+1);
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) {
+            m_myGroup->addRow(0);
+            m_myGroup->updateMenu(false);
+        } else {
+            m_myGroup->addRow(m_groupCmiInfo.m_row);
+            m_myGroup->updateMenu(false);
+            m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row+1);
+        }
         updateGroupInfoLabel();
         updateGroupCmiInfo();
         Global::get().m_hasUnsavedOGChanges = true;
     }
 
     void onAddRowBottom(CCObject*) {
-        if (!m_groupCmiInfo.m_groupHasSelectedCmi) return;
-        m_myGroup->addRow(m_groupCmiInfo.m_row+1);
-        m_myGroup->updateMenu(false);
-        m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
+        if (!m_groupCmiInfo.m_groupHasSelectedCmi) {
+            m_myGroup->addRow(m_myGroup->getMatrix().size());
+            m_myGroup->updateMenu(false);
+        } else {
+            m_myGroup->addRow(m_groupCmiInfo.m_row+1);
+            m_myGroup->updateMenu(false);
+            m_myGroup->setSelectedCmiWithPosition(m_groupCmiInfo.m_column, m_groupCmiInfo.m_row);
+        }
         updateGroupInfoLabel();
         updateGroupCmiInfo();
         Global::get().m_hasUnsavedOGChanges = true;
@@ -276,5 +299,21 @@ private:
         }
         onClose(nullptr);
     }
+
+    void onCreateAndAddCustomObject(CCObject*) {
+        auto selected = Global::editor()->getSelectedObjects();
+        if (selected->count() < 2) {
+            alert("You must select at least <cy>2</c> objects in editor to create a new <cy>custom object</c> button.");
+            return;
+        }
+        // create and add custom
+        std::string str;
+        for (auto* obj : CCArrayExt<GameObject*>(selected)) {
+            str = str.append(obj->getSaveString(LevelEditorLayer::get())).append(";");
+        }
+        short newId = Global::editor()->registerNewCustomObject(str);
+        m_myGroup->addObjects({newId});
+
+        onClose(nullptr);
+    }
 };
-    

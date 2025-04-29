@@ -40,6 +40,32 @@ inline bool isCreativeModeNewTabUI() {
 }
 
 
+inline void pinnedObjectsByViperGoofyAhhFix() {
+	// Object Pinning by Viper contains a game-crashing bug related to the custom objects. 
+	// Viper doesn't respond to me anywhere and doesn't accept my PR on GH.
+	// So to keep mods compatible I have no choice other than edit saved values of that mod 
+	// before it uses them to prevent mod from executing game-crashing code 
+
+	if (!Loader::get()->isModInstalled("viper.object_pinning")) return;
+	auto objPinning = Loader::get()->getInstalledMod("viper.object_pinning");
+	if (objPinning->getVersion() != VersionInfo(1, 0, 3)) return; // only v1.0.3 
+
+	auto savedDataJson = objPinning->getSavedValue<std::string>("Pinned-Items");
+	std::map<std::string, bool> validIds;
+	auto gm = GameManager::get();
+
+	for (const auto &pair : matjson::parse(savedDataJson).unwrapOrDefault()) {
+		if (auto str = pair.getKey()) {
+			int id = std::atoi(str->c_str());
+			if (id > 0 || !gm->stringForCustomObject(id).empty()) {
+				validIds.insert({*str, true});
+			}
+		}
+	}
+	objPinning->setSavedValue("Pinned-Items", matjson::Value(validIds).dump(0));
+}
+
+
 void MyEditorUI::showUI(bool show) {
 	EditorUI::showUI(show);
 	if (m_fields->rowMenu) {
@@ -59,7 +85,7 @@ void MyEditorUI::showUI(bool show) {
 		}
 	}
 	if (m_fields->pinnedGroups) {
-		m_fields->pinnedGroups->setVisible(show);
+		m_fields->pinnedGroups->setVisible(show ? m_selectedMode == 2 : false);
 	}
 }
 
@@ -108,7 +134,9 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	getChildByID("build-tabs-menu")->setZOrder(6); 
 	getChildByID("editor-buttons-menu")->setZOrder(6);
 	getChildByID("layer-menu")->setZOrder(6);
-
+	
+	// other mods
+	pinnedObjectsByViperGoofyAhhFix();
 	const float scale = getBetterEditInterfaceScale();
 	const bool isNewTabUI = isCreativeModeNewTabUI();
 
@@ -165,18 +193,20 @@ void MyEditorUI::toggleMode(CCObject* sender) {
 		menu->setVisible(m_selectedMode == 2 && Global::get().m_isEditMode);
 		m_fields->toggleMenu->setVisible(m_selectedMode == 2);
 	}
+	if (m_fields->pinnedGroups) {
+		m_fields->pinnedGroups->setVisible(m_selectedMode == 2);
+	}
 }
 
 
 void MyEditorUI::updateCreateMenu(bool p0) {
 	EditorUI::updateCreateMenu(p0);
-	
+
 	// darken all buttons with the selected object 
 	// (as we now can have more buttons of type than 1)
-	int indx = m_selectedObjectIndex;
-	if (indx != 0) {
+	if (m_selectedObjectIndex != 0) {
 		for (auto* btn : CCArrayExt<CreateMenuItem*>(m_createButtonArray)) {
-			if (btn->m_objectID == indx) {
+			if (btn->m_objectID == m_selectedObjectIndex) {
 				setColorToCreateBtnNew(btn, false);
 			}
 		}
@@ -187,37 +217,13 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 void MyEditorUI::onCreateButton(CCObject* sender) {
 	auto cmi = static_cast<CreateMenuItem*>(sender);
 
-#ifdef GEODE_IS_DESKTOP
-	// on shift-click add/remove new object to one of the pinned groups (if possible)
-	if (Global::get().m_isEditMode && Global::get().m_settings.m_shiftAddToPinned && cmi->m_objectID > 0 && CCKeyboardDispatcher::get()->getShiftKeyPressed()) {
-		if (auto pinned = m_fields->pinnedGroups->getChildren()) {
-
-			// if the object is in pinned group, delete it
-			for (auto group : CCArrayExt<Group*>(pinned)) {
-				if (group->tryDeleteButtonByValue(cmi)) return;
-			}
-			
-			// otherwise add object to the pinned group
-			if (pinned->count() == 1) {
-				static_cast<Group*>(pinned->firstObject())->addObjects({(short)cmi->m_objectID});
-				return;
-			} 
-			
-			if (pinned->count() > 1) {
-				for (auto group : CCArrayExt<Group*>(pinned)) {
-					uint32_t stub;
-					if (group->getSelectedItemPosition(&stub, &stub)) {
-						group->addObjects({(short)cmi->m_objectID});
-						return;
-					}
-				}
-				alert("<cy>When you have more than 1 pinned group, one of them must "
-					"have a focused button within it to add new objects</c>");
-				return;
-			}
+	#ifdef GEODE_IS_DESKTOP
+		if (Global::get().m_isEditMode && Global::get().m_settings.m_shiftAdd 
+					&& CCKeyboardDispatcher::get()->getShiftKeyPressed()) {
+			addItemToActiveGroupByCmi(cmi);
+			return;
 		}
-	}
-#endif // GEODE_IS_DESKTOP
+	#endif /* GEODE_IS_DESKTOP */
 
 	int indexBefore = m_selectedObjectIndex;
 	EditorUI::onCreateButton(sender);
@@ -258,7 +264,7 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 
 // 	static CreateMenuItem* create(CCNode* p0, CCNode* p1, CCObject* p2, SEL_MenuHandler p3) {
 // 		CreateMenuItem* ret = CreateMenuItem::create(p0, p1, p2, p3);
-// 		static_cast<MyCreateMenuItem*>(ret)->m_fields->a ++;
+// 		static_cast<MyCreateMenuItem*>(ret)->m_fields->a++;
 // 		return ret;
 // 	}
 // };

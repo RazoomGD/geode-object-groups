@@ -21,6 +21,7 @@ using namespace geode::prelude;
 #define CMI_USER_OBJ_ID "OG-cmi"_spr
 #define INNER_CMI_USER_OBJ_ID "OG-coord"_spr
 #define CMI_GROUP_NAME_USER_OBJ_ID "OG-name"_spr
+#define CUSTOM_OBJECT_ID_OFFSET -15000
 
 
 struct MyEditorUI;
@@ -56,7 +57,7 @@ struct Global {
         bool m_enableSearchTab;
         bool m_pinButton;
         bool m_pinGestures;
-        bool m_shiftAddToPinned;
+        bool m_shiftAdd;
 
         void update() {
             auto mod = Mod::get();
@@ -74,7 +75,7 @@ struct Global {
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
             m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
-            m_shiftAddToPinned = mod->getSettingValue<bool>("shift-add");
+            m_shiftAdd = mod->getSettingValue<bool>("shift-add");
         }
     } m_settings;
 };

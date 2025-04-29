@@ -37,18 +37,53 @@ CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister) {
     return getCustomCreateBtn(a, bg, doRegister);
 }
 
+// negative id is id used by object groups, not by the game
+CreateMenuItem* getCustomObjectCreateBtn(EditorUI* editor, short negativeId, int validBg) {
+    
+    auto objStr = GameManager::get()->stringForCustomObject(negativeId); // call my hook
+    if (objStr.empty()) {
+        objStr = "1,914,2,0,3,105,31,SSB1c2Vk;1,914,2,0,3,75,31,dG8gYmUgYQ==;1,914,2,0,3,45,31,Y3VzdG9t;1,914,2,0,3,15,31,b2JqZWN0;";
+    }
+
+    auto arr = CCArray::create();
+    auto spr = editor->spriteFromObjectString(objStr, false, false, 0, arr, nullptr, nullptr);
+
+    for (auto* el : CCArrayExt<GameObject*>(arr)) {
+        setColorToGameObjectNew(el, true);
+    }
+
+    spr->setScale(std::min(32.f / spr->getContentHeight(), 32.f / spr->getContentWidth()));
+
+    auto cmi = editor->getCreateBtn(1, validBg);
+    auto buttonSpr = static_cast<ButtonSprite*>(cmi->getNormalImage());
+    if (auto obj = buttonSpr->m_subSprite) {
+        obj->setVisible(false);
+    }
+    buttonSpr->addChild(spr);
+    spr->setPosition({20,21});
+
+    cmi->m_objectID = negativeId;
+    cmi->setTag(negativeId); // compat. with creative mode
+    return cmi;
+}
+
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
 CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister) {
-    CreateMenuItem* btn;
     auto editor = Global::editor();
-    if (bg <= 6) {
-        btn = editor->getCreateBtn(ids[0], bg);
+    int validBg = (bg <= 6) ? bg : 1;
+    CreateMenuItem* btn;
+
+    if (ids[0] > 0) {
+        btn = editor->getCreateBtn(ids[0], validBg);
     } else {
-        btn = editor->getCreateBtn(ids[0], 1);
-        static_cast<ButtonSprite*>(btn->getNormalImage())->updateBGImage(bgIdToName[bg]);        
+        btn = getCustomObjectCreateBtn(editor, ids[0], validBg);
     }
+
     if (!doRegister && editor->m_createButtonArray->lastObject() == btn) {
         editor->m_createButtonArray->removeLastObject();
+    }
+    if (validBg != bg) {
+        static_cast<ButtonSprite*>(btn->getNormalImage())->updateBGImage(bgIdToName[bg]);        
     }
 
     // handle extra objects
@@ -106,7 +141,7 @@ void setColorToGameObjectNew(GameObject* gameObj, bool isBright) {
     // ! mostly decompiled code of EditorUI::updateCreateMenu() that sets the color
     ccColor3B color = isBright ? ccc3(255, 255, 255) : ccc3(127, 127, 127);
     int objId;
-    if (gameObj->m_classType == 1) {
+    if ((int)gameObj->m_classType == 1) {
         bool cVar14;
         if (gameObj->m_customColorType == 0) {
             cVar14 = gameObj->m_maybeNotColorable;
@@ -178,6 +213,7 @@ static const std::set<short> darkerButtonBgObjIds = {
 };
 
 int getItemBtnColor(short objId) {
+    if (objId < 0) return 5;
     return darkerButtonBgObjIds.contains(objId) ? 5 : 4;
 }
 
@@ -401,7 +437,8 @@ static const uint64_t isIdExists[] = {
 
 // true, if you can have this object in editor
 bool isObjIdExistsFast(short id) {
-    if (id <= 0 || id > 4539) return false;
+    if (id < 0) return true;
+    if (id > 4539) return false;
     short index = id % 64;
     short row = id / 64;
     uint64_t num = isIdExists[row];

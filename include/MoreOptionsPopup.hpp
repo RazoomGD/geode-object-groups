@@ -33,11 +33,16 @@ protected:
         auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onCreateTabIcon));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -55));
         
-        spr = ButtonSprite::create("Create new group\nfrom layout", "bigFont.fnt", "GJ_button_03.png", scale1);
+        spr = ButtonSprite::create("Create group\nfrom layout", "bigFont.fnt", "GJ_button_03.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onGroupFromLayout));
-        menu->addChildAtPosition(btn, Anchor::Top, ccp(0, -95));
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(-btn->getScaledContentWidth()/2-5, -95));
         
+        spr = ButtonSprite::create("New custom\nobject", "bigFont.fnt", "GJ_button_03.png", scale1);
+        spr->setScale(scale2);
+        btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onAddAsSingleCustomObject));
+        menu->addChildAtPosition(btn, Anchor::Top, ccp(btn->getScaledContentWidth()/2+5, -95));
+
         spr = ButtonSprite::create("Copy group\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyFocusedGroupAsJson));
@@ -94,6 +99,11 @@ private:
         onClose(nullptr);
     }
 
+    void onAddAsSingleCustomObject(CCObject*) {
+        Global::editor()->onAddAsSingleCustomObjectButton(nullptr);
+        onClose(nullptr);
+    }
+
     void onModSettings(CCObject*) {
         auto popup = openSettingsPopup(Mod::get(), true);
         if (popup) popup->setID("mod-settings"_spr);
@@ -143,36 +153,60 @@ private:
         old.m_shiftAdd = _new.m_shiftAdd;
     }
 
+
+    inline void writeClipboard(matjson::Value const &groupsArray, std::set<short> const &customIds) {
+        auto custom = Global::editor()->getCustomObjects(customIds);
+        if (custom.empty()) {
+            clipboard::write(matjson::makeObject({
+                {"config", groupsArray}
+            }).dump());
+        } else {
+            clipboard::write(matjson::makeObject({
+                {"config", groupsArray},
+                {"custom", custom}
+            }).dump());
+        }
+        shortAlert("Copied to clipboard!", 0.75f);
+    }
+
+
     void copyFocusedGroupAsJson(CCObject*) {
-        if (auto cmi = Global::editor()->getFocusedCmi()) {
+        auto editor = Global::editor();
+        if (auto cmi = editor->getFocusedCmi()) {
+            std::set<short> custom;
             if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
                 if (!group->isSingle()) {
-                    auto json = group->toJson();
-                    matjson::Value arr(std::vector<matjson::Value>{json});
-                    clipboard::write(arr.dump());
-                    shortAlert("Copied to clipboard!");
+                    auto json = matjson::Value(std::vector<matjson::Value>{group->toJson(custom)});
+                    writeClipboard(json, custom);
                     onClose(nullptr);
                     return;
                 }
             }
-            clipboard::write(std::string("[{\n    \"obj\": ") + std::to_string(cmi->m_objectID) + "\n}]");
-            shortAlert("Copied to clipboard!");
+            if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
+            auto json = matjson::Value(std::vector<matjson::Value>{matjson::makeObject({{"obj", cmi->m_objectID}})});
+            writeClipboard(json, custom);
             onClose(nullptr);
             return;
         }
         alert("<cr>Group is not selected</c>");
     }
 
+
     void copyCurrentTabAsJson(CCObject*) {
-        if (auto bar = Global::editor()->m_createButtonBar) {
-            clipboard::write(Global::editor()->barToJsonValue(bar).dump());
-            shortAlert("Copied to clipboard!");
-            onClose(nullptr);
-        } else {
-            alert("You can't copy contents of the current tab\n"
-                        "(because it is not controlled by <cy>Object Groups</c>)");
+        auto editor = Global::editor();
+        if (auto bar = editor->m_createButtonBar) {
+            if (bar->getUserObject(BAR_USER_OBJ_ID) != nullptr) {
+                std::set<short> custom;
+                auto json = editor->barToJsonValue(bar, custom);
+                writeClipboard(json, custom);
+                onClose(nullptr);
+                return;
+            }
         }
+        alert("You can't copy contents of the current tab "
+            "because it is not controlled by <cy>Object Groups</c>");
     }
+
 
     void pasteGroupsFromJson(CCObject*) {
         auto parsed = matjson::parse(clipboard::read());
@@ -184,48 +218,64 @@ private:
             }
 
             auto json = *maybeJson;
-            if (!json.isArray()) {
-                json = matjson::Value(std::vector<matjson::Value>{json});
-            }
 
-            auto buttons = CCArray::create();
-            int groupCount = 0;
-            for (auto& val : json) {
-                if (auto group = Group::createFromJsonValue(val, true)) {
-                    group->setUserCreated(true);
-                    buttons->addObject(group->getCmi());
-                    if (!group->isSingle()) groupCount++;
+            std::map<int, std::string> customAll;
+            auto fcustom = json["custom"];
+            if (fcustom.isObject()) {
+                for (auto& [key, value] : fcustom) {
+                    customAll.insert({std::atoi(key.c_str()), value.asString().unwrapOr("")});
                 }
             }
-            int total = buttons->count();
+
+            auto newGroups = CCArray::create();
+            int groupCount = 0;
+
+            auto fgroups = json["config"];
+            if (fgroups.isArray()) {
+                for (auto& val : fgroups) {
+                    if (auto group = Group::createFromJsonValue(val, true)) {
+                        newGroups->addObject(group);
+                        group->setUserCreated(true);
+                        if (!group->isSingle()) groupCount++;
+                    }
+                }
+            }
+
+            int total = newGroups->count();
             if (total == 0) {
-                alert("<cj>Nothing was found :(</c>\nCheck that there are no mistakes in json");
+                alert("<cj>Nothing was found :(</c>\nCheck that there are no mistakes in json. "
+                    "(You can copy other groups as json to see the expected json format)");
                 return;
             }
 
-            buttons->retain();
+            newGroups->retain();
 
             createQuickPopup("Object Groups", 
                 fmt::format("Are you sure you want to paste <cy>{}</c> buttons \n(<cy>{}</c> groups "
                             "and <cy>{}</c> objects) from <cp>clipboard</c>?", 
                             total, groupCount, total - groupCount),
                 "No", "Yes", 
-                [buttons, this] (auto, bool isBtn2) {
+                [newGroups, this, customAll] (auto, bool isBtn2) {
                     if (isBtn2) {
+                        auto buttons = CCArray::create();
+                        for (auto *group : CCArrayExt<Group*>(newGroups)) {
+                            group->remapCustomObjects(customAll);
+                            buttons->addObject(group->getCmi());
+                        }
                         Global::editor()->addButtonsAndReloadCurrentBar(buttons);
                         Global::get().m_hasUnsavedOGChanges = true;
                         shortAlert(fmt::format("Pasted {} buttons!", buttons->count()).c_str());
                     } else {
                         shortAlert("Nothing happened!");
                     }
-                    buttons->release();
+                    newGroups->release();
                     onClose(nullptr);
                 }
             );
             return;
         }
             
-        alert("Couldn't paste from clipboard!\n<cr>BAD JSON FORMAT</c>");
+        alert("Couldn't paste from clipboard!\n<cr>INCORRECT JSON FORMAT</c>");
     }
 
     void onInfoBtn(CCObject*) {
@@ -233,14 +283,15 @@ private:
         createQuickPopup("More Options", 
             "- <co>Create tab icon from selected</c>: creates new icon for the current "
             "tab from selected objects (select nothing to reset to default)\n"
-            "- <co>New group from layout</c>: tries to put selected objects in a new group while "
+            "- <co>Create group from layout</c>: tries to put selected objects in a new group while "
             "preserving their relative positions from editor\n"
-            "- <co>Copy group/tab</c>: copies focused group or entire tab to clipboard in <cl>json</c> format\n"
+            "- <co>New custom object/tab</c>: creates a <cy>custom object</c> "
+            "from selected objects and adds it to the tab\n"
+            "- <co>Copy group/tab</c>: copies focused group or entire tab to clipboard as <cl>json</c>\n"
             "- <co>Paste group(s)</c>: adds groups from <cl>json</c> content of clipboard to the current tab\n"
-            "- <cr>WARNING</c>: I strongly recommend <cr>NOT USING</c> copy/paste json options for creating groups. "
-            "Instead, use <cp>'New group'</c> and <cp>'New group from layout'</c>",
+            "- <cp>Note</c>: You can use copy/paste json options to share you groups with other people",
             
-            "ok", nullptr, winWidth * .8, nullptr, true, true
+            "ok", nullptr, winWidth * .95, nullptr, true, true
         );
     }
     

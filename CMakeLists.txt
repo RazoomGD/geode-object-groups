@@ -13,6 +13,7 @@ add_library(${PROJECT_NAME} SHARED
     src/EditorUI.cpp
     src/EditorUIHooks.cpp
     src/FileUtils.cpp
+    src/GameManager.cpp
     src/Group.cpp
     src/Utils.cpp
     src/settings/MultiBool.cpp
@@ -31,3 +32,7 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 # Set up dependencies, resources, and link Geode.
 setup_geode_mod(${PROJECT_NAME})
+
+# if(MSVC)
+#     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+# endif()

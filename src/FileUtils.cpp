@@ -25,15 +25,18 @@ $on_mod(Loaded) {
     }
 }
 
+
 // write config to json file. Return 0 on success, -1 on file error
 int writeConfigToJson(std::string filename) {
 
     Value config;
     std::set<uint8_t> savedTabs;
+    std::set<short> custom;
+    
     // foreach bar with my user object
     for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
     	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-            auto jsonArray = Global::editor()->barToJsonValue(bar);
+            auto jsonArray = Global::editor()->barToJsonValue(bar, custom);
             auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
             config[tabIdx] = jsonArray;
             savedTabs.insert(barInfo->m_tabIndx);
@@ -47,7 +50,7 @@ int writeConfigToJson(std::string filename) {
         if (auto array = allGroups[i]) {
             std::vector<Value> groupsVec;
             for (auto* group : CCArrayExt<Group*>(array)) {
-                groupsVec.push_back(group->toJson());
+                groupsVec.push_back(group->toJson(custom));
             }
             config[fmt::format("tab_{}", i)] = Value(groupsVec);
         }
@@ -55,7 +58,8 @@ int writeConfigToJson(std::string filename) {
     
     Value jsonObj = makeObject({
         {"comment", "DANGER! Don't edit this manually unless you know what you're doing!"},
-        {"config", config}
+        {"config", config},
+        {"custom", Global::editor()->getCustomObjects(custom)}
     });
 
     // write file
@@ -82,6 +86,17 @@ int readConfigFromJson(std::string filename) {
     }
 
     Value jsonObj = res.unwrap();
+
+    Value customObj = jsonObj["custom"];
+    if (customObj.isObject()) {
+        auto &customObjConfig = Global::editor()->m_fields->myCustomObjects;
+        for (auto& [cuObjId, cuObjStr] : customObj) {
+            if (cuObjStr.isString()) {
+                customObjConfig.insert({cuObjId, cuObjStr.asString().unwrap()});
+            }
+        }
+    }
+
     Value config = jsonObj["config"];
     if (!config.isObject()) {
         return -2;
@@ -93,7 +108,7 @@ int readConfigFromJson(std::string filename) {
         if (tab.isArray()) {
             auto tabArray = CCArray::create();
             for (Value& groupObj : tab) { // foreach group/obj entry
-                if (auto group = Group::createFromJsonValue(groupObj)) {
+                if (auto group = Group::createFromJsonValue(groupObj, true)) {
                     tabArray->addObject(group);
                 }
             }

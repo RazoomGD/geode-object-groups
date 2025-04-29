@@ -75,10 +75,10 @@
 		},
 		"shift-add": {
 			"type": "bool",
-			"name": "Shift-add/remove",
+			"name": "'Shift' to add",
 			"default": false,
-			"platforms": ["desktop"],
-			"description": "Faster way to add/remove objects to the <cg>pinned</c> groups (without having to place an object in editor).\n Pin the group, then press \"shift\", then press on the object button you want to add/remove."
+			"description": "Faster way to add objects to groups.\nIn <cg>group editing mode</c> press the 'shift' key and click on the object button you want to add. A new button will be added to the opened group",
+			"platforms": ["desktop"]
 		},
 		"enable-search": {
 			"type": "bool",
@@ -94,7 +94,7 @@
 		"group-button-color-v2": {
 			"type": "string",
 			"name": "Button color",
-			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast",
+			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast\n(Option will have no effect if Creative mode by Alphalaneous is enabled)",
 			"default": "8: blue",
 			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink", "11: dark green"]
 		},

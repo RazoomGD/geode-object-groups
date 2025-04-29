@@ -50,10 +50,10 @@ public:
         auto const point = m_group->convertToNodeSpace(touch->getLocation());
         if (this->boundingBox().containsPoint(point)) {
             if (!m_group->isPinned()) {
-                if (!Global::get().m_settings.m_pinGestures || !m_group->getPinBtn()) {
+                if (!Global::get().m_settings.m_pinGestures) {
                     return false;
                 }
-                m_group->getPinBtn()->activate(); // pin
+                m_group->switchPinState(); // pin
             }
             m_overlay->setOpacity(100);
             m_overlay->setColor(ccc3(250, 250, 250));
@@ -91,7 +91,7 @@ public:
         if (!m_group->getParent()) return;
         m_overlay->setOpacity(0);
         if (Global::get().m_settings.m_pinGestures && isOutOfWindow()) {
-            if (auto btn = m_group->getPinBtn()) btn->activate(); // unpin
+            m_group->switchPinState(); // unpin
         }
     }
 };

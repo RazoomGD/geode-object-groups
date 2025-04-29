@@ -163,16 +163,18 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
     matjson::Value obj = json["obj"];
     std::array<short,4> objIds = {0};
+    bool isThumbnailIncorrect = false;
 
-    if (obj.isExactlyUInt()) {
+    if (obj.isNumber()) {
         objIds[0] = obj.asInt().unwrap();
         if (validateIds && !isObjIdExistsFast(objIds[0])) {
             objIds[0] = getIdForOpenedTab();
+            isThumbnailIncorrect = true;
         }
     } else if (obj.isArray()) {
         int iter = 0;
         for (matjson::Value& el : obj) {
-            if (el.isExactlyUInt()) {
+            if (el.isNumber()) {
                 short tmp = el.asInt().unwrap();
                 if (tmp <= 0) continue;
                 if (validateIds && !isObjIdExistsFast(tmp)) continue;
@@ -182,6 +184,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
         }
         if (objIds[0] == 0) {
             objIds[0] = getIdForOpenedTab();
+            isThumbnailIncorrect = true;
         };
     } else {
         return nullptr;
@@ -200,7 +203,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
             if (row.isArray()) {
                 std::vector<short> vec;
                 for (matjson::Value& el : row) {
-                    if (el.isExactlyUInt()) {
+                    if (el.isNumber()) {
                         vec.push_back(el.asInt().unwrap());
                     }
                 }
@@ -209,15 +212,17 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
         }
     }
 
-    Group* group;
+    Group* group = nullptr;
     if (matrix.empty()) {
-        matjson::Value isUserObj = json["isUsr"];
-        group = Group::createSingle(objIds[0], isUserObj.asBool().unwrapOr(false));
+        if (!isThumbnailIncorrect) {
+            matjson::Value isUserObj = json["isUsr"];
+            group = Group::createSingle(objIds[0], isUserObj.asBool().unwrapOr(false));
+        }
     } else {
         if (validateIds) {
             for (auto& row : matrix) {
                 for (auto& val : row) {
-                    if (!isObjIdExistsFast(val)) {
+                    if (val != 0 && !isObjIdExistsFast(val)) {
                         val = 0;
                     }
                 }
@@ -229,7 +234,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
 }
 
 
-matjson::Value Group::toJson() {
+matjson::Value Group::toJson(std::set<short> &custom) {
     matjson::Value jsonGroup;
     if (!m_isSingle) { // group
         std::vector<short> idsVec;
@@ -242,6 +247,11 @@ matjson::Value Group::toJson() {
             jsonGroup.set("obj", idsVec);
         }
         jsonGroup.set("group", m_matrix);
+        for (auto &row : m_matrix) {
+            for (short objId : row) {
+                if (objId < 0) custom.insert(objId);
+            }
+        }
         
         if (!m_groupName.empty()) {
             jsonGroup.set("name", m_groupName);
@@ -251,8 +261,32 @@ matjson::Value Group::toJson() {
         if (m_isUserCreated) {
             jsonGroup.set("isUsr", m_isUserCreated);
         }
+        if (m_objectIds[0] < 0) {
+            custom.insert(m_objectIds[0]);
+        }
     }
     return jsonGroup;
+}
+
+
+void Group::remapCustomObjects(std::map<int, std::string> const &customObjects) {
+    if (isSingle()) {
+        auto it = customObjects.find(m_objectIds[0]);
+        if (it != customObjects.end()) {
+            m_objectIds[0] = Global::editor()->registerNewCustomObject(it->second);
+        }
+        return;
+    }
+    for (auto &row : m_matrix) {
+        for (short &el : row) {
+            if (el >= 0) continue;
+            auto it = customObjects.find(el);
+            if (it != customObjects.end()) {
+                short newId = Global::editor()->registerNewCustomObject(it->second);
+                el = newId;
+            }
+        }
+    }
 }
 
 
@@ -283,9 +317,12 @@ void Group::clearAllCreateMenuItems() {
         if (auto buttons = m_menu->getChildren()) {
             for (int i = 0; i < buttons->count(); i++) {
                 auto cmi = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
-                if (cmi->m_objectID != 0) {
-                    Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
-                }
+                Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
+                // if (cmi->m_objectID > 0) {
+                //     Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
+                // } else if (cmi->m_objectID < 0) {
+                //     Global::editor()->m_fields->myCustomObjectButtons->fastRemoveObject(cmi);
+                // }
             }
         }
     }
@@ -410,30 +447,45 @@ void Group::onDeleteObjButton(CCObject*) {
 }
 
 
-bool Group::tryDeleteButtonByValue(CreateMenuItem* cmi) {
-    if (auto menu = cmi->getParent()) {
-        if (menu->getParent() == this) {
-            if (auto pos = static_cast<GroupItemInfo*>(cmi->getUserObject(INNER_CMI_USER_OBJ_ID))) {
-                if (m_matrix[pos->m_row][pos->m_col] != 0) {
-                    m_matrix[pos->m_row][pos->m_col] = 0;
-                    updateMenu(Global::editor()->getFocusedCmi() != cmi);
-                    Global::get().m_hasUnsavedOGChanges = true;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+bool Group::containsButton(CreateMenuItem* cmi) {
+    return cmi && (cmi->getParent() == m_menu);
 }
 
 
 void Group::onAddObjectButton(CCObject* sender) {
+    if (auto cmi = Global::editor()->getFocusedCmi()) {
+        if (cmi->m_objectID != 0 && !this->containsButton(cmi)) {
+            addObjects({(short)cmi->m_objectID});
+            return;
+        }
+    }
     auto selected = Global::editor()->getSelectedObjects();
-    if (selected->count() == 0) {
-        alert("To add new object to the group you must select at least <cy>1</c> object in editor");
+    if (selected->count() > 0) {
+        addObjects(getUniqueIds(selected));
         return;
     }
-    addObjects(getUniqueIds(selected));
+    alert("To add new object to the group you must select at least <cy>1</c> object "
+        "in editor <cy>or</c> have a <cy>focused</c> button in the editor tabs");
+}
+
+
+inline void extendGroupInSomeWay(Group* g, int objCount) {
+    while (objCount > 0) {
+        int height = g->getMatrix().size();
+        int width = g->getMatrix()[0].size();
+        if (height >= 6 || height >= 4 && width < 10) {
+            g->addColumn(width);
+            objCount -= height;
+        } else {
+            if (height <= width) {
+                g->addRow(height);
+                objCount -= width;
+            } else {
+                g->addColumn(width);
+                objCount -= height;
+            }
+        }
+    }
 }
 
 
@@ -449,7 +501,15 @@ void Group::addObjects(std::vector<short> ids) {
     const uint32_t colEnd = m_matrix[0].size();
     do {
         if (m_matrix[row][col] == 0) {
-            m_matrix[row][col] = *iter;
+            short newId = *iter;
+            if (newId < 0 && newId > CUSTOM_OBJECT_ID_OFFSET) {
+                // add from vanilla custom objects
+                auto cuStr = GameManager::get()->stringForCustomObject(newId);
+                if (!cuStr.empty()) { 
+                    newId = Global::editor()->registerNewCustomObject(cuStr);
+                }
+            }
+            m_matrix[row][col] = newId;
             if (++iter == ids.end()) break;
         }
         if (++col == colEnd) {
@@ -464,7 +524,18 @@ void Group::addObjects(std::vector<short> ids) {
     }
 
     if (iter != ids.end()) {
-        alert("<cy>Group is full!</c>");
+        std::vector<short> remaining(iter, ids.end());
+        createQuickPopup("Object Groups", 
+            fmt::format("<cy> Group is full! </c>Do you want to extend the\n"
+                " group to fit the remaining <cy>{}</c> objects?", remaining.size()),
+            "Extend", "No", 
+            [this, remaining] (auto, bool isBtn2) {
+                if (!isBtn2) {
+                    extendGroupInSomeWay(this, remaining.size());
+                    addObjects(remaining);
+                }
+            }, true, true
+        );
     }
 }
 
@@ -480,13 +551,13 @@ void Group::onGroupBtnClick(CCObject* sender) {
     } else { // open
 
         if (isPinned()) {
-            m_pinBtn->activate(); // unpin
-        }
+            switchPinState(); // unpin
 
-        editor->setNewOpenedGroup(this, cmi);
-
-        if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
-            updateMenu();
+        } else {
+            editor->setNewOpenedGroup(this, cmi);
+            if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
+                updateMenu();
+            }
         }
     }
     editor->setNewFocusedCmi(cmi);
@@ -521,13 +592,14 @@ void Group::onExtraButton(CCObject*) {
 }
 
 
-void Group::onPinButton(CCObject* sender) {
-    auto tog = static_cast<CCMenuItemToggler*>(sender);
-    if (tog->isToggled()) { // unpin
+void Group::onPinButton(CCObject* maybeButton) {
+    
+    if (isPinned()) { // unpin
         removeFromParent();
         if (m_cmi) {
             m_cmi->removeChildByID("pin"_spr);
         }
+
     } else { // pin
         auto pinLayer = Global::editor()->m_fields->pinnedGroups;
         float tabScale = getTabScale();
@@ -538,7 +610,10 @@ void Group::onPinButton(CCObject* sender) {
         auto worldPos = this->convertToWorldSpace(ccp(0,0));
         Global::editor()->setNewOpenedGroup(nullptr, nullptr);
         pinLayer->addChild(this);
-        setPosition(pinLayer->convertToNodeSpace(worldPos));
+
+        auto shift = maybeButton ? ccp(0, 25) : ccp(0,0);
+        setPosition(pinLayer->convertToNodeSpace(worldPos) + shift);
+
         if (m_cmi) {
             auto mark = CCSprite::create("OG_pin2.png"_spr);
             mark->setID("pin"_spr);
@@ -548,6 +623,10 @@ void Group::onPinButton(CCObject* sender) {
             m_cmi->addChildAtPosition(mark, Anchor::TopRight, ccp(11,-2));
             mark->setZOrder(5);
         }
+    }
+
+    if (!maybeButton) { // activated not by button
+        if (m_pinBtn) m_pinBtn->toggle(!m_pinBtn->m_toggled);
     }
 }
 
@@ -735,12 +814,9 @@ void Group::updateMenu(bool preserveSelectedCmi) {
     }
 
     // get rid of the buttons that we don't need anymore
-    auto registeredButtons = Global::editor()->m_createButtonArray;
     for (int k = 0; k < oldButtons->count(); k++) {
         auto btn = static_cast<CreateMenuItem*>(oldButtons->objectAtIndex(k));
-        if (btn->m_objectID != 0) {
-            registeredButtons->fastRemoveObject(btn);
-        }
+        Global::editor()->m_createButtonArray->fastRemoveObject(btn);
     }
 
     updateGroupView();
