@@ -312,7 +312,7 @@ private:
             str = str.append(obj->getSaveString(LevelEditorLayer::get())).append(";");
         }
         short newId = Global::editor()->registerNewCustomObject(str);
-        m_myGroup->addObjects({newId});
+        m_myGroup->addObjects({newId}, true);
 
         onClose(nullptr);
     }

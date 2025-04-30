@@ -285,17 +285,15 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 		return;
 	}
 	// get selected object
-	auto selected = getSelectedObjects();
-	if (selected->count() == 0) {
+	auto ids = getUniqueIds(getSelectedObjects());
+	if (ids.size() == 0) {
 		alert("You must select at least one object to create a new object button.");
 		return;
 	}
 
 	// create item on EditButtonBar for this obj
-	if (selected->count() == 1) { 
-		int newObjId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
-
-		auto newGroup = Group::createSingle(newObjId, true);
+	if (ids.size() == 1) { 
+		auto newGroup = Group::createSingle(ids[0], true);
 		auto newBtn = newGroup->getCmi();
 
 		addButtonsAndReloadCurrentBar(CCArray::createWithObject(newBtn));
@@ -303,8 +301,6 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 		Global::get().m_hasUnsavedOGChanges = true;
 
 	} else {
-		auto ids = getUniqueIds(selected);
-
 		createQuickPopup("Object Groups", 
 			fmt::format("Are you sure you want to add buttons for <cy>{}</c> objects?", ids.size()),
 			"Yes", "No",
@@ -749,13 +745,26 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 	int rows, cols;
 	getBarSize(&rows, &cols);
 	int firstIndex = cols * rows * currentPage; // index the first obj on current page
+
+	// check if the selected cmi on the current page
+	if (auto selectedCmi = getFocusedCmi()) {
+		auto array = m_createButtonBar->m_buttonArray;
+		for (int i = 0; i < cols * rows; i++) {
+			if (firstIndex + i >= array->count()) break;
+			if (array->objectAtIndex(firstIndex + i) == selectedCmi) { // found
+				firstIndex = firstIndex + i;
+				break;
+			}
+		}
+	}
 	
 	for (auto* btn : buttons) {
 		m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex++);
 
 		// select (or set frame to) newly created button
-		if (btn->m_objectID != 0 && m_selectedObjectIndex == btn->m_objectID) {
-			setColorToCreateBtnNew(btn, false);
+		if (btn->m_objectID != 0 || btn->getUserObject(CMI_USER_OBJ_ID)) {
+			if (m_selectedObjectIndex == btn->m_objectID)
+				setColorToCreateBtnNew(btn, false);
 			setNewFocusedCmi(btn);
 		}
 	}

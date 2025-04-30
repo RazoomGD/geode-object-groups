@@ -489,7 +489,7 @@ inline void extendGroupInSomeWay(Group* g, int objCount) {
 }
 
 
-void Group::addObjects(std::vector<short> ids) {
+void Group::addObjects(std::vector<short> ids, bool setFocused) {
     uint32_t colSt, rowSt;
     if (!getSelectedItemPosition(&colSt, &rowSt)) {
         colSt = rowSt = 0;
@@ -520,6 +520,9 @@ void Group::addObjects(std::vector<short> ids) {
 
     if (iter != ids.begin()) { // at least 1 added
         updateMenu();
+        if (setFocused) {
+            setSelectedCmiWithPosition(col, row);
+        }
         Global::get().m_hasUnsavedOGChanges = true;
     }
 
@@ -529,10 +532,10 @@ void Group::addObjects(std::vector<short> ids) {
             fmt::format("<cy> Group is full! </c>Do you want to extend the\n"
                 " group to fit the remaining <cy>{}</c> objects?", remaining.size()),
             "Extend", "No", 
-            [this, remaining] (auto, bool isBtn2) {
+            [this, remaining, setFocused] (auto, bool isBtn2) {
                 if (!isBtn2) {
                     extendGroupInSomeWay(this, remaining.size());
-                    addObjects(remaining);
+                    addObjects(remaining, setFocused);
                 }
             }, true, true
         );

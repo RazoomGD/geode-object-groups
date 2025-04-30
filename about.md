@@ -1,6 +1,6 @@
 # Object Groups
 
-Object Groups helps you organize editor objects by dividing them into groups. It allows you to <cp>create</c> and <cp>edit</c> groups directly from the game. And introduces other useful features such as <cy>group pinning</c>, <cy>group search</c> and <cy>sharing options</c>. 
+Object Groups helps you organize editor objects by dividing them into groups. It allows you to <cj>create</c> and <cj>edit</c> groups directly from the game. And introduces other useful features such as <cy>group pinning</c>, <cy>group search</c> and <cy>sharing options</c>. 
 
 - Check the [gallery](https://github.com/RazoomGD/geode-object-groups/blob/v2/Gallery.md) for some pictures of the mod
 - Check the changelog for the exact list of features
@@ -26,4 +26,6 @@ You have several ways how you can contribute to the mod:
 
 ## Credits
 
-- Thanks for many people, who suggested that idea. I don't claim the idea as my own. I just implemented it in GD.
+- Thanks to many people, who suggested that idea. I don't claim the idea as my own. I just implemented it in GD.
+
+

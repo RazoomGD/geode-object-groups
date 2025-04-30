@@ -76,7 +76,7 @@ public:
 
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
-    void addObjects(std::vector<short> ids);
+    void addObjects(std::vector<short> ids, bool setFocused=false);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
     void updateObjId(std::array<short,4> newObjIds);

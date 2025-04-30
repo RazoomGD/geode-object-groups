@@ -4,10 +4,12 @@
   - Dragging pinned groups across the screen
 - Separate checkboxes for enabling each custom tab
 - Many UX improvements:
-  - Adding objects to the groups straight from the editor tabs (without having to place them in the editor)
+  - Adding objects to the groups straight from the editor tabs without having to place them in the editor
   - Adding objects to the group with 'shift' key (can be enabled in mod settings)
-  - Add row/column buttons are now always active and add rows/columns on the sides of the group when there are no focused button within the group
+  - Buttons for adding rows/columns to the group are now always active and add rows/columns on the sides of the group when there are no focused button within the group
+  - Adding a button to a tab now takes into account the position of the focused button on the opened page instead of always adding to the beginning of the page
   - Option to automatically extend the group when it is full
+  - Other small changes...
 - Support for <cy>custom objects</c>:
   - Custom objects in groups
   - Custom objects in any of the editor tabs
