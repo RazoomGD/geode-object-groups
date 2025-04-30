@@ -508,25 +508,6 @@ void MyEditorUI::onNewGroupButton(CCObject*) {
 }
 
 
-inline bool isGroupOnScreen(Group* g) {
-	auto posX = g->convertToWorldSpace(ccp(0,0)).x;
-	bool res =  posX > 0 && posX < CCDirector::get()->getWinSize().width;
-	if (!res) return false;
-	CCNode* par = g;
-	while (true) {
-		auto nextPar = par->getParent();
-		if (nextPar) {
-			if (nextPar->getID() == "EditorUI") {
-				return par->isVisible();
-			}
-		} else {
-			return false;
-		}
-		par = nextPar;
-	}
-}
-
-
 bool MyEditorUI::addItemToActiveGroupByCmi(CreateMenuItem* cmi) {
 	// this function is used in "shift-add" feature
 	if (cmi->m_objectID == 0) return false;
@@ -536,7 +517,7 @@ bool MyEditorUI::addItemToActiveGroupByCmi(CreateMenuItem* cmi) {
 	const auto focusedCmi = getFocusedCmi();
 	std::vector<Group*> candidates;
 
-	if (auto gr = getOpenedGroup(); gr && isGroupOnScreen(gr)) {
+	if (auto gr = getOpenedGroup(); gr && isGroupVisibleOnScreen(gr)) {
 		if (gr->containsButton(focusedCmi)) {
 			gr->addObjects(objId);
 			return true;

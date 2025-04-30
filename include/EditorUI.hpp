@@ -55,10 +55,7 @@ class $modify(MyEditorUI, EditorUI) {
 	$override void toggleMode(CCObject* sender);
 	$override void updateCreateMenu(bool p0);
 	$override void onCreateButton(CCObject* sender);
-	// $override void onDeleteCustomItem(CCObject* sender);
-	// $override void onNewCustomItem(CCObject* sender);
 	$override void showUI(bool show);
-	// $override CCArray* createCustomItems();
 	
 	// handlers for my menus 
 	void toggleEditGroupsMode(CCObject*);

@@ -43,7 +43,7 @@ protected:
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::onAddAsSingleCustomObject));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(btn->getScaledContentWidth()/2+5, -95));
 
-        spr = ButtonSprite::create("Copy focused\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
+        spr = ButtonSprite::create("Copy obj/grp\nto clipboard", "bigFont.fnt", "GJ_button_05.png", scale1);
         spr->setScale(scale2);
         btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(MoreOptionsPopup::copyFocusedGroupAsJson));
         menu->addChildAtPosition(btn, Anchor::Top, ccp(-btn->getScaledContentWidth()/2-5, -135));
@@ -287,7 +287,7 @@ private:
             "preserving their relative positions from editor\n"
             "- <co>New custom object/tab</c>: creates a <cy>custom object</c> "
             "from selected objects and adds it to the tab\n"
-            "- <co>Copy focused/tab</c>: copies focused button (object or group) or entire tab to "
+            "- <co>Copy object/group/tab</c>: copies focused button (object or group) or entire tab to "
             "the clipboard as <cl>json</c>\n"
             "- <co>Paste group(s)</c>: adds groups from <cl>json</c> content of clipboard to the current tab\n"
             "- <cp>Note</c>: You can use copy/paste json options to share you groups with other creators",

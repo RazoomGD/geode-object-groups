@@ -47,6 +47,9 @@ public:
         if (!static_cast<MyEditorUI*>(EditorUI::get())->m_fields->pinnedGroups->isVisible()) {
             return false;
         }
+        if (!isGroupVisibleOnScreen(m_group)) {
+            return false;
+        }
         auto const point = m_group->convertToNodeSpace(touch->getLocation());
         if (this->boundingBox().containsPoint(point)) {
             if (!m_group->isPinned()) {

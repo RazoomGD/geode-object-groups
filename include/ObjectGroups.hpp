@@ -130,6 +130,7 @@ void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 void getBarSize(int* rows, int* cols);
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
+bool isGroupVisibleOnScreen(Group* g);
 std::string getFontFileById(int id);
 
 std::string toValidString(const char* txt);
