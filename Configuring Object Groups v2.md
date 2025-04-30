@@ -45,11 +45,15 @@ Now you're ready to explore the Object Groups options:
   - [add/remove object](#addingremoving-objects)
   - [arrange objects](#arranging-objects-within-the-group)
   - [set group icon](#changing-group-icon)
+  - [add custom objects](#adding-custom-objects)
 - **Advanced options**
   - [create tab icon from selected objects](#create-tab-icon-from-selected-objects)
   - [create new group from layout](#create-new-group-from-layout)
-  - [copy group/tab to clipboard](#copy-grouptab-to-clipboard)
+  - [add custom object](#new-custom-object)
+  - [copy focused to clipboard](#copy-focused-to-clipboard)
+  - [copy tab to clipboard](#copy-tab-to-clipboard)
   - [paste group(s) from clipboard](#paste-groups-from-clipboard)
+
 
 # Basic options
 
@@ -62,7 +66,7 @@ To create a new object:
 - select one or more objects in editor
 - press `New Object` button
 
-New objects will be added to the beginning of the opened page.
+If there is a focused button in the opened page new objects will be added starting from its position. Otherwise they will be added to the beginning of the opened page.
 
 ![alt text](<assets/Configuring Object Groups v2/1743460416535_image.png>)
 
@@ -77,7 +81,7 @@ To create a new **empty** group deselect all objects in editor and press `New Gr
 
 ![alt text](<assets/Configuring Object Groups v2/1743461101055_image.png>)
 
-New group button will be added to the beginning of the opened page.
+If there is a focused button in the opened page new group will be be placed on its position. Otherwise new group button will be added to the beginning of the opened page.
 
 
 ## Arranging buttons
@@ -111,7 +115,7 @@ Open the group, press `plus` button, enter the name in the appeared popup.
 
 ![alt text](<assets/Configuring Object Groups v2/1743463578230_image.png>)
 
-![alt text](<assets/Configuring Object Groups v2/1743463977985_image.png>)
+![alt text](<assets/Configuring Object Groups v2/1745981010899_image.png>)
 
 
 ## Resizing groups
@@ -120,7 +124,7 @@ You can resize groups by adding and removing rows and columns:
 
 ![alt text](<assets/Configuring Object Groups v2/1743475302709_image.png>)
 
-To use these buttons you must have a focused button within the group. Because columns and rows are pasted/deleted relative to the focused button position. If there are no focused button within the group, buttons will be inactive.
+Columns and rows are pasted/deleted relative to the focused button position. If there are no focused button within the group, they will be pasted on the sides of the group (deleted buttons will be inactive).
 
 Each button does exactly what the text on is says. Be careful because `delete` buttons delete row/column together with all buttons in it.
 
@@ -132,6 +136,8 @@ These two buttons are responsible for adding/removing objects
 ![alt text](<assets/Configuring Object Groups v2/1743476309288_image.png>)
 
 - To add one ore more objects to the group, select objects that you want to add in editor and press the upper button. If you have the focused button within the group, new objects will be added starting from its position
+  - **Important:** starting from Object Groups v2.1.0 it is not necessary to place object in editor to add it to the group. If there is a focused button, that button will be added to the group.
+  - **Important 2:** Starting from Object Groups v2.1.0 on PC it is possible to add objects to the group by holding `shift` and clicking on the object button. (this option is disabled by default, so you have to enable this option in settings to use it)
 
 - To remove the button from the group, select it and press the lower button.
 
@@ -154,13 +160,17 @@ To change the icon, select 1 to 4 objects in the editor and press `Set Icon` but
 ![alt text](<assets/Configuring Object Groups v2/1743478269845_image.png>)
 
 
+## Adding custom objects
+
+Creates new custom object and adds it to the group. Custom objects will be covered in details [here](#custom-objects)
+
 # Advanced options
 
 These are the options that are located in `More Options` menu:
 
 ![alt text](<assets/Configuring Object Groups v2/1743478508322_image.png>)
 
-![alt text](<assets/Configuring Object Groups v2/1743478530624_image.png>)
+![alt text](<assets/Configuring Object Groups v2/1745980592329_image.png>)
 
 These are the advanced options, so you probably won't need to use them. But I explain them for the sake of completeness of the guide:
 
@@ -184,15 +194,37 @@ It tries to put the selected objects in a new group while preserving their relat
 
 ![alt text](<assets/Configuring Object Groups v2/1743479730695_image.png>)
 
+## New custom object
 
-## Copy group/tab to clipboard
+Creates new custom object and adds it to the tab. Custom objects will be covered in details [here](#custom-objects)
 
-Copies the focused group or the entire tab to the clipboard in json format:
+
+## Copy focused to clipboard
+
+Copies the focused group, object to the clipboard in json format. You can explore the format yourself.
+
+## Copy tab to clipboard
+
+Copies the entire tab to the clipboard in json format.
 
 
 ## Paste group(s) from clipboard
 
-Adds groups from json content of clipboard to the current tab
+Adds groups from json content of clipboard to the current tab.You can use copy/paste options to share you groups with other creators. Copy-paste system also supports **custom objects**. It copies information about custom objects together with groups and objects
+
+
+# Custom objects
+
+Science version 2.1.0 Object Groups supports **custom objects** in groups and tabs. Custom objects have darker button background but not really differ from built-in GD custom objects:
+
+![alt text](<assets/Configuring Object Groups v2/1745982251402_image.png>)
+
+You can add new custom object to the group:
+- by selecting it in the custom tab and clicking on the button for adding objects
+- by clicking `New custom obj.` button in extra group options popup (this will create a new custom object from selected objects and add it to the group): ![alt text](<assets/Configuring Object Groups v2/1745981356235_image.png>)
+
+You can add new custom object to the tab by opening 'More options' menu and clicking `New custom object` button (this will create a new custom object from selected objects and add it to the tab): ![alt text](<assets/Configuring Object Groups v2/1745982520482_image.png>)
+
 
 
 # Save file 

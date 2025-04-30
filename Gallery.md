@@ -9,12 +9,12 @@
 
 ![alt text](assets/Gallery/1741479139638_image.png)
 
-- The mod also allows you to have up to 5 additional tabs for the groups and objects. (you can configure them in mod settings)
+- The mod also allows you to have up to 5 additional tabs for the groups and objects. (you can configure which tabs are displayed in the mod settings)
 
 ![alt text](assets/Gallery/1741479766420_image.png)
 
 
-- The mod provides the **default group configuration**, which is already very convenient. Starting from version `v2.0.0`, you can edit it as you want **right in the game**.
+- The mod provides the **default group configuration**, which is already very convenient. Starting from version `v2.0.0`, you can edit it as you want **right in the game**. You can read about group configuration [here](./Configuring%20Object%20Groups%20v2.md).
 
 ![alt text](assets/Gallery/1741479943442_image.png)
 
@@ -29,6 +29,10 @@
 You can drag the across the screen and close them by moving to the edge of screen:
 
 ![alt text](assets/Gallery/1743979518198_image.png)
+
+- Starting from `v2.1.0` Object Groups supports **custom objects**, which you can add to the groups and to the build tabs:
+- 
+![alt text](assets/Gallery/1745979200745_image.png)
 
 ---
 
@@ -50,4 +54,4 @@ You can drag the across the screen and close them by moving to the edge of scree
 
 - And others that you can explore on your own.
 
-![alt text](assets/Gallery/1741481031874_image.png)
+![alt text](assets/Gallery/1745979254288_image.png)
