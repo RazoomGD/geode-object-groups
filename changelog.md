@@ -1,7 +1,8 @@
 # 2.1.2
 - Dragging groups no longer breaks with mods that use ImGui (e.g DevTools)
 - Opened groups no longer closed when switching to 'Edit Groups' mode
-- '<cj>Object Search</c>' feature - open the tab and group that contain selected object
+- '<cj>Object Search</c>' feature - jump to the tab and group that contain selected object
+- IOS support
 
 
 # 2.1.0

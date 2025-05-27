@@ -215,6 +215,10 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 					auto selected = getSelectedObjects();
 					if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
 						goToObject(obj->m_objectID, false);
+						if (obj->m_objectID != m_selectedObjectIndex) {
+							m_selectedObjectIndex = obj->m_objectID;
+							updateCreateMenu(false);
+						}
 					}
 				}
 				isHolding = true;

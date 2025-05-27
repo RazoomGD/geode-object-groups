@@ -105,7 +105,8 @@ CCMenu* MyEditorUI::setupLeftMenu(float scale) {
 
 	menu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::Start));
 	auto cat = getChildByID("toolbar-categories-menu");
-	menu->setPosition(ccp((6 + cat->getContentWidth()) * scale + cat->getPositionX(), 2.5));
+	auto minX = cat->getPositionX() - cat->getAnchorPoint().x * cat->getScaledContentWidth();
+	menu->setPosition(ccp((6 + minX + cat->getContentWidth()) * scale, 2.5));
 
 	menu->setScale(scale);
 	menu->setContentWidth(100);
@@ -860,6 +861,10 @@ void MyEditorUI::onGotoObjectBtn(CCObject*) {
 	auto selected = getSelectedObjects();
 	if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
 		goToObject(obj->m_objectID, false);
+		if (obj->m_objectID != m_selectedObjectIndex) {
+			m_selectedObjectIndex = obj->m_objectID;
+			updateCreateMenu(false);
+		}
 	} else {
 		alert("<cr>Objects not selected!</c>\nSelect an object in the editor and than press this <cl>button</c> or <cl>Ctrl+F</c> shortcut.\n"
 			"<cy>Selected object/group will be highlighted in the build tab</c>\n"
@@ -934,8 +939,9 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup) {
 								if (group != getOpenedGroup()) {
 									cmi->activate();
 								}
-								auto innerCmi = group->getCmiByPosition(j,i);
-								playCircleEffectOnCmi(innerCmi);
+								if (auto innerCmi = group->getCmiByPosition(j,i)) {
+									playCircleEffectOnCmi(innerCmi);
+								}
 							}
 							return;
 						}
