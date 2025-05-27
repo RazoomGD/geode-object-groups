@@ -15,6 +15,20 @@
 // }
 
 
+// keybinds
+#ifdef GEODE_IS_DESKTOP
+	#include <geode.custom-keybinds/include/Keybinds.hpp>
+	$execute {
+		keybinds::BindManager::get()->registerBindable({
+			"goto-object"_spr, "Find Object",
+			"Find and highlight selected object in the build tab",
+			{ keybinds::Keybind::create(KEY_F, keybinds::Modifier::Control) },
+			"Object Groups"
+		});
+	}
+#endif // GEODE_IS_DESKTOP
+
+
 // support for BetterEdit scale factor
 inline float getBetterEditInterfaceScale() {
 	if (Loader::get()->isModInstalled("hjfod.betteredit")) {
@@ -76,8 +90,16 @@ void MyEditorUI::showUI(bool show) {
 			}
 		}
 	}
-	if (m_fields->toggleMenu) {
-		if (auto children = m_fields->toggleMenu->getChildren()) {
+	if (m_fields->buildTabRightMenu) {
+		if (auto children = m_fields->buildTabRightMenu->getChildren()) {
+			for (int i = 0; i < children->count(); i++) {
+				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
+				btn->setVisible(show);
+			}
+		}
+	}
+	if (m_fields->buildTabLeftMenu) {
+		if (auto children = m_fields->buildTabLeftMenu->getChildren()) {
 			for (int i = 0; i < children->count(); i++) {
 				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
 				btn->setVisible(show);
@@ -152,7 +174,8 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		setupExtraTabs(tabs);
 		setupSearchTab();
 		m_fields->rowMenu = setupRowMenu(scale);
-		m_fields->toggleMenu = setupToggleMenu(scale);
+		m_fields->buildTabRightMenu = setupRightMenu(scale);
+		m_fields->buildTabLeftMenu = setupLeftMenu(scale);
 	}
 
 	// frame
@@ -183,6 +206,25 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		log::info("Developer mode enabled");
 	}
 
+	// keybinds
+	#ifdef GEODE_IS_DESKTOP
+		this->template addEventListener<keybinds::InvokeBindFilter>([this](keybinds::InvokeBindEvent* event) {
+			static bool isHolding = false;
+			if (event->isDown()) {
+				if (!isHolding) {
+					auto selected = getSelectedObjects();
+					if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
+						goToObject(obj->m_objectID, false);
+					}
+				}
+				isHolding = true;
+			} else {
+				isHolding = false;
+			}
+			return ListenerResult::Propagate;
+		}, "goto-object"_spr);
+	#endif // GEODE_IS_DESKTOP
+
 	return true;
 }
 
@@ -191,7 +233,8 @@ void MyEditorUI::toggleMode(CCObject* sender) {
 	EditorUI::toggleMode(sender);
 	if (auto menu = m_fields->rowMenu) {
 		menu->setVisible(m_selectedMode == 2 && Global::get().m_isEditMode);
-		m_fields->toggleMenu->setVisible(m_selectedMode == 2);
+		m_fields->buildTabRightMenu->setVisible(m_selectedMode == 2);
+		m_fields->buildTabLeftMenu->setVisible(m_selectedMode == 2);
 	}
 	if (m_fields->pinnedGroups) {
 		m_fields->pinnedGroups->setVisible(m_selectedMode == 2);
@@ -209,6 +252,9 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 			if (btn->m_objectID == m_selectedObjectIndex) {
 				setColorToCreateBtnNew(btn, false);
 			}
+		}
+		if (p0) { // goto object
+			goToObject(m_selectedObjectIndex, false);
 		}
 	}
 }

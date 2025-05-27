@@ -55,6 +55,7 @@ struct Global {
         bool m_autoClose;
         ccColor4B m_groupBgColor;
         bool m_enableSearchTab;
+        bool m_enableGoToObject;
         bool m_pinButton;
         bool m_pinGestures;
         bool m_shiftAdd;
@@ -75,6 +76,7 @@ struct Global {
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
             m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
+            m_enableGoToObject = mod->getSettingValue<bool>("enable-goto-object");
             m_shiftAdd = mod->getSettingValue<bool>("shift-add");
         }
     } m_settings;
@@ -137,6 +139,7 @@ std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);
 std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
 CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group);
+void playCircleEffectOnCmi(CreateMenuItem* cmi);
 
 inline bool isDeveloperMode() {return Mod::get()->getSavedValue<uint64_t>("dev-pass", 0) == 291857115;} 
 

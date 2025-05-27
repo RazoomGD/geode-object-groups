@@ -199,20 +199,7 @@ LAB_14010dac2:
 
 bool isGroupVisibleOnScreen(Group* g) {
 	auto posX = g->convertToWorldSpace(ccp(0,0)).x;
-	bool res =  posX > 0 && posX < CCDirector::get()->getWinSize().width;
-	if (!res) return false;
-	CCNode* par = g;
-	while (true) {
-		auto nextPar = par->getParent();
-		if (nextPar) {
-			if (nextPar->getID() == "EditorUI") {
-				return par->isVisible();
-			}
-		} else {
-			return false;
-		}
-		par = nextPar;
-	}
+    return nodeIsVisible(g) && posX > 0 && posX < CCDirector::get()->getWinSize().width;
 }
 
 
@@ -497,6 +484,19 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
     ret->setUserObject(CMI_USER_OBJ_ID, group); // set group
     setColorToCreateBtnNew(ret, true);
     return ret;
+}
+
+
+void playCircleEffectOnCmi(CreateMenuItem* cmi) {
+    auto effect = CCCircleWave::create(0, 45, 1.6, false, true);
+    effect->m_circleMode = CircleMode::Outline;
+    cmi->addChildAtPosition(effect, Anchor::Center);
+    effect->setZOrder(100);
+    
+    effect = CCCircleWave::create(0, 45, 1.6, false, true);
+    effect->m_opacityMod = 0.75;
+    cmi->addChildAtPosition(effect, Anchor::Center);
+    effect->setZOrder(100);
 }
 
 

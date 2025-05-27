@@ -68,6 +68,7 @@ public:
     bool containsButton(CreateMenuItem* cmi);
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
+    CreateMenuItem* getCmiByPosition(uint32_t col, uint32_t row);
     matjson::Value toJson(std::set<short> &custom);
 
     void remapCustomObjects(std::map<int, std::string> const &customObjects);

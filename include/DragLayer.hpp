@@ -6,6 +6,7 @@ class GroupDragLayer : public CCLayer {
 private:
     Group* m_group = nullptr;
     CCScale9Sprite* m_overlay = nullptr;
+    CCPoint m_relativeCursorPos;
 
 public:
     static GroupDragLayer* create(Group* group) {
@@ -60,6 +61,7 @@ public:
             }
             m_overlay->setOpacity(100);
             m_overlay->setColor(ccc3(250, 250, 250));
+            m_relativeCursorPos = point;
             return true;
         }
         return false;
@@ -69,16 +71,20 @@ public:
     bool isOutOfWindow() {
         auto pos = m_group->getPosition();
         auto sc = m_group->getParent()->getScale();
+        auto win = CCDirector::get()->getWinSize();
         return (pos.y + getPositionY() - 0.5 * 0.5 * getContentHeight()) < 0 || 
             (pos.x - 0.5 * 0.5 * getContentWidth()) < 0 || 
-            (pos.x + 0.5 * 0.5 * getContentWidth()) > CCDirector::get()->getWinSize().width / sc;
+            (pos.x + 0.5 * 0.5 * getContentWidth()) > win.width / sc ||
+            (pos.y + getPositionY() + 0.5 * 0.5 * getContentHeight()) > win.height / sc;
     }
 
 
     void ccTouchMoved(CCTouch* touch, CCEvent* event) override {
         if (!m_group->getParent()) return;
-        auto sc = m_group->getParent()->getScale();
-        m_group->setPosition(m_group->getPosition() + touch->getDelta() / sc);
+
+        auto const point = m_group->convertToNodeSpace(touch->getLocation());
+        auto const delta = m_relativeCursorPos - point;
+        m_group->setPosition(m_group->getPosition() - delta);
 
         if (Global::get().m_settings.m_pinGestures) {
             if (isOutOfWindow()) {

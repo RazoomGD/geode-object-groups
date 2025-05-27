@@ -1,5 +1,5 @@
 {
-	"geode": "4.3.1",
+	"geode": "4.4.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.1",
+	"version": "v2.1.2",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -28,6 +28,11 @@
 		"alphalaneous.editortab_api": {
 			"importance": "required",
 			"version": ">=1.0.13"
+		},
+		"geode.custom-keybinds": {
+			"importance": "required",
+			"version": ">=v1.10.0",
+			"platforms": ["win", "mac", "mac-intel", "mac-arm"]
 		}
 	},
 
@@ -82,9 +87,15 @@
 		},
 		"enable-search": {
 			"type": "bool",
-			"name": "Group search (experiment)",
-			"description": "Add a tab for searching for groups\n<cy>Note:</c> it searches only for the groups, NOT for the individual objects",
+			"name": "Group search",
+			"description": "Add a tab for searching groups by their names\n<cy>Note:</c> it searches only for the groups, NOT for the individual objects",
 			"default": false
+		},
+		"enable-goto-object": {
+			"type": "bool",
+			"name": "Object search",
+			"description": "Select an object and click <cy>'Find Object'</c> button (in the bottom left corner of build tabs menu) or press <cy>Ctrl + F</c>.\nObject selected in editor will be highlighted in the build tab",
+			"default": true
 		},
 
 		"title-02": {

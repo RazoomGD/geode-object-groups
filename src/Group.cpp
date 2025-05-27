@@ -598,7 +598,7 @@ void Group::onExtraButton(CCObject*) {
 void Group::onPinButton(CCObject* maybeButton) {
     
     if (isPinned()) { // unpin
-        removeFromParent();
+        removeFromParentAndCleanup(false);
         if (m_cmi) {
             m_cmi->removeChildByID("pin"_spr);
         }
@@ -739,18 +739,26 @@ bool Group::getSelectedItemPosition(uint32_t* col, uint32_t* row) {
 
 
 bool Group::setSelectedCmiWithPosition(uint32_t col, uint32_t row) {
-    auto buttons = m_menu->getChildren();
-    if (buttons == nullptr) return false;
-    for (int i = 0; i < buttons->count(); i++) {
-        auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
-        if (auto uObj = static_cast<GroupItemInfo*>(btn->getUserObject(INNER_CMI_USER_OBJ_ID))) {
-            if (uObj->m_row == row && uObj->m_col == col) {
-                Global::editor()->setNewFocusedCmi(btn);
-                return true;
+    if (auto btn = getCmiByPosition(col, row)) {
+        Global::editor()->setNewFocusedCmi(btn);
+        return true;
+    }
+    return false;
+}
+
+
+CreateMenuItem* Group::getCmiByPosition(uint32_t col, uint32_t row) {
+    if (auto buttons = m_menu->getChildren()) {
+        for (int i = 0; i < buttons->count(); i++) {
+            auto btn = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
+            if (auto uObj = static_cast<GroupItemInfo*>(btn->getUserObject(INNER_CMI_USER_OBJ_ID))) {
+                if (uObj->m_row == row && uObj->m_col == col) {
+                    return btn;
+                }
             }
         }
     }
-    return false;
+    return nullptr;
 }
 
 
@@ -775,7 +783,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
         oldButtons = tmp;
     }
 
-    m_menu->removeAllChildren(); // remove old buttons
+    m_menu->removeAllChildrenWithCleanup(false); // remove old buttons
         
     // prepare new buttons
     for (uint32_t i = 0; i < szY; i++) {

@@ -64,26 +64,57 @@ CCMenu* MyEditorUI::setupRowMenu(float scale) {
 }
 
 
-CCMenu* MyEditorUI::setupToggleMenu(float scale) {
-	auto tMenu = CCMenu::create(); 
+CCMenu* MyEditorUI::setupRightMenu(float scale) {
+	auto menu = CCMenu::create(); 
 	auto spr = CCSprite::create("OG_button_editMode.png"_spr);
 	spr->setScale(0.6);
 	auto tBtn = CCMenuItemSpriteExtra::create(spr, this, 
 		menu_selector(MyEditorUI::toggleEditGroupsMode));
-	tMenu->addChild(tBtn);
-	this->addChild(tMenu);
-	tMenu->setAnchorPoint({1,0});
+	menu->addChild(tBtn);
+	addChild(menu);
+	menu->setAnchorPoint({1,0});
 
-	tMenu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::End));
-	tMenu->setPosition(ccp(CCDirector::get()->getWinSize().width - (7 + 
-		this->getChildByID("toolbar-toggles-menu")->getContentWidth()) * scale, 2.5));
-	tMenu->setScale(scale);
-	tMenu->setContentWidth(100);
-	tMenu->setContentHeight(30);
-	tMenu->setZOrder(2);
-	tMenu->updateLayout();
-	tMenu->setID("toggle_menu"_spr);
-	return tMenu;
+	menu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::End));
+	menu->setPosition(ccp(CCDirector::get()->getWinSize().width - (7 + 
+		getChildByID("toolbar-toggles-menu")->getContentWidth()) * scale, 2.5));
+	menu->setScale(scale);
+	menu->setContentWidth(100);
+	menu->setContentHeight(30);
+	menu->setZOrder(2);
+	menu->updateLayout();
+	menu->setID("toggle_menu"_spr);
+	menu->setScale(0.9f * scale);
+	return menu;
+}
+
+
+CCMenu* MyEditorUI::setupLeftMenu(float scale) {
+	auto menu = CCMenu::create();
+	
+	if (Global::get().m_settings.m_enableGoToObject) {
+		auto spr = CCSprite::create("OG_button_findObject.png"_spr);
+		spr->setScale(0.6);
+		
+		auto tBtn = CCMenuItemSpriteExtra::create(spr, this, 
+			menu_selector(MyEditorUI::onGotoObjectBtn));
+		menu->addChild(tBtn);
+	}
+
+	addChild(menu);
+	menu->setAnchorPoint({0,0});
+
+	menu->setLayout(RowLayout::create()->setAxisAlignment(AxisAlignment::Start));
+	auto cat = getChildByID("toolbar-categories-menu");
+	menu->setPosition(ccp((6 + cat->getContentWidth()) * scale + cat->getPositionX(), 2.5));
+
+	menu->setScale(scale);
+	menu->setContentWidth(100);
+	menu->setContentHeight(30);
+	menu->setZOrder(2);
+	menu->updateLayout();
+	menu->setID("goto_obj_menu"_spr);
+	menu->setScale(0.9f * scale);
+	return menu;
 }
 
 
@@ -192,14 +223,14 @@ CreateMenuItem* MyEditorUI::getFocusedCmi() {
 void MyEditorUI::setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi) {
 	// close opened group if exists
 	if (m_fields->openedGroup.group) {
-		m_fields->openedGroup.group->removeFromParent();
+		m_fields->openedGroup.group->removeFromParentAndCleanup(false);
 		// m_fields->openedGroup = {nullptr, nullptr}; <-- memory leak
 		m_fields->openedGroup.cmi = nullptr;
 		m_fields->openedGroup.group = nullptr;
 	}
 	// open new group
 	if (newGroup != nullptr && cmi != nullptr) {
-		newGroup->removeFromParent();
+		newGroup->removeFromParentAndCleanup(false);
 		cmi->getParent()->addChild(newGroup);
 		newGroup->setPosition(cmi->getPosition());
 		m_fields->openedGroup.group = newGroup;
@@ -235,13 +266,13 @@ inline void setEditModeEnabled(MyEditorUI* editor, CCNodeRGBA* btn, bool enable)
 void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 	auto btn = static_cast<CCMenuItemSpriteExtra*>(sender);
 	Global::get().m_isEditMode = !Global::get().m_isEditMode;
-	setNewOpenedGroup(nullptr, nullptr);
+	// setNewOpenedGroup(nullptr, nullptr);
 	if (!Global::get().m_isEditMode) {
 		// disable
 		if (Global::get().m_hasUnsavedOGChanges) {
 			createQuickPopup("Unsaved Changes Warning",
-"You have <co>unsaved</c> changes in <cy>Object Groups</c> configuration.\n\
-<cj>Do you want to save them?</c>",
+				"You have <co>unsaved</c> changes in <cy>Object Groups</c> configuration.\n"
+				"<cj>Do you want to save them?</c>",
 				"No, save later", "Yes, save now", 
 				[this, btn] (auto, bool isBtn2) {
 					if (isBtn2) {
@@ -268,6 +299,12 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 			group->setUpdateRequired(true);
 			group->updateMenu(true);
 		}
+	}
+
+	// update opened group
+	if (auto group = getOpenedGroup()) {
+		group->setUpdateRequired(true);
+		group->updateMenu(true);
 	}
 }
 
@@ -817,4 +854,96 @@ void MyEditorUI::performSearchResult(const std::string& query) {
 	}
 	bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
 }
+
+
+void MyEditorUI::onGotoObjectBtn(CCObject*) {
+	auto selected = getSelectedObjects();
+	if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
+		goToObject(obj->m_objectID, false);
+	} else {
+		alert("<cr>Objects not selected!</c>\nSelect an object in the editor and than press this <cl>button</c> or <cl>Ctrl+F</c> shortcut.\n"
+			"<cy>Selected object/group will be highlighted in the build tab</c>\n"
+			"(you can toggle off '<cj>Object Search</c>' in mod settings to hide this button, "
+			"and option will be available only via shortcut)");
+	}
+}
+
+
+void MyEditorUI::goToObject(int id, bool openIfInGroup) {
+
+	int rows, cols;
+	getBarSize(&rows, &cols);
+	int const pgSize = cols * rows;
+
+	// foreach pinned group
+	if (auto pinned = m_fields->pinnedGroups->getChildren()) {
+		for (auto group : CCArrayExt<Group*>(pinned)) {
+			auto &matrix = group->getMatrix();
+			for (int i = 0; i < matrix.size(); i++) {
+				auto &row = matrix[i];
+				for (int j = 0; j < row.size(); j++) {
+					if (id == row[j]) {
+						// found in pinned group
+						toggleMode(m_buildModeBtn);
+						auto innerCmi = group->getCmiByPosition(j,i);
+						playCircleEffectOnCmi(innerCmi);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	// foreach tab
+	int barIndex = -1;
+	for (auto* bar : CCArrayExt<EditButtonBar*>(m_createButtonBars)) {
+		barIndex++;
+		if (!isMyTab(bar)) continue;
+		int buttonIndex = -1;
+
+		// foreach item in my tab
+		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+			buttonIndex++;
+			auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
+			if (!group || group->isSingle()) { // single item
+				if (id == cmi->m_objectID) {
+					// found single
+					toggleMode(m_buildModeBtn);
+					selectBuildTab(barIndex);
+					int currentPage = buttonIndex / pgSize;
+					bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
+					bar->m_scrollLayer->instantMoveToPage(currentPage);
+					playCircleEffectOnCmi(cmi);
+					return;
+				}
+			} else { // group
+				auto &matrix = group->getMatrix();
+				for (int i = 0; i < matrix.size(); i++) {
+					auto &row = matrix[i];
+					for (int j = 0; j < row.size(); j++) {
+						if (id == row[j]) {
+							// found in group
+							toggleMode(m_buildModeBtn);
+							selectBuildTab(barIndex);
+							int currentPage = buttonIndex / pgSize;
+							bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
+							bar->m_scrollLayer->instantMoveToPage(currentPage);
+							if (!openIfInGroup && group != getOpenedGroup()) {
+								playCircleEffectOnCmi(cmi);
+							} else {
+								if (group != getOpenedGroup()) {
+									cmi->activate();
+								}
+								auto innerCmi = group->getCmiByPosition(j,i);
+								playCircleEffectOnCmi(innerCmi);
+							}
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 

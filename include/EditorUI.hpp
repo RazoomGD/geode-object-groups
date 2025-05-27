@@ -7,7 +7,8 @@
 class $modify(MyEditorUI, EditorUI) {
 	struct Fields {
 		CCMenu* rowMenu = nullptr;
-		CCMenu* toggleMenu = nullptr;
+		CCMenu* buildTabRightMenu = nullptr;
+		CCMenu* buildTabLeftMenu = nullptr;
 		CCNode* pinnedGroups = nullptr; // there must be only groups and nothing else
 		Ref<CCNode> buttonFrame = nullptr;
 		std::map<std::string, std::string> myCustomObjects; // negative id as string : obj-string
@@ -38,6 +39,7 @@ class $modify(MyEditorUI, EditorUI) {
 
 	static void onModify(auto& self) {
         (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
+        (void) self.setHookPriorityAfterPost("EditorUI::init", "hjfod.betteredit");
         (void) self.setHookPriorityBeforePost("EditorUI::init", "viper.object_pinning");
 		(void) self.setHookPriorityPre("EditorUI::onCreateButton", Priority::EarlyPre);
     }
@@ -45,7 +47,8 @@ class $modify(MyEditorUI, EditorUI) {
 
 	// setup methods
 	CCMenu* setupRowMenu(float scale);
-	CCMenu* setupToggleMenu(float scale);
+	CCMenu* setupRightMenu(float scale);
+	CCMenu* setupLeftMenu(float scale);
 	void setupExtraTabs(std::set<uint8_t> const &which);
 	void setupVanillaTabs();
 	void setupSearchTab();
@@ -68,7 +71,8 @@ class $modify(MyEditorUI, EditorUI) {
 	void onDeleteItemButton(CCObject*);
 	void onMoreOptionsButton(CCObject*);
 	void onNewGroupFromLayoutButton(CCObject*);
-	
+	void onGotoObjectBtn(CCObject*);
+
 	// various helper methods
 	void moveSelectedButton(bool forward);
 	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons);
@@ -89,4 +93,6 @@ class $modify(MyEditorUI, EditorUI) {
 
 	void toggleSearch(bool forceToggleOff=false);
 	void performSearchResult(const std::string& query);
+
+	void goToObject(int id, bool openIfInGroup);
 };

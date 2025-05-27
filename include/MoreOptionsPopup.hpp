@@ -126,7 +126,8 @@ private:
         bool editorReloadReq = (
             old.m_groupBtnColor != _new.m_groupBtnColor||
             old.m_extraTabs != _new.m_extraTabs ||
-            old.m_enableSearchTab != _new.m_enableSearchTab
+            old.m_enableSearchTab != _new.m_enableSearchTab ||
+            old.m_enableGoToObject != _new.m_enableGoToObject
         );
         if (editorReloadReq) {
             alert("Some of the changed settings <co>require editor reload</c>");

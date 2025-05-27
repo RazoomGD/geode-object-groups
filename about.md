@@ -10,7 +10,7 @@ Object Groups helps you organize editor objects by dividing them into groups. It
 
 ## Configuring groups
 
-Starting from version <cy>2.0.0</c> you can configure groups right from the game - just press the "settings" button at the right bottom corner of the blocks tab. 
+Starting from version <cy>2.0.0</c> you can configure groups right from the game - just press the "settings" button at the right bottom corner of the build tab. 
 
 You can find the detailed explanation of the group editing features [here](https://github.com/RazoomGD/geode-object-groups/blob/v2/Configuring%20Object%20Groups%20v2.md).
 
