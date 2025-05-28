@@ -880,36 +880,14 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 	getBarSize(&rows, &cols);
 	int const pgSize = cols * rows;
 
-	// foreach pinned group
-	if (auto pinned = m_fields->pinnedGroups->getChildren()) {
-		for (auto group : CCArrayExt<Group*>(pinned)) {
-			auto &matrix = group->getMatrix();
-			for (int i = 0; i < matrix.size(); i++) {
-				auto &row = matrix[i];
-				for (int j = 0; j < row.size(); j++) {
-					if (id == row[j]) {
-						// found in pinned group
-						toggleMode(m_buildModeBtn);
-						if (playEffect) {
-							if (auto innerCmi = group->getCmiByPosition(j,i)) {
-								playCircleEffectOnCmi(innerCmi);
-							}
-						}
-						return;
-					}
-				}
-			}
-		}
-	}
-
 	// foreach tab
 	int barIndex = -1;
 	for (auto* bar : CCArrayExt<EditButtonBar*>(m_createButtonBars)) {
 		barIndex++;
 		if (!isMyTab(bar)) continue;
-		int buttonIndex = -1;
-
+		
 		// foreach item in my tab
+		int buttonIndex = -1;
 		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
 			buttonIndex++;
 			auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
@@ -938,18 +916,22 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 							int currentPage = buttonIndex / pgSize;
 							bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
 							bar->m_scrollLayer->instantMoveToPage(currentPage);
-							if (!openIfInGroup && group != getOpenedGroup()) {
-								if (playEffect) {
-									playCircleEffectOnCmi(cmi);
-								}
-							} else {
-								if (group != getOpenedGroup()) {
-									cmi->activate();
-								}
-								if (playEffect) {
+
+							bool openedOrPinned = (group == getOpenedGroup()) || 
+										(group->getParent() == m_fields->pinnedGroups);
+
+							if (!openedOrPinned && openIfInGroup) {
+								cmi->activate(); // open group
+								openedOrPinned = true;
+							}
+
+							if (playEffect) {
+								if (openedOrPinned) {
 									if (auto innerCmi = group->getCmiByPosition(j,i)) {
 										playCircleEffectOnCmi(innerCmi);
 									}
+								} else {
+									playCircleEffectOnCmi(cmi);
 								}
 							}
 							return;
