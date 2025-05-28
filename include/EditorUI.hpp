@@ -40,7 +40,7 @@ class $modify(MyEditorUI, EditorUI) {
 	static void onModify(auto& self) {
         (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
         (void) self.setHookPriorityAfterPost("EditorUI::init", "hjfod.betteredit");
-        (void) self.setHookPriorityBeforePost("EditorUI::init", "viper.object_pinning");
+        // (void) self.setHookPriorityBeforePost("EditorUI::init", "viper.object_pinning");
 		(void) self.setHookPriorityPre("EditorUI::onCreateButton", Priority::EarlyPre);
     }
 
@@ -59,6 +59,7 @@ class $modify(MyEditorUI, EditorUI) {
 	$override void updateCreateMenu(bool p0);
 	$override void onCreateButton(CCObject* sender);
 	$override void showUI(bool show);
+	$override void clickOnPosition(CCPoint p0);
 	
 	// handlers for my menus 
 	void toggleEditGroupsMode(CCObject*);
@@ -94,5 +95,5 @@ class $modify(MyEditorUI, EditorUI) {
 	void toggleSearch(bool forceToggleOff=false);
 	void performSearchResult(const std::string& query);
 
-	void goToObject(int id, bool openIfInGroup);
+	void goToObject(int id, bool openIfInGroup, bool playEffect=true);
 };

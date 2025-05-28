@@ -54,6 +54,7 @@ inline bool isCreativeModeNewTabUI() {
 }
 
 
+// ! Note: that this is called before EditorUI::init
 inline void pinnedObjectsByViperGoofyAhhFix() {
 	// Object Pinning by Viper contains a game-crashing bug related to the custom objects. 
 	// Viper doesn't respond to me anywhere and doesn't accept my PR on GH.
@@ -128,8 +129,6 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		m_fields->GROUPS[i] = nullptr;
 	}
 	
-	if (!EditorUI::init(editorLayer)) return false;
-
 	// try to load saved configuration
 	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
 	bool fileOk = false;
@@ -152,13 +151,17 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		default: break;
 	}
 
+	// that fix
+	pinnedObjectsByViperGoofyAhhFix();
+
+	if (!EditorUI::init(editorLayer)) return false; // ! init 
+
 	// prevent overlapping with my menus
 	getChildByID("build-tabs-menu")->setZOrder(6); 
 	getChildByID("editor-buttons-menu")->setZOrder(6);
 	getChildByID("layer-menu")->setZOrder(6);
 	
 	// other mods
-	pinnedObjectsByViperGoofyAhhFix();
 	const float scale = getBetterEditInterfaceScale();
 	const bool isNewTabUI = isCreativeModeNewTabUI();
 
@@ -258,8 +261,17 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 			}
 		}
 		if (p0) { // goto object
-			goToObject(m_selectedObjectIndex, false);
+			goToObject(m_selectedObjectIndex, false, false);
 		}
+	}
+}
+
+
+void MyEditorUI::clickOnPosition(CCPoint p0) {
+	int before = m_selectedObjectIndex;
+	EditorUI::clickOnPosition(p0);
+	if (before == 0 && m_selectedObjectIndex != before) { // play effect
+		goToObject(m_selectedObjectIndex, false);
 	}
 }
 

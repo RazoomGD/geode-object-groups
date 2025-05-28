@@ -874,7 +874,7 @@ void MyEditorUI::onGotoObjectBtn(CCObject*) {
 }
 
 
-void MyEditorUI::goToObject(int id, bool openIfInGroup) {
+void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 
 	int rows, cols;
 	getBarSize(&rows, &cols);
@@ -890,8 +890,11 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup) {
 					if (id == row[j]) {
 						// found in pinned group
 						toggleMode(m_buildModeBtn);
-						auto innerCmi = group->getCmiByPosition(j,i);
-						playCircleEffectOnCmi(innerCmi);
+						if (playEffect) {
+							if (auto innerCmi = group->getCmiByPosition(j,i)) {
+								playCircleEffectOnCmi(innerCmi);
+							}
+						}
 						return;
 					}
 				}
@@ -918,7 +921,9 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup) {
 					int currentPage = buttonIndex / pgSize;
 					bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
 					bar->m_scrollLayer->instantMoveToPage(currentPage);
-					playCircleEffectOnCmi(cmi);
+					if (playEffect) {
+						playCircleEffectOnCmi(cmi);
+					}
 					return;
 				}
 			} else { // group
@@ -934,13 +939,17 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup) {
 							bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
 							bar->m_scrollLayer->instantMoveToPage(currentPage);
 							if (!openIfInGroup && group != getOpenedGroup()) {
-								playCircleEffectOnCmi(cmi);
+								if (playEffect) {
+									playCircleEffectOnCmi(cmi);
+								}
 							} else {
 								if (group != getOpenedGroup()) {
 									cmi->activate();
 								}
-								if (auto innerCmi = group->getCmiByPosition(j,i)) {
-									playCircleEffectOnCmi(innerCmi);
+								if (playEffect) {
+									if (auto innerCmi = group->getCmiByPosition(j,i)) {
+										playCircleEffectOnCmi(innerCmi);
+									}
 								}
 							}
 							return;
