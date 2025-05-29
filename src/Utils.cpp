@@ -487,16 +487,48 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
 }
 
 
+class AutoCleanedCircleWave : public CCNode {
+public:
+    static AutoCleanedCircleWave* create() {
+        auto ret = new AutoCleanedCircleWave();
+        if (!ret || !ret->init()) {
+            CC_SAFE_DELETE(ret);
+            return nullptr;
+        }
+        return ret;
+    }
+
+    bool init() override {
+        if (!CCNode::init()) return false;
+
+        auto effect = CCCircleWave::create(0, 45, 1.6, false, true);
+        effect->m_circleMode = CircleMode::Outline;
+        addChild(effect);
+
+        effect = CCCircleWave::create(0, 45, 1.6, false, true);
+        effect->m_opacityMod = 0.75;
+        addChild(effect);
+        
+        return true;
+    }
+
+    void cleanup() override {
+        setVisible(false);
+        CCNode::cleanup();
+    }
+
+    void removeChild(CCNode* child, bool cleanup) override {
+        CCNode::removeChild(child, cleanup);
+        removeFromParent();
+    }
+};
+
+
 void playCircleEffectOnCmi(CreateMenuItem* cmi) {
-    auto effect = CCCircleWave::create(0, 45, 1.6, false, true);
-    effect->m_circleMode = CircleMode::Outline;
+    auto effect = AutoCleanedCircleWave::create();
     cmi->addChildAtPosition(effect, Anchor::Center);
     effect->setZOrder(100);
-    
-    effect = CCCircleWave::create(0, 45, 1.6, false, true);
-    effect->m_opacityMod = 0.75;
-    cmi->addChildAtPosition(effect, Anchor::Center);
-    effect->setZOrder(100);
+    effect->setID("wave"_spr);
 }
 
 

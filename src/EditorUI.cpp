@@ -224,14 +224,15 @@ CreateMenuItem* MyEditorUI::getFocusedCmi() {
 void MyEditorUI::setNewOpenedGroup(Group* newGroup, CreateMenuItem* cmi) {
 	// close opened group if exists
 	if (m_fields->openedGroup.group) {
-		m_fields->openedGroup.group->removeFromParentAndCleanup(false);
+		// m_fields->openedGroup.group->removeFromParentAndCleanup(false); <-- no way, another mem leak
+		m_fields->openedGroup.group->removeFromParent();
 		// m_fields->openedGroup = {nullptr, nullptr}; <-- memory leak
 		m_fields->openedGroup.cmi = nullptr;
 		m_fields->openedGroup.group = nullptr;
 	}
 	// open new group
 	if (newGroup != nullptr && cmi != nullptr) {
-		newGroup->removeFromParentAndCleanup(false);
+		newGroup->removeFromParent();
 		cmi->getParent()->addChild(newGroup);
 		newGroup->setPosition(cmi->getPosition());
 		m_fields->openedGroup.group = newGroup;

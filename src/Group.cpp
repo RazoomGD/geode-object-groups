@@ -598,7 +598,7 @@ void Group::onExtraButton(CCObject*) {
 void Group::onPinButton(CCObject* maybeButton) {
     
     if (isPinned()) { // unpin
-        removeFromParentAndCleanup(false);
+        removeFromParent();
         if (m_cmi) {
             m_cmi->removeChildByID("pin"_spr);
         }
@@ -783,7 +783,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
         oldButtons = tmp;
     }
 
-    m_menu->removeAllChildrenWithCleanup(false); // remove old buttons
+    m_menu->removeAllChildren(); // remove old buttons
         
     // prepare new buttons
     for (uint32_t i = 0; i < szY; i++) {
