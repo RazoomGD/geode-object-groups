@@ -137,6 +137,12 @@ void MyEditorUI::setupExtraTabs(std::set<uint8_t> const &which) {
 				// set user obj and call my hook
 				ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i, false));
 				ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
+
+				// fix betteredit interface scale issue with custom tabs
+				queueInMainThread([ret, cols, rows](){
+					ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
+				});
+
 				return ret;
 			},
 			// is called on every tab click
