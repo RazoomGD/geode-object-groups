@@ -183,7 +183,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	// frame
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
-	frame->setAnchorPoint({0,0});
+	// frame->setAnchorPoint({0,0}); 
 	frame->setColor(isNewTabUI ? ccc3(0, 255, 255) : ccc3(255, 255, 0));
 	m_fields->buttonFrame = CCNode::create();
 	m_fields->buttonFrame->addChild(frame);

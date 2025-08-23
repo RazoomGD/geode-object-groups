@@ -284,9 +284,9 @@ private:
         createQuickPopup("More Options", 
             "- <co>Create tab icon from selected</c>: creates new icon for the current "
             "tab from selected objects (select nothing to reset to default)\n"
-            "- <co>Create group from layout</c>: tries to put selected objects in a new group while "
+            "- <co>Create group from layout</c>: tries to put selected objects into a new group while "
             "preserving their relative positions from editor\n"
-            "- <co>New custom object/tab</c>: creates a <cy>custom object</c> "
+            "- <co>New custom object</c>: creates a <cy>custom object</c> "
             "from selected objects and adds it to the tab\n"
             "- <co>Copy object/group/tab</c>: copies focused button (object or group) or entire tab to "
             "the clipboard as <cl>json</c>\n"

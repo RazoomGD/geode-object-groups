@@ -45,6 +45,9 @@ public:
 
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
+        if (!Global::get().m_settings.m_pinGestures) {
+            return false;
+        }
         if (!static_cast<MyEditorUI*>(EditorUI::get())->m_fields->pinnedGroups->isVisible()) {
             return false;
         }
@@ -53,12 +56,6 @@ public:
         }
         auto const point = m_group->convertToNodeSpace(touch->getLocation());
         if (this->boundingBox().containsPoint(point)) {
-            if (!m_group->isPinned()) {
-                if (!Global::get().m_settings.m_pinGestures) {
-                    return false;
-                }
-                m_group->switchPinState(); // pin
-            }
             m_overlay->setOpacity(100);
             m_overlay->setColor(ccc3(250, 250, 250));
             m_relativeCursorPos = point;
@@ -86,12 +83,14 @@ public:
         auto const delta = m_relativeCursorPos - point;
         m_group->setPosition(m_group->getPosition() - delta);
 
-        if (Global::get().m_settings.m_pinGestures) {
-            if (isOutOfWindow()) {
-                m_overlay->setColor(ccc3(250, 0, 0));
-            } else {
-                m_overlay->setColor(ccc3(250, 250, 250));
-            }
+        if (!m_group->isPinned()) {
+            m_group->switchPinState(); // pin
+        }
+
+        if (isOutOfWindow()) {
+            m_overlay->setColor(ccc3(250, 0, 0));
+        } else {
+            m_overlay->setColor(ccc3(250, 250, 250));
         }
     }
 
@@ -99,7 +98,7 @@ public:
     void ccTouchEnded(CCTouch* touch, CCEvent* event) override {
         if (!m_group->getParent()) return;
         m_overlay->setOpacity(0);
-        if (Global::get().m_settings.m_pinGestures && isOutOfWindow()) {
+        if (isOutOfWindow()) {
             m_group->switchPinState(); // unpin
         }
     }

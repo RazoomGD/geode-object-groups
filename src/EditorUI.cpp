@@ -216,7 +216,12 @@ void MyEditorUI::setupSearchTab() {
 // helper function that sets a frame to given cmi (cmi can be nullptr)
 void MyEditorUI::setNewFocusedCmi(CreateMenuItem* cmi) {
 	m_fields->buttonFrame->removeFromParent();
-	if (cmi) cmi->addChild(m_fields->buttonFrame, 5);
+	if (cmi) {
+		cmi->addChild(m_fields->buttonFrame, 5);
+		if (auto buttonSpr = cmi->getNormalImage()) {
+			m_fields->buttonFrame->setPosition(buttonSpr->getPosition());
+		}
+	}
 }
 
 

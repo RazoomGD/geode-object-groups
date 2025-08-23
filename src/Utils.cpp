@@ -18,7 +18,8 @@ static const char* bgIdToName[12] = {
 };
 
 // fix color sprite bad position bug
-void setGameObjScalePosition(GameObject* obj, CCPoint pos, float scaleMultiplier) {
+void adjustGameObjectScaleAndPosition(GameObject* obj, CCPoint deltaPos, float scaleMultiplier) {
+    auto pos = obj->getPosition() + deltaPos;
     if (obj->m_colorSprite) {
         auto sprPos = obj->m_colorSprite->getPosition();
         auto sprSc = obj->m_colorSprite->getScale();
@@ -32,9 +33,15 @@ void setGameObjScalePosition(GameObject* obj, CCPoint pos, float scaleMultiplier
     }
 }
 
-CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister) {
+CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister, float fixScale) {
     std::array<short,4> a = {id, 0, 0, 0};
-    return getCustomCreateBtn(a, bg, doRegister);
+    auto cmi = getCustomCreateBtn(a, bg, doRegister);
+    if (fixScale != 1.f) {
+        auto newSize = cmi->getContentSize() * fixScale;
+        cmi->setContentSize(newSize);
+        cmi->getNormalImage()->setPosition(newSize / 2); // button sprite pos
+    }
+    return cmi;
 }
 
 // negative id is id used by object groups, not by the game
@@ -102,17 +109,18 @@ CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool
         for (int i = 0; i < objCount; i++) {
             if (i != 0) btnSpr->addChild(objects[i], 1);
         }
+        // standard pos is (20, 22)
         if (objCount == 2) {
-            setGameObjScalePosition(objects[0], ccp(12,22), 0.48);
-            setGameObjScalePosition(objects[1], ccp(28,22), 0.48);
+            adjustGameObjectScaleAndPosition(objects[0], ccp(-8,0), 0.48);
+            adjustGameObjectScaleAndPosition(objects[1], ccp(8,0), 0.48);
         } else {
-            setGameObjScalePosition(objects[0], ccp(12,30), 0.48);
-            setGameObjScalePosition(objects[1], ccp(28,30), 0.48);
+            adjustGameObjectScaleAndPosition(objects[0], ccp(-8,8), 0.48);
+            adjustGameObjectScaleAndPosition(objects[1], ccp(8,8), 0.48);
             if (objCount == 4) {
-                setGameObjScalePosition(objects[2], ccp(12,13), 0.48);
-                setGameObjScalePosition(objects[3], ccp(28,13), 0.48);
+                adjustGameObjectScaleAndPosition(objects[2], ccp(-8,-9), 0.48);
+                adjustGameObjectScaleAndPosition(objects[3], ccp(8,-9), 0.48);
             } else {
-                setGameObjScalePosition(objects[2], ccp(20,13), 0.48);
+                adjustGameObjectScaleAndPosition(objects[2], ccp(0,-9), 0.48);
             }
         }
     }

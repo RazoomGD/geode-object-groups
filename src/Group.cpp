@@ -683,6 +683,8 @@ CreateMenuItem* Group::getPlusButton() {
     auto cmi = CreateMenuItem::create(btnSpr, nullptr, this, menu_selector(Group::onInnerPlusButton));
     cmi->m_scaleMultiplier = 1;
     cmi->m_objectID = 0;
+    cmi->setContentSize({45,45});
+    btnSpr->setPosition({22.5,22.5});
     return cmi;
 }
 
@@ -812,7 +814,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
                 if (id == 0) {
                     btn = getPlusButton();
                 } else {
-                    btn = getCustomCreateBtn(id, getItemBtnColor(id));
+                    btn = getCustomCreateBtn(id, getItemBtnColor(id), true, 43.f/40.f);
                     btn->m_pfnSelector = menu_selector(Group::onInnerCreateButton);
                     btn->m_pListener = this;
                     bool isSelected = (Global::editor()->m_selectedObjectIndex == id);

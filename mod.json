@@ -1,5 +1,5 @@
 {
-	"geode": "4.5.0",
+	"geode": "4.7.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.5",
+	"version": "v2.1.6",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -33,6 +33,10 @@
 			"importance": "required",
 			"version": ">=v1.10.0",
 			"platforms": ["win", "mac", "mac-intel", "mac-arm"]
+		},
+		"razoom.omfni": {
+			"importance": "recommended",
+			"version": ">=1.0.0"
 		}
 	},
 

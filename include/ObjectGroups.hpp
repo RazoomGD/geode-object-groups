@@ -122,7 +122,7 @@ void shortAlert(const char* text, float timeSec=0.5);
 void callAfterTransition(std::function<void()> func);
 
 // replacement for getCreateBtn
-CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister=true);
+CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister=true, float fixScale=1.f);
 CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister=true);
 
 // brighten or darken the CreateMenuItem (decompiled function)
