@@ -152,6 +152,7 @@ private:
         old.m_pinGestures = _new.m_pinGestures;
         old.m_autoClose = _new.m_autoClose;
         old.m_shiftAdd = _new.m_shiftAdd;
+        old.m_keepPinned = _new.m_keepPinned;
     }
 
 

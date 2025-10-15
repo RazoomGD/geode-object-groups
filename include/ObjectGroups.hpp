@@ -42,6 +42,7 @@ struct Global {
     MyEditorUI* m_editorUI;
     bool m_isEditMode;
     bool m_hasUnsavedOGChanges;
+    std::unordered_map<uint16_t, CCPoint> m_pinnedGroupsStates;
 
     // update notification related
     bool m_isFirstEditorEnter = true;
@@ -59,6 +60,7 @@ struct Global {
         bool m_pinButton;
         bool m_pinGestures;
         bool m_shiftAdd;
+        bool m_keepPinned;
 
         void update() {
             auto mod = Mod::get();
@@ -78,6 +80,9 @@ struct Global {
             m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
             m_enableGoToObject = mod->getSettingValue<bool>("enable-goto-object");
             m_shiftAdd = mod->getSettingValue<bool>("shift-add");
+            m_keepPinned = mod->getSettingValue<bool>("keep-pinned");
+
+            // future me: don't forget to modify it in MoreOptionsPopup.hpp
         }
     } m_settings;
 };

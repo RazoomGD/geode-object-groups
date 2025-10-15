@@ -634,6 +634,17 @@ void Group::onPinButton(CCObject* maybeButton) {
 }
 
 
+void Group::pinToPos(CCPoint worldPos) {
+    if (isSingle() || isPinned()) return;
+    if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
+        updateMenu();
+    }
+    onPinButton(nullptr);
+    auto pinLayer = Global::editor()->m_fields->pinnedGroups;
+    setPosition(pinLayer->convertToNodeSpace(worldPos));
+}
+
+
 bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
     if (y1 >= m_matrix.size() || y2 >= m_matrix.size()) return false;
     if (x1 >= m_matrix[0].size() || x2 >= m_matrix[0].size()) return false;

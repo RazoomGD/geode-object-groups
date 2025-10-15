@@ -521,6 +521,7 @@ void MyEditorUI::onSaveButton(CCObject*) {
 		if (result == 0) {
 			Global::get().m_hasUnsavedOGChanges = false;
 			shortAlert("Saved!", 2);
+			updateGroupUIDs();
 		} else if (result == -1) {
 			alert(fmt::format("<cr>ERROR:</c> Can't access config file:\n{}\n"
 	 					"Configuration wasn't saved! Check that file exists and "
@@ -627,6 +628,12 @@ std::map<std::string, std::string> MyEditorUI::getCustomObjects(std::set<short> 
 		ret.insert({std::to_string(id), GameManager::get()->stringForCustomObject(id)});
 	}
 	return ret;
+}
+
+
+void MyEditorUI::updateGroupUIDs() {
+	uint16_t iter = 0;
+	execForeachGroup([&iter](Group* g, auto){g->setGroupUID(++iter);});
 }
 
 
@@ -878,7 +885,7 @@ void MyEditorUI::onGotoObjectBtn(CCObject*) {
 			updateCreateMenu(false);
 		}
 	} else {
-		alert("<cr>Objects not selected!</c>\nSelect an object in the editor and than press this <cl>button</c> or <cl>Ctrl+F</c> shortcut.\n"
+		alert("<cr>Objects not selected!</c>\nSelect an object in the editor and then press this <cl>button</c> or <cl>Ctrl+F</c> shortcut.\n"
 			"<cy>Selected object/group will be highlighted in the build tab</c>\n"
 			"(you can toggle off '<cj>Object Search</c>' in mod settings to hide this button, "
 			"and option will be available only via shortcut)");

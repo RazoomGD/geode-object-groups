@@ -18,6 +18,7 @@ private:
     bool m_isSingle; // single object or group
     bool m_isUpdateRequired;
     bool m_isInEditMode; // is menu setup for edit mode
+    uint16_t m_groupUID; // id that is kept between editor re-entries
 
     CCMenu* m_menu = nullptr; // there must be only buttons and nothing else
     CCMenuItemToggler* m_pinBtn = nullptr;
@@ -70,6 +71,7 @@ public:
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     CreateMenuItem* getCmiByPosition(uint32_t col, uint32_t row);
     matjson::Value toJson(std::set<short> &custom);
+    void pinToPos(CCPoint worldPos);
 
     void remapCustomObjects(std::map<int, std::string> const &customObjects);
 
@@ -93,5 +95,7 @@ public:
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
     void switchPinState() {onPinButton(nullptr);}
+    uint16_t getGroupUID() {return m_groupUID;}
+    void setGroupUID(uint16_t groupUID) {m_groupUID = groupUID;}
 };
     

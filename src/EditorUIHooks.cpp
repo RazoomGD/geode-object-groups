@@ -199,6 +199,20 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		toggleEditGroupsMode(nullptr);
 	}
 
+	Global::editor()->updateGroupUIDs();
+
+	// keep pinned groups
+	if (Global::get().m_settings.m_keepPinned) {
+		Global::editor()->execForeachGroup(
+			[&states = Global::get().m_pinnedGroupsStates] (Group* g, auto) {
+				if (!g->isSingle() && states.find(g->getGroupUID()) != states.end()) {
+					g->pinToPos(states[g->getGroupUID()]);
+				}
+			}
+		);
+	}
+	Global::get().m_pinnedGroupsStates.clear();
+
 	if (Global::get().m_isFirstEditorEnter || !Global::get().m_isCurrentVersionSafe) {
 		// notify user about an important update
 		UpdateNotificationManager::get()->goodMorning();

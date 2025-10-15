@@ -84,6 +84,7 @@ class $modify(MyEditorUI, EditorUI) {
 	bool addItemToActiveGroupByCmi(CreateMenuItem* cmi);
 	short registerNewCustomObject(std::string oldStr);
 	std::map<std::string, std::string> getCustomObjects(std::set<short> const &which);
+	void updateGroupUIDs();
 
 	void setNewFocusedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getFocusedCmi();

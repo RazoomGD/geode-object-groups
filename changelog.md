@@ -1,3 +1,7 @@
+# 2.1.7
+- Option to keep pinned groups between editor re-enters (may be enabled in settings)
+
+
 # 2.1.2
 - Dragging groups no longer breaks with mods that use ImGui (e.g DevTools)
 - Opened groups no longer closed when switching to 'Edit Groups' mode

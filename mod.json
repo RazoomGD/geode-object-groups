@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.6",
+	"version": "v2.1.7",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -36,7 +36,7 @@
 		},
 		"razoom.omfni": {
 			"importance": "recommended",
-			"version": ">=1.0.0"
+			"version": ">=1.0.1"
 		}
 	},
 
@@ -74,6 +74,8 @@
 			"description": "Automatically close the group after selecting an object",
 			"default": true
 		},
+
+
 		"enable-pinning": {
 			"type": "custom:razoom.object_groups/multi-bool",
 			"name": "Group pinning",
@@ -81,6 +83,18 @@
 			"labels": [" Button", " Gestures"],
 			"menu-width": 180,
 			"default": "0,1"
+		},
+		"keep-pinned": {
+			"type": "bool",
+			"name": "Keep pinned groups",
+			"description": "Save the positions of pinned groups when re-entering the editor",
+			"default": false
+		},
+
+
+		"title-03": {
+			"type": "title",
+			"name": "Extra"
 		},
 		"shift-add": {
 			"type": "bool",
@@ -101,6 +115,7 @@
 			"description": "Select an object and click <cy>'Find Object'</c> button (in the bottom left corner of build tabs menu) or press <cy>Ctrl + F</c>.\nObject selected in editor will be highlighted in the build tab",
 			"default": true
 		},
+
 
 		"title-02": {
 			"type": "title",
