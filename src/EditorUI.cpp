@@ -1,11 +1,26 @@
 #include "EditorUI.hpp"
 #include "MoreOptionsPopup.hpp"
 #include "SearchPopup.hpp"
-// #include <geode.custom-keybinds/include/Keybinds.hpp>
-
+#include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
 
 // mathematically correct a % b
 inline int mod(int a, int b) {return (a % b + b) % b;}
+
+static void setTabIcons(CCMenuItemToggler* toggler, CCNode* on, CCNode* off){
+	auto offBtnSprite = toggler->m_offButton->getNormalImage();
+	auto onBtnSprite = toggler->m_onButton->getNormalImage();
+	offBtnSprite->removeAllChildren();
+	onBtnSprite->removeAllChildren();
+	onBtnSprite->addChildAtPosition(on, Anchor::Center, ccp(0, -1));
+	if (auto rgba = typeinfo_cast<CCRGBAProtocol*>(off))
+		rgba->setOpacity(150);
+	offBtnSprite->addChildAtPosition(off, Anchor::Center, ccp(0, -1));
+}
+
+
+static std::string convertToEditorTabApiId(const std::string &normalId) {
+	return utils::string::replace(normalId, "-tab-bar", "");
+}
 
 
 CCMenu* MyEditorUI::setupRowMenu(float scale) {
@@ -119,35 +134,100 @@ CCMenu* MyEditorUI::setupLeftMenu(float scale) {
 }
 
 
+// create bar according to object groups config
+void MyEditorUI::loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, int p1, int p2, bool p3) {
+	auto &allGroups = m_fields->GROUPS;
+	if (tab >= allGroups.size() || allGroups[tab] == nullptr) {
+		bar->loadFromItems(oldButtons, p1, p2, p3);
+		// fix arrows overlapping
+        if (bar->m_scrollLayer) bar->m_scrollLayer->setZOrder(2);
+		return;
+	}
+
+	Global::editor()->m_createButtonArray->removeObjectsInArray(oldButtons);
+
+	std::vector<short> allOldIdsOrdered;
+	for (auto* btn : CCArrayExt<CreateMenuItem*>(oldButtons)) {
+		allOldIdsOrdered.push_back(btn->m_objectID);
+	}
+
+	std::set<short> allOldIds(allOldIdsOrdered.begin(), allOldIdsOrdered.end());
+	std::set<short> clearedIds;
+
+	auto buttons = CCArray::create();
+	auto config = allGroups[tab];
+
+	// fill group-cleared ids
+	for (auto* group : CCArrayExt<Group*>(config)) {
+		if (!group->isSingle()) {
+			auto matrix = group->getMatrix();
+			for (int i = 0; i < matrix.size(); i++) {
+				for (int j = 0; j < matrix[i].size(); j++) {
+					clearedIds.insert(matrix[i][j]);
+				}
+			}
+		} else if (group->isUserCreated()) {
+			clearedIds.insert(group->getObjIds()[0]);
+		}
+	}
+
+	// create new array obj buttons
+	for (auto* group : CCArrayExt<Group*>(config)) {
+		if (!group->isSingle() || group->isUserCreated()) {
+			buttons->addObject(group->getCmi());
+		} else {
+			short id = group->getObjIds()[0];
+			if (allOldIds.contains(id) && !clearedIds.contains(id)) {
+				buttons->addObject(group->getCmi());
+				clearedIds.insert(id);
+			}
+		}
+	}
+
+	// add objects, that were not used in any of the groups
+	for (auto objId : allOldIdsOrdered) {
+		if (clearedIds.contains(objId)) continue;
+		auto btn = getCustomCreateBtn(objId, getItemBtnColor(objId));
+		buttons->addObject(btn);
+	}
+
+	bar->loadFromItems(buttons, p1, p2, p3);
+
+	// don't need it anymore, release buttons
+	allGroups[tab] = nullptr;
+
+	// fix arrows overlapping
+	if (bar->m_scrollLayer) bar->m_scrollLayer->setZOrder(2);
+}
+
+
 void MyEditorUI::setupExtraTabs(std::set<uint8_t> const &which) {
 	int rows, cols;
 	getBarSize(&rows, &cols);
 
 	for (int i = 0; i < 6; i++) {
 		if (!which.contains(i)) continue;
-		EditorTabs::addTab(this, TabType::BUILD, fmt::format("extra-tab-{}"_spr, i+1),
-			// is called once on creation
-			[=](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
-				// changed tab icon
-				auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", 13+i), "");
-				Global::editor()->setSpiteToTabByIndexFromString(objStr, toggler, 13+i);
 
-				auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
+		std::string tabId = fmt::format("extra-tab-{}"_spr, i+1);
 
-				// set user obj and call my hook
-				ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i, false));
-				ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
+		alpha::editor_tabs::addTab(tabId, alpha::editor_tabs::BUILD,
+			[this, rows, cols, i] { // Crate the tab
+				auto ret = alpha::editor_tabs::createEditButtonBar({});
 
-				// fix betteredit interface scale issue with custom tabs
-				queueInMainThread([ret, cols, rows](){
-					ret->loadFromItems(ret->m_buttonArray, cols, rows, true);
-				});
+				ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i));
+				loadGroups(ret, ret->m_buttonArray, 13+i, cols, rows, true);
 
 				return ret;
-			},
-			// is called on every tab click
-			[](EditorUI*, bool state, CCNode*) {}
+			}, 
+			[] {
+				return CCSprite::create();
+			}
 		);
+
+		if (auto toggler = alpha::editor_tabs::togglerForTab(tabId)) {
+			auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", 13+i), "");
+			setSpiteToTabByIndexFromString(objStr, *toggler, 13+i);
+		}
 	}
 }
 
@@ -158,14 +238,18 @@ void MyEditorUI::setupVanillaTabs() {
 	auto tabsMenu = getChildByID("build-tabs-menu");
 
 	for (int i = 0; i < 13; i++) {
-		if (auto bar = static_cast<EditButtonBar*>(getChildByID(vanillaTabsInfo[i].barId))) {
-			bar->setUserObject(BAR_USER_OBJ_ID, new BarInfo(i, false));
-			bar->loadFromItems(bar->m_buttonArray, cols, rows, true);
+		auto tabId = vanillaTabsInfo[i].barId;
+		
+		if (auto bar = static_cast<EditButtonBar*>(getChildByID(tabId))) {
+			bar->setUserObject(BAR_USER_OBJ_ID, new BarInfo(i));
+			loadGroups(bar, bar->m_buttonArray, i, cols, rows, true);
 		}
-		if (auto toggler = tabsMenu->getChildByID(vanillaTabsInfo[i].togglerId)) {
+
+		auto shortTabId = convertToEditorTabApiId(tabId);
+		if (auto toggler = alpha::editor_tabs::togglerForTab(shortTabId)) {
 			auto objStr = Mod::get()->getSavedValue<std::string>(fmt::format("tab_{}_icon", i), "");
 			if (!objStr.empty()) {
-				setSpiteToTabByIndexFromString(objStr, static_cast<CCMenuItemToggler*>(toggler), i);
+				setSpiteToTabByIndexFromString(objStr, static_cast<CCMenuItemToggler*>(*toggler), i);
 			}
 		}
 	}
@@ -174,22 +258,20 @@ void MyEditorUI::setupVanillaTabs() {
 
 void MyEditorUI::setupSearchTab() {
 	if (!Global::get().m_settings.m_enableSearchTab) return;
-	EditorTabs::addTab(this, TabType::BUILD, "search-tab"_spr,
-		// is called once on creation
-		[this](EditorUI* ui, CCMenuItemToggler* toggler) -> CCNode* {
-			// changed tab icon
-			auto icon = CCSprite::create("OG_search_icon.png"_spr);
-			icon->setScale(0.4);
-			EditorTabUtils::setTabIcon(toggler, icon);
 
-			auto ret = EditorTabUtils::createEditButtonBar(CCArray::create(), ui);
-			m_fields->searchTab.bar= ret;
-			m_fields->searchTab.toggler = toggler;
-
+	alpha::editor_tabs::addTab("search-tab"_spr, alpha::editor_tabs::BUILD,
+		[this] { // Crate the tab
+			auto ret = alpha::editor_tabs::createEditButtonBar({});
+			m_fields->searchTabBar = ret;
 			return ret;
 		},
-		// is called on every tab click
-		[this](EditorUI*, bool state, CCNode* bar) {
+		[] { // crate tab icon
+			auto icon = CCSprite::create("OG_search_icon.png"_spr);
+			icon->setScale(0.4);
+			return icon;
+		},
+		[this] (bool state, auto) { // do something when the tab is entered and exited
+			// log::info("ts {}", state);
 			if (!state) { // means other tab was opened
 				toggleSearch(true);
 				return;
@@ -197,19 +279,24 @@ void MyEditorUI::setupSearchTab() {
 			toggleSearch();
 		}
 	);
+
 	// keybinds
-	// this->template addEventListener<keybinds::InvokeBindFilter>([this](keybinds::InvokeBindEvent* event) {
-	// 	static bool isHolding = false;
-	// 	if (event->isDown()) {
-	// 		if (!isHolding) {
-	// 			m_fields->searchTab.toggler->activate();
-	// 			isHolding = true;
-	// 		}
-	// 	} else {
-	// 		isHolding = false;
+	// todo: callbacks are broken
+	// addEventListener(KeybindSettingPressedEventV3(GEODE_MOD_ID, "toggle-search"), [this](const Keybind& keybind, bool down, bool repeat, double timestamp) {
+	// 	if (down && !repeat) {
+	// 		alpha::editor_tabs::switchTab("search-tab"_spr);
+	// 		return ListenerResult::Stop;
 	// 	}
-    //     return ListenerResult::Stop;
-    // }, "toggle-search"_spr);
+	// 	return ListenerResult::Propagate;
+	// });
+	// add this to mod.json
+	// "toggle-search": {
+	// 	"type": "keybind",
+	// 	"name": "Toggle search",
+	// 	"description": "Activate object search\n\n<co>This will work only when the 'Group search' setting is enabled</c>",
+	// 	"default": "Ctrl+Shift+F",
+	// 	"category": "editor"
+	// }
 }
 
 
@@ -323,21 +410,31 @@ void MyEditorUI::toggleEditGroupsMode(CCObject* sender) {
 
 
 // helper function to find out whether my tab is opened now
-inline bool isMyTab(EditButtonBar* tab) {
-	return tab->getUserObject(BAR_USER_OBJ_ID) != nullptr;
+EditButtonBar* MyEditorUI::getCurrentTabIfAllowed() {
+	if (auto currTabId = alpha::editor_tabs::getCurrentTab()) {
+		if (auto node = alpha::editor_tabs::nodeForTab(*currTabId)) {
+			if (tryGetBarInfo(*node)) {
+				return static_cast<EditButtonBar*>(**node);
+			}
+		}
+	}
+	return nullptr;
 }
 
 
 void MyEditorUI::onNewObjectButton(CCObject*) {
-	// make sure this is my tab (current bar is editor->m_createButtonBar)
-	if (!isMyTab(m_createButtonBar)) {
+
+	// make sure this is my tab
+	if (!getCurrentTabIfAllowed()) {
 		alert("You can't create a button in this tab");
 		return;
 	}
+
 	// get selected object
 	auto ids = getUniqueIds(getSelectedObjects());
 	if (ids.size() == 0) {
-		alert("You must select at least one object to create a new object button.");
+		alert("You must select at least one object to create a new object button.\n"
+				"<cj>(this object must be placed and selected in the editor)</c>");
 		return;
 	}
 
@@ -374,11 +471,12 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 
 
 void MyEditorUI::onAddAsSingleCustomObjectButton(CCObject*) {
-	// make sure this is my tab (current bar is editor->m_createButtonBar)
-	if (!isMyTab(m_createButtonBar)) {
+	// make sure this is my tab
+	if (!getCurrentTabIfAllowed()) {
 		alert("You can't create a button in this tab");
 		return;
 	}
+	
 	// get selected object
 	auto selected = getSelectedObjects();
 	if (selected->count() < 2) {
@@ -407,7 +505,8 @@ void MyEditorUI::onAddAsSingleCustomObjectButton(CCObject*) {
 
 void MyEditorUI::onDeleteItemButton(CCObject*) {
 	// make sure this is my tab
-	if (!isMyTab(m_createButtonBar)) {
+	auto currentTab = getCurrentTabIfAllowed();
+	if (!currentTab) {
 		alert("You can't edit this tab");
 		return;
 	}
@@ -420,7 +519,7 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 	}
 
 	// make sure that button is in this tab
-	uint32_t index = m_createButtonBar->m_buttonArray->indexOfObject(btn);
+	uint32_t index = currentTab->m_buttonArray->indexOfObject(btn);
 	if (index == UINT_MAX) {
 		alert("Button is not selected or selected in another tab");
 		return;
@@ -433,13 +532,13 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 		if (group->isSingle()) {
 			// single object
 			group->removeFromParent();
-			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+			currentTab->m_buttonArray->removeObjectAtIndex(index);
 			m_createButtonArray->fastRemoveObject(btn);
 		} else {
 			// group
 			group->clearAllCreateMenuItems(); // proper group deletion
 			group->removeFromParent();
-			m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+			currentTab->m_buttonArray->removeObjectAtIndex(index);
 		}
 
 		// basically swap parent and child roles to never lose original cmi
@@ -455,7 +554,7 @@ void MyEditorUI::onDeleteItemButton(CCObject*) {
 			alert("You can't delete this button");
 			return;
 		}
-		m_createButtonBar->m_buttonArray->removeObjectAtIndex(index);
+		currentTab->m_buttonArray->removeObjectAtIndex(index);
 		m_createButtonArray->fastRemoveObject(btn);
 	}
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
@@ -482,7 +581,8 @@ void MyEditorUI::onMoveBackwardButton(CCObject*) {
 // move selected button in create editButtonBar forward or backward
 void MyEditorUI::moveSelectedButton(bool forward) {
 	// make sure this is my tab
-	if (!isMyTab(m_createButtonBar)) {
+	auto currentTab = getCurrentTabIfAllowed();
+	if (!currentTab) {
 		alert("You can't edit this tab");
 		return;
 	}
@@ -495,17 +595,17 @@ void MyEditorUI::moveSelectedButton(bool forward) {
 	}
 
 	// make sure that button is in this tab
-	uint32_t index = m_createButtonBar->m_buttonArray->indexOfObject(btn);
+	uint32_t index = currentTab->m_buttonArray->indexOfObject(btn);
 	if (index == UINT_MAX) {
 		alert("Button is not selected or selected in another tab");
 		return;
 	}
 
 	// make sure this is not the first nor the last button
-	if ((forward && index + 1 >= m_createButtonBar->m_buttonArray->count()) || 
+	if ((forward && index + 1 >= currentTab->m_buttonArray->count()) || 
 				(!forward && index == 0)) return;
 	
-	m_createButtonBar->m_buttonArray->exchangeObjectAtIndex(index, index + (forward ? 1 : -1));
+	currentTab->m_buttonArray->exchangeObjectAtIndex(index, index + (forward ? 1 : -1));
 
 	addButtonsAndReloadCurrentBar(CCArray::create()); // only reload
 	Global::get().m_hasUnsavedOGChanges = true;
@@ -533,8 +633,8 @@ void MyEditorUI::onSaveButton(CCObject*) {
 
 void MyEditorUI::onNewGroupButton(CCObject*) {
 
-	// make sure this is my tab (current bar is editor->m_createButtonBar)
-	if (!isMyTab(m_createButtonBar)) {
+	// make sure this is my tab
+	if (!getCurrentTabIfAllowed()) {
 		alert("You can't create a group in this tab");
 		return;
 	}
@@ -638,8 +738,8 @@ void MyEditorUI::updateGroupUIDs() {
 
 
 void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
-	// make sure this is my tab (current bar is editor->m_createButtonBar)
-	if (!isMyTab(m_createButtonBar)) {
+	// make sure this is my tab
+	if (!getCurrentTabIfAllowed()) {
 		alert("You can not create a group in this tab");
 		return;
 	}
@@ -676,43 +776,44 @@ void MyEditorUI::createIconForTheTabFromSelectedObjects() {
 	
 	if (selected->count() > 48) {
 		alert("<cg>Sorry, but I've set a limit of 48 objects. Use them wisely</c>");
-
-	} else if (m_selectedTab < m_tabsArray->count() && m_selectedTab >= 0) {
-		// set new icon to the current tab (if it's mine)
-		if (auto uObj = static_cast<BarInfo*>(m_createButtonBar->getUserObject(BAR_USER_OBJ_ID))) {
-			// my tab
-			auto tabIcon = static_cast<CCMenuItemToggler*>(m_tabsArray->objectAtIndex(m_selectedTab));
+		return;
+	} 
+	
+	// set new icon to the current tab (if it's mine)
+	if (auto currentTab = getCurrentTabIfAllowed()) {
+		auto shortTabId = convertToEditorTabApiId(currentTab->getID());
+		if (auto toggler = alpha::editor_tabs::togglerForTab(shortTabId)) {
 			std::string str;
 			for (auto* obj : CCArrayExt<GameObject*>(selected)) {
 				str = str.append(obj->getSaveString(levelLayer)).append(";");
 			}
-
-			if (setSpiteToTabByIndexFromString(str, tabIcon, uObj->m_tabIndx)) {
-				Mod::get()->setSavedValue(fmt::format("tab_{}_icon", uObj->m_tabIndx), str);
-				shortAlert(str.empty() ? "Icon reset!" : "Icon set!");
+			if (auto uObj = tryGetBarInfo(currentTab)) {
+				if (setSpiteToTabByIndexFromString(str, *toggler, uObj->m_tabIndx)) {
+					Mod::get()->setSavedValue(fmt::format("tab_{}_icon", uObj->m_tabIndx), str);
+					shortAlert(str.empty() ? "Reset icon!" : "Set icon!");
+					return;
+				}
 			}
-
-		} else {
-			alert("You can't change the icon of this tab.\n<cl>You can only change default "
-						"editor tabs and tabs added by</c> <cy>Object Groups</c>");
 		}
-
 	}
+
+	alert("You can't change the icon of this tab.\n<cl>You can only change default "
+				"editor tabs and tabs added by</c> <cy>Object Groups</c>");
 }
 
 
 // if str is empty, reset to default
-bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx) {
+bool MyEditorUI::setSpiteToTabByIndexFromString(const std::string& objectString, CCMenuItemToggler* tab, uint8_t tabIdx) {
 
 	if (objectString.empty()) {
 		if (tabIdx < 13) {
 			auto icon = CCSprite::createWithSpriteFrameName(vanillaTabsInfo[tabIdx].textureName);
 			icon->setScale(vanillaTabsInfo[tabIdx].textureScale);
-			EditorTabUtils::setTabIcon(tab, icon);
+			setTabIcons(tab, icon, icon);
 		} else {
 			auto icon = CCLabelBMFont::create(std::to_string(tabIdx-13+1).c_str(), "bigFont.fnt");
 			icon->setScale(0.5f);
-			EditorTabUtils::setTabIcon(tab, icon);
+			setTabIcons(tab, icon, icon);
 		}
 		
 		return true;
@@ -736,7 +837,7 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenu
 	spr->setCascadeOpacityEnabled(true);
 	spr->setOpacity(150);
 
-	EditorTabUtils::setTabIcon(tab, spr);
+	setTabIcons(tab, spr, spr);
 
 	return true;
 }
@@ -744,17 +845,15 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(std::string objectString, CCMenu
 // return json array
 matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<short> &custom) {
 	matjson::Value jsonArray(std::vector<int>{});
-	if (isMyTab(bar)) {
-		// foreach item in my tab
-		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
-			if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-				jsonArray.push(group->toJson(custom));
-			} else if (cmi->m_objectID != 0) {
-				// single not user-created object without any info
-				auto unkObj = matjson::makeObject({{"obj", cmi->m_objectID}});
-				jsonArray.push(unkObj);
-				if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
-			}
+	// foreach item in my tab
+	for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+		if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+			jsonArray.push(group->toJson(custom));
+		} else if (cmi->m_objectID != 0) {
+			// single not user-created object without any info
+			auto unkObj = matjson::makeObject({{"obj", cmi->m_objectID}});
+			jsonArray.push(unkObj);
+			if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
 		}
 	}
 	return jsonArray;
@@ -762,23 +861,33 @@ matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<short> &c
 
 
 void MyEditorUI::execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab) {
-	for (auto* bar : CCArrayExt<EditButtonBar*>(m_createButtonBars)) {
-		if (auto info = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-			if (whatTab != -1 && whatTab != info->m_tabIndx) continue;
-			// foreach item in my tab
-			for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
-				if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
-					func(group, info->m_tabIndx);
+	if (auto allTabs = alpha::editor_tabs::getAllTabs()) {
+		for (auto bar : *allTabs) {
+			if (auto uObj = tryGetBarInfo(bar)) {
+				int tabIdx = uObj->m_tabIndx;
+				if (whatTab != -1 && whatTab != tabIdx) continue;
+				// foreach item in my tab
+				for (auto* cmi : CCArrayExt<CreateMenuItem*>(static_cast<EditButtonBar*>(bar)->m_buttonArray)) {
+					if (auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID))) {
+						func(group, tabIdx);
+					}
 				}
 			}
 		}
-    }
+	}
 }
 
 
 void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons) {
-	int currentPage = mod(m_createButtonBar->m_scrollLayer->m_page, 
-		m_createButtonBar->m_scrollLayer->getTotalPages());
+
+	auto currentTab = getCurrentTabIfAllowed();
+	if (!currentTab) {
+		log::warn("Editing this tab is not allowed (addButtonsAndReloadCurrentBar)");
+		return;
+	}
+
+	int currentPage = mod(currentTab->m_scrollLayer->m_page, 
+		currentTab->m_scrollLayer->getTotalPages());
 
 	int rows, cols;
 	getBarSize(&rows, &cols);
@@ -786,7 +895,7 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 
 	// check if the selected cmi on the current page
 	if (auto selectedCmi = getFocusedCmi()) {
-		auto array = m_createButtonBar->m_buttonArray;
+		auto array = currentTab->m_buttonArray;
 		for (int i = 0; i < cols * rows; i++) {
 			if (firstIndex + i >= array->count()) break;
 			if (array->objectAtIndex(firstIndex + i) == selectedCmi) { // found
@@ -797,7 +906,7 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 	}
 	
 	for (auto* btn : buttons) {
-		m_createButtonBar->m_buttonArray->insertObject(btn, firstIndex++);
+		currentTab->m_buttonArray->insertObject(btn, firstIndex++);
 
 		// select (or set frame to) newly created button
 		if (btn->m_objectID != 0 || btn->getUserObject(CMI_USER_OBJ_ID)) {
@@ -807,25 +916,22 @@ void MyEditorUI::addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> butto
 		}
 	}
 	
-	m_createButtonBar->loadFromItems(m_createButtonBar->m_buttonArray, cols, rows, true);
+	currentTab->loadFromItems(currentTab->m_buttonArray, cols, rows, true);
 
 	// preserve the page
-	if (currentPage > 0) {
-		m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-		m_createButtonBar->m_scrollLayer->instantMoveToPage(currentPage);
-	}
+	currentTab->goToPage(currentPage);
 }
 
 
 void MyEditorUI::toggleSearch(bool forceToggleOff) {
-	if (!m_fields->searchTab.bar) return;
+	if (!m_fields->searchTabBar) return;
 	if (auto oldPopup = CCScene::get()->getChildByID("search-popup"_spr)) {
 		// already opened
 		static_cast<GroupSearchPopup*>(oldPopup)->onClose(nullptr);
 		return; 
 	}
 	if (!forceToggleOff) {
-		auto popup = GroupSearchPopup::create(0);
+		auto popup = GroupSearchPopup::create();
 		popup->setID("search-popup"_spr);
 		popup->setPositionY(popup->getPositionY() + 70);
 		popup->show();
@@ -838,7 +944,7 @@ void MyEditorUI::performSearchResult(const std::string& query) {
 	getBarSize(&rows, &cols);
 	int resultCount = rows * cols;
 	std::vector<std::pair<Group*, float>> res;
-	auto bar = m_fields->searchTab.bar;
+	auto bar = m_fields->searchTabBar;
 	if (!bar) return;
 
 	setNewOpenedGroup(nullptr, nullptr); // close
@@ -899,11 +1005,17 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 	getBarSize(&rows, &cols);
 	int const pgSize = cols * rows;
 
+	auto allTabs = alpha::editor_tabs::getAllTabs();
+	if (!allTabs) return;
+
 	// foreach tab
 	int barIndex = -1;
-	for (auto* bar : CCArrayExt<EditButtonBar*>(m_createButtonBars)) {
+	for (auto node : *allTabs) {
 		barIndex++;
-		if (!isMyTab(bar)) continue;
+		if (!tryGetBarInfo(node)) continue;
+
+		auto bar = static_cast<EditButtonBar*>(node);
+		auto shortTabId = convertToEditorTabApiId(node->getID());
 		
 		// foreach item in my tab
 		int buttonIndex = -1;
@@ -913,11 +1025,10 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 			if (!group || group->isSingle()) { // single item
 				if (id == cmi->m_objectID) {
 					// found single
-					toggleMode(m_buildModeBtn);
-					selectBuildTab(barIndex);
 					int currentPage = buttonIndex / pgSize;
-					bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-					bar->m_scrollLayer->instantMoveToPage(currentPage);
+					alpha::editor_tabs::switchTab(shortTabId);
+					bar->goToPage(currentPage);
+					
 					if (playEffect) {
 						playCircleEffectOnCmi(cmi);
 					}
@@ -930,11 +1041,9 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 					for (int j = 0; j < row.size(); j++) {
 						if (id == row[j]) {
 							// found in group
-							toggleMode(m_buildModeBtn);
-							selectBuildTab(barIndex);
 							int currentPage = buttonIndex / pgSize;
-							bar->m_scrollLayer->instantMoveToPage(currentPage - 1);
-							bar->m_scrollLayer->instantMoveToPage(currentPage);
+							alpha::editor_tabs::switchTab(shortTabId);
+							bar->goToPage(currentPage);
 
 							bool openedOrPinned = (group == getOpenedGroup()) || 
 										(group->getParent() == m_fields->pinnedGroups);

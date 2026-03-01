@@ -17,6 +17,13 @@ static const char* bgIdToName[12] = {
     "OG_button_11.png"_spr,
 };
 
+BarInfo* tryGetBarInfo(CCNode* bar) {
+    if (auto uo = bar->getUserObject(BAR_USER_OBJ_ID)) {
+        return static_cast<BarInfo*>(uo);
+    }
+    return nullptr;
+}
+
 // fix color sprite bad position bug
 void adjustGameObjectScaleAndPosition(GameObject* obj, CCPoint deltaPos, float scaleMultiplier) {
     auto pos = obj->getPosition() + deltaPos;
@@ -497,23 +504,23 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
 
 class AutoCleanedCircleWave : public CCNode {
 public:
-    static AutoCleanedCircleWave* create() {
+    static AutoCleanedCircleWave* create(float scale) {
         auto ret = new AutoCleanedCircleWave();
-        if (!ret || !ret->init()) {
+        if (!ret || !ret->init(scale)) {
             CC_SAFE_DELETE(ret);
             return nullptr;
         }
         return ret;
     }
 
-    bool init() override {
+    bool init(float scale) {
         if (!CCNode::init()) return false;
 
-        auto effect = CCCircleWave::create(0, 45, 1.6, false, true);
+        auto effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
         effect->m_circleMode = CircleMode::Outline;
         addChild(effect);
 
-        effect = CCCircleWave::create(0, 45, 1.6, false, true);
+        effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
         effect->m_opacityMod = 0.75;
         addChild(effect);
         
@@ -533,10 +540,38 @@ public:
 
 
 void playCircleEffectOnCmi(CreateMenuItem* cmi) {
-    auto effect = AutoCleanedCircleWave::create();
-    cmi->addChildAtPosition(effect, Anchor::Center);
-    effect->setZOrder(100);
-    effect->setID("wave"_spr);
+    if (!cmi) return;
+    auto worldPoint = cmi->convertToWorldSpace(cmi->getContentSize() / 2);
+    if (auto maybeMenu = cmi->getParent()) {
+        if (auto maybeButtonPage = maybeMenu->getParent()) {
+            if (auto extendedLayer = typeinfo_cast<ExtendedLayer*>(maybeButtonPage->getParent())) {
+                auto nodePoint = extendedLayer->convertToNodeSpace(worldPoint);
+                float scale = extendedLayer->getScale() * maybeButtonPage->getScale() * maybeMenu->getScale();
+                auto effect = AutoCleanedCircleWave::create(scale);
+                extendedLayer->removeChildByID("wave"_spr);
+                extendedLayer->addChild(effect);
+                effect->setPosition(nodePoint);
+                effect->setZOrder(100);
+                effect->setID("wave"_spr);
+                return;
+            }
+        }
+    }
+    if (auto maybeMenu = cmi->getParent()) {
+        if (auto maybeGroup = maybeMenu->getParent()) {
+            if (maybeGroup->getID() == "RaZooM") {
+                auto nodePoint = maybeGroup->convertToNodeSpace(worldPoint);
+                float scale = maybeGroup->getScale() * maybeMenu->getScale();
+                auto effect = AutoCleanedCircleWave::create(scale);
+                maybeGroup->removeChildByID("wave"_spr);
+                maybeGroup->addChild(effect);
+                effect->setPosition(nodePoint);
+                effect->setZOrder(100);
+                effect->setID("wave"_spr);
+                return;
+            }
+        }
+    }
 }
 
 

@@ -23,10 +23,7 @@ class $modify(MyEditorUI, EditorUI) {
 		
 		Ref<CreateMenuItem> selectedGroupCmi = nullptr;
 
-		struct {
-			Ref<EditButtonBar> bar = nullptr;
-			Ref<CCMenuItemToggler> toggler = nullptr;
-		} searchTab;
+		Ref<EditButtonBar> searchTabBar = nullptr;
 
 		~Fields() { // on editor exit
 			for (int i = 0; i < GROUPS.size(); i++) {
@@ -40,6 +37,7 @@ class $modify(MyEditorUI, EditorUI) {
 	static void onModify(auto& self) {
         (void) self.setHookPriorityAfterPost("EditorUI::init", "nwo5.better_object_tab_icons");
         (void) self.setHookPriorityAfterPost("EditorUI::init", "hjfod.betteredit");
+        // (void) self.setHookPriorityAfterPost("EditorUI::toggleMode", "alphalaneous.editortab_api");
         // (void) self.setHookPriorityBeforePost("EditorUI::init", "viper.object_pinning");
 		(void) self.setHookPriorityPre("EditorUI::onCreateButton", Priority::EarlyPre);
     }
@@ -78,13 +76,15 @@ class $modify(MyEditorUI, EditorUI) {
 	void moveSelectedButton(bool forward);
 	void addButtonsAndReloadCurrentBar(CCArrayExt<CreateMenuItem*> buttons);
 	void createIconForTheTabFromSelectedObjects();
-	bool setSpiteToTabByIndexFromString(std::string objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
+	bool setSpiteToTabByIndexFromString(const std::string& objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
 	matjson::Value barToJsonValue(EditButtonBar* bar, std::set<short> &custom);
 	void execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab=-1);
 	bool addItemToActiveGroupByCmi(CreateMenuItem* cmi);
 	short registerNewCustomObject(std::string oldStr);
 	std::map<std::string, std::string> getCustomObjects(std::set<short> const &which);
 	void updateGroupUIDs();
+	void loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, int p1, int p2, bool p3);
+	EditButtonBar* getCurrentTabIfAllowed();
 
 	void setNewFocusedCmi(CreateMenuItem* cmi);
 	CreateMenuItem* getFocusedCmi();

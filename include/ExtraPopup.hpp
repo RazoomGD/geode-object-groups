@@ -1,6 +1,8 @@
+#pragma once
+
 #include "Group.hpp"
 
-class ExtraOptionsPopup : public Popup<Group*> {
+class ExtraOptionsPopup : public Popup {
 private:
     Ref<Group> m_myGroup;
     struct {
@@ -15,7 +17,10 @@ private:
     const float m_height = 210.f;
 
 protected:
-    bool setup(Group* group) override {
+    bool init(Group* group) {
+        if (!Popup::init(m_width, m_height))
+            return false;
+
         m_myGroup = group;
         m_removeButtons = CCArray::create();
         m_closeBtn->setVisible(false);
@@ -129,7 +134,7 @@ protected:
 public:
     static ExtraOptionsPopup* create(Group* group) {
         auto ret = new ExtraOptionsPopup();
-        if (ret && ret->initAnchored(ret->m_width, ret->m_height, group)) {
+        if (ret && ret->init(group)) {
             ret->autorelease();
             return ret; 
         }

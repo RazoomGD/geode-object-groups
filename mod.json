@@ -1,15 +1,15 @@
 {
-	"geode": "4.7.0",
+	"geode": "5.0.0",
 	"gd": {
-		"win": "2.2074",
-		"android": "2.2074",
-		"mac": "2.2074",
-		"ios": "2.2074"
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
 	},
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.7",
+	"version": "v2.1.8",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -21,22 +21,13 @@
 	},
 
 	"dependencies": {
-		"geode.node-ids": {
-			"importance": "required",
-			"version": ">=1.17.0"
-		},
-		"alphalaneous.editortab_api": {
-			"importance": "required",
-			"version": ">=1.0.13"
-		},
-		"geode.custom-keybinds": {
-			"importance": "required",
-			"version": ">=v1.10.0",
-			"platforms": ["win", "mac", "mac-intel", "mac-arm"]
-		},
+		"geode.node-ids": ">=1.22.0",
+
+		"alphalaneous.editortab_api": ">=2.0.7",
+
 		"razoom.omfni": {
-			"importance": "recommended",
-			"version": ">=1.0.1"
+			"version": ">=1.0.1",
+			"required": false
 		}
 	},
 
@@ -60,12 +51,12 @@
 			"labels": [" 1", " 2", " 3", " 4", " 5"],
 			"default": "0,1",
 			"menu-width": 200,
-			"description": "Which extra tabs should enabled\n(extra tabs are the extra space for your <cg>objects</c> and <cg>groups</c>)\nAll tabs are equivalent, but you can use them for different purposes"
+			"description": "Which extra tabs should enabled\n\n(extra tabs are the extra space for your <cg>objects</c> and <cg>groups</c>)\n\nAll tabs are equivalent, but you can use them for different purposes"
 		},
 		"show-names": {
 			"type": "bool",
 			"name": "Show group names",
-			"description": "Show the name of the group above objects when group is opened.\n<cy>Note:</c> if the name is empty, it will not be shown",
+			"description": "Show the name of the group above objects when group is opened.\n\n<cy>Note:</c> if the name is empty, it will not be shown",
 			"default": true
 		},
 		"auto-close": {
@@ -79,7 +70,7 @@
 		"enable-pinning": {
 			"type": "custom:razoom.object_groups/multi-bool",
 			"name": "Group pinning",
-			"description": "<co>Allows you to pin groups so that they stay on the screen. This also allows you to DRAG groups across the screen</c>\n- <cy>Button</c>: press the button to <cg>pin</c>/<cr>unpin</c> the group (then you'll be able to drag it across the screen)\n- <cy>Gestures</c>: group is <cg>pinned</c> automatically when you start dragging it, drag it to the edge of the screen to <cr>unpin</c>",
+			"description": "<co>Allows you to pin groups so that they stay on the screen. This also allows you to DRAG groups across the screen</c>\n\n- <cy>Button</c>: press the button to <cg>pin</c>/<cr>unpin</c> the group (then you'll be able to drag it across the screen)\n\n- <cy>Gestures</c>: group is <cg>pinned</c> automatically when you start dragging it, drag it to the edge of the screen to <cr>unpin</c>",
 			"labels": [" Button", " Gestures"],
 			"menu-width": 180,
 			"default": "0,1"
@@ -100,19 +91,19 @@
 			"type": "bool",
 			"name": "'Shift' to add",
 			"default": false,
-			"description": "Faster way to add objects to groups.\nIn <cg>group editing mode</c> press the 'shift' key and click on the object button you want to add. A new button will be added to the opened group",
+			"description": "Faster way to add objects to groups.\n\nIn <cg>group editing mode</c> press the 'shift' key and click on the object button you want to add. A new button will be added to the opened group",
 			"platforms": ["desktop"]
 		},
 		"enable-search": {
 			"type": "bool",
 			"name": "Group search",
-			"description": "Add a tab for searching groups by their names\n<cy>Note:</c> it searches only for the groups, NOT for the individual objects",
+			"description": "Add a tab for searching groups by their names\n\n<cy>Note:</c> it searches only for the groups, NOT for the individual objects",
 			"default": false
 		},
 		"enable-goto-object": {
 			"type": "bool",
 			"name": "Object search",
-			"description": "Select an object and click <cy>'Find Object'</c> button (in the bottom left corner of build tabs menu) or press <cy>Ctrl + F</c>.\nObject selected in editor will be highlighted in the build tab",
+			"description": "Select an object and click <cy>'Find Object'</c> button (in the bottom left corner of build tabs menu) or press <cy>Ctrl + F</c>.\n\nObject selected in editor will be highlighted in the build tab",
 			"default": true
 		},
 
@@ -124,7 +115,7 @@
 		"group-button-color-v2": {
 			"type": "string",
 			"name": "Button color",
-			"description": "The color that all group buttons will have.\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast\n(Option will have no effect if Creative mode by Alphalaneous is enabled)",
+			"description": "The color that all group buttons will have.\n\n<cy>Note:</c> red, violet, blue, purple and pink buttons have the best contrast\n\n(Option will have no effect if Creative mode by Alphalaneous is enabled)",
 			"default": "8: blue",
 			"one-of": ["1: green", "2: cyan", "3: pink", "4: gray", "5: dark gray", "6: red", "7: violet", "8: blue", "9: purple", "10: pink", "11: dark green"]
 		},
@@ -137,7 +128,7 @@
 		"used-font": {
 			"type": "int",
 			"name": "Used font",
-			"description": "The font used to display the names of the groups\n0: goldFont, 1-60: the same fonts as in editor font selection menu",
+			"description": "The font used to display the names of the groups\n\n0: goldFont, 1-60: the same fonts as in editor font selection menu",
 			"default": 0,
 			"min": 0,
 			"max": 60,
@@ -146,6 +137,18 @@
 				"arrow-step": 1,
 				"slider": false
 			}
+		},
+
+		"keybinds-title": {
+			"type": "title",
+			"name": "Keybinds"
+		},
+		"goto-object": {
+			"type": "keybind",
+			"name": "Go-to object",
+			"description": "Find and highlight selected object in the build tab",
+			"default": "Ctrl+F",
+			"category": "editor"
 		}
 	}
 }

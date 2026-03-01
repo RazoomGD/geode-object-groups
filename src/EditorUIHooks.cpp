@@ -1,39 +1,12 @@
 #include "EditorUI.hpp"
 #include "UpdateNotificationManager.hpp"
-// #include <geode.custom-keybinds/include/Keybinds.hpp>
-
-
-// keybinds
-// $execute {
-//     keybinds::BindManager::get()->registerBindable({
-//         "toggle-search"_spr,
-//         "Toggle Group Search",
-//         "Open group search text field",
-//         { keybinds::Keybind::create(KEY_F, keybinds::Modifier::Control | keybinds::Modifier::Shift) },
-//         "Object Groups"
-//     });
-// }
-
-
-// keybinds
-#ifdef GEODE_IS_DESKTOP
-	#include <geode.custom-keybinds/include/Keybinds.hpp>
-	$execute {
-		keybinds::BindManager::get()->registerBindable({
-			"goto-object"_spr, "Find Object",
-			"Find and highlight selected object in the build tab",
-			{ keybinds::Keybind::create(KEY_F, keybinds::Modifier::Control) },
-			"Object Groups"
-		});
-	}
-#endif // GEODE_IS_DESKTOP
-
+#include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
 
 // support for BetterEdit scale factor
 inline float getBetterEditInterfaceScale() {
 	if (Loader::get()->isModInstalled("hjfod.betteredit")) {
 		auto betterEdit = Loader::get()->getInstalledMod("hjfod.betteredit");
-		if (betterEdit->isEnabled() && betterEdit->hasSetting("scale-factor")) {
+		if (betterEdit->isLoaded() && betterEdit->hasSetting("scale-factor")) {
 			float scale = betterEdit->getSettingValue<double>("scale-factor");
 			if (scale > 0.1) return scale;
 		}
@@ -46,7 +19,7 @@ inline float getBetterEditInterfaceScale() {
 inline bool isCreativeModeNewTabUI() {
 	if (Loader::get()->isModInstalled("alphalaneous.creative_mode")) {
 		auto creativeMode = Loader::get()->getInstalledMod("alphalaneous.creative_mode");
-		if (creativeMode->isEnabled() && creativeMode->hasSetting("enable-new-tab-ui")) {
+		if (creativeMode->isLoaded() && creativeMode->hasSetting("enable-new-tab-ui")) {
 			return creativeMode->getSettingValue<bool>("enable-new-tab-ui");
 		}
 	}
@@ -215,36 +188,42 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 	if (Global::get().m_isFirstEditorEnter || !Global::get().m_isCurrentVersionSafe) {
 		// notify user about an important update
-		UpdateNotificationManager::get()->goodMorning();
+		// UpdateNotificationManager::get()->goodMorning();
 		Global::get().m_isFirstEditorEnter = false;
 	}
+
+	// add toggleMode() callback because EditorTabAPI breaks this hook
+	alpha::editor_tabs::addModeSwitchCallback([this](auto id){
+		bool isBuildMode = id == alpha::editor_tabs::BUILD;
+		if (auto menu = m_fields->rowMenu) {
+			menu->setVisible(isBuildMode && Global::get().m_isEditMode);
+			m_fields->buildTabRightMenu->setVisible(isBuildMode);
+			m_fields->buildTabLeftMenu->setVisible(isBuildMode);
+		}
+		if (m_fields->pinnedGroups) {
+			m_fields->pinnedGroups->setVisible(isBuildMode);
+		}
+	});
 
 	if (isDeveloperMode()) {
 		log::info("Developer mode enabled");
 	}
 
 	// keybinds
-	#ifdef GEODE_IS_DESKTOP
-		this->template addEventListener<keybinds::InvokeBindFilter>([this](keybinds::InvokeBindEvent* event) {
-			static bool isHolding = false;
-			if (event->isDown()) {
-				if (!isHolding) {
-					auto selected = getSelectedObjects();
-					if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
-						goToObject(obj->m_objectID, false);
-						if (obj->m_objectID != m_selectedObjectIndex) {
-							m_selectedObjectIndex = obj->m_objectID;
-							updateCreateMenu(false);
-						}
-					}
+	addEventListener(KeybindSettingPressedEventV3(GEODE_MOD_ID, "goto-object"), [this](const Keybind& keybind, bool down, bool repeat, double timestamp) {
+		if (down && !repeat) {
+			auto selected = getSelectedObjects();
+			if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
+				goToObject(obj->m_objectID, false);
+				if (obj->m_objectID != m_selectedObjectIndex) {
+					m_selectedObjectIndex = obj->m_objectID;
+					updateCreateMenu(false);
 				}
-				isHolding = true;
-			} else {
-				isHolding = false;
+				return ListenerResult::Stop;
 			}
-			return ListenerResult::Propagate;
-		}, "goto-object"_spr);
-	#endif // GEODE_IS_DESKTOP
+		}
+		return ListenerResult::Propagate;
+	});
 
 	return true;
 }
@@ -252,14 +231,14 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 
 void MyEditorUI::toggleMode(CCObject* sender) {
 	EditorUI::toggleMode(sender);
-	if (auto menu = m_fields->rowMenu) {
-		menu->setVisible(m_selectedMode == 2 && Global::get().m_isEditMode);
-		m_fields->buildTabRightMenu->setVisible(m_selectedMode == 2);
-		m_fields->buildTabLeftMenu->setVisible(m_selectedMode == 2);
-	}
-	if (m_fields->pinnedGroups) {
-		m_fields->pinnedGroups->setVisible(m_selectedMode == 2);
-	}
+	// if (auto menu = m_fields->rowMenu) {
+	// 	menu->setVisible(m_selectedMode == 2 && Global::get().m_isEditMode);
+	// 	m_fields->buildTabRightMenu->setVisible(m_selectedMode == 2);
+	// 	m_fields->buildTabLeftMenu->setVisible(m_selectedMode == 2);
+	// }
+	// if (m_fields->pinnedGroups) {
+	// 	m_fields->pinnedGroups->setVisible(m_selectedMode == 2);
+	// }
 }
 
 

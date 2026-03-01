@@ -1,12 +1,18 @@
+#pragma once
+
 #include "Group.hpp"
 
-
-class GroupSearchPopup : public Popup<void*> {
+class GroupSearchPopup : public Popup {
 private:
     TextInput* m_input;
+    float m_width = 120;
+    float m_height = 88;
 
 protected:
-    bool setup(void*) override {
+    bool init() override {
+        if (!Popup::init(m_width, m_height))
+            return false;
+
         setTitle("Search groups:");
 
         const float height= 50;
@@ -20,6 +26,11 @@ protected:
         m_mainLayer->addChildAtPosition(m_input, Anchor::Center);
         m_input->getBGSprite()->setOpacity(155);
         m_input->focus();
+
+        auto deleteIconSpr = CCSprite::createWithSpriteFrameName("GJ_deleteIcon_001.png");
+        deleteIconSpr->setScale(0.7);
+        auto deleteIconBtn = CCMenuItemSpriteExtra::create(deleteIconSpr, this, menu_selector(GroupSearchPopup::onClose));
+        m_buttonMenu->addChildAtPosition(deleteIconBtn, Anchor::Center, {width / 2 - 15, 0});
 
         m_bgSprite->setVisible(false);
         m_closeBtn->setVisible(false);
@@ -45,9 +56,9 @@ public:
         Popup::onClose(sender);
     }
 
-    static GroupSearchPopup* create(void*) {
+    static GroupSearchPopup* create() {
         auto ret = new GroupSearchPopup();
-        if (ret && ret->initAnchored(120, 88, 0)) {
+        if (ret && ret->init()) {
             ret->autorelease();
             return ret; 
         }

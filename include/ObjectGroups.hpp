@@ -2,8 +2,6 @@
 
 #include <Geode/Geode.hpp>
 
-#include <alphalaneous.editortab_api/include/EditorTabs.hpp>
-
 #include <matjson.hpp>
 
 #include <utility>
@@ -89,9 +87,8 @@ struct Global {
 
 
 struct BarInfo : public CCObject {
-    bool m_isLoaded;
     uint8_t m_tabIndx;
-    BarInfo(uint8_t tabIndex, bool loaded) : m_tabIndx(tabIndex), m_isLoaded(loaded) {
+    BarInfo(uint8_t tabIndex) : m_tabIndx(tabIndex) {
         this->autorelease();
     }
 };
@@ -139,6 +136,7 @@ int getItemBtnColor(short objId);
 int getGroupBtnColor();
 bool isGroupVisibleOnScreen(Group* g);
 std::string getFontFileById(int id);
+BarInfo* tryGetBarInfo(CCNode* bar);
 
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);

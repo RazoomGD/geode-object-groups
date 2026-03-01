@@ -1,14 +1,20 @@
+#pragma once
+
 #include "ObjectGroups.hpp"
 
 #include <Geode/ui/GeodeUI.hpp>
 
-class MoreOptionsPopup : public Popup<void*> {
+class MoreOptionsPopup : public Popup {
 private:
     const float m_width = 220.f;
     const float m_height = 220.f;
 
 protected:
-    bool setup(void*) override {
+
+    bool init() override {
+        if (!Popup::init(m_width, m_height))
+            return false;
+            
         m_closeBtn->setVisible(false);
         setTitle("Advanced Options");
 
@@ -80,7 +86,7 @@ protected:
 public:
     static MoreOptionsPopup* create() {
         auto ret = new MoreOptionsPopup();
-        if (ret && ret->initAnchored(ret->m_width, ret->m_height, 0)) {
+        if (ret && ret->init()) {
             ret->autorelease();
             return ret; 
         }
@@ -196,14 +202,12 @@ private:
 
     void copyCurrentTabAsJson(CCObject*) {
         auto editor = Global::editor();
-        if (auto bar = editor->m_createButtonBar) {
-            if (bar->getUserObject(BAR_USER_OBJ_ID) != nullptr) {
-                std::set<short> custom;
-                auto json = editor->barToJsonValue(bar, custom);
-                writeClipboard(json, custom);
-                onClose(nullptr);
-                return;
-            }
+        if (auto bar = editor->getCurrentTabIfAllowed()) {
+            std::set<short> custom;
+            auto json = editor->barToJsonValue(bar, custom);
+            writeClipboard(json, custom);
+            onClose(nullptr);
+            return;
         }
         alert("You can't copy contents of the current tab "
             "because it is not controlled by <cy>Object Groups</c>");
@@ -214,7 +218,8 @@ private:
         auto parsed = matjson::parse(clipboard::read());
         if (auto maybeJson = parsed.ok()) {
 
-            if (!Global::editor()->m_createButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
+            
+            if (!Global::editor()->getCurrentTabIfAllowed()) {
                 alert("You can't create a button in this tab");
                 return;
             }

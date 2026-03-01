@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
+
 using namespace matjson;
 
 $on_mod(Loaded) {
@@ -34,9 +36,10 @@ int writeConfigToJson(std::string filename) {
     std::set<short> custom;
     
     // foreach bar with my user object
-    for (auto* bar : CCArrayExt<EditButtonBar*>(EditorUI::get()->m_createButtonBars)) {
-    	if (auto barInfo = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID))) {
-            auto jsonArray = Global::editor()->barToJsonValue(bar, custom);
+    auto allTabs = alpha::editor_tabs::getAllTabs();
+    for (auto node : *allTabs) {
+    	if (auto barInfo = tryGetBarInfo(node)) {
+            auto jsonArray = Global::editor()->barToJsonValue(static_cast<EditButtonBar*>(node), custom);
             auto tabIdx = fmt::format("tab_{}", barInfo->m_tabIndx);
             config[tabIdx] = jsonArray;
             savedTabs.insert(barInfo->m_tabIndx);

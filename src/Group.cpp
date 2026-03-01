@@ -3,6 +3,8 @@
 #include "ExtraPopup.hpp"
 #include "DragLayer.hpp"
 
+#include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
+
 
 struct GroupItemInfo : public CCObject {
     uint32_t m_col;
@@ -18,10 +20,15 @@ short getIdForOpenedTab() {
     static const short defaultObjectForTab[] = 
         {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
     short id = 3823; // :)
-    if (auto bar = Global::editor()->m_createButtonBar)
-    if (auto obj = static_cast<BarInfo*>(bar->getUserObject(BAR_USER_OBJ_ID)))
-    if (obj->m_tabIndx >= 0 && obj->m_tabIndx <= 12) {
-        id = defaultObjectForTab[obj->m_tabIndx];
+    if (auto tabId = alpha::editor_tabs::getCurrentTab()) {
+        if (auto node = alpha::editor_tabs::nodeForTab(*tabId)) {
+            if (auto uObj = tryGetBarInfo(*node)) {
+                int idx = uObj->m_tabIndx;
+                if (idx >= 0 && idx <= 12) {
+                    id = defaultObjectForTab[idx];
+                }
+            }
+        }
     }
     return id;
 }

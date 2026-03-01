@@ -1,3 +1,7 @@
+# 2.1.8
+- Port to 2.2081
+- Small additions/fixes
+
 # 2.1.7
 - Option to keep pinned groups between editor re-enters (may be enabled in settings)
 
