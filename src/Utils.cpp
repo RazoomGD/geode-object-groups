@@ -510,6 +510,7 @@ public:
             CC_SAFE_DELETE(ret);
             return nullptr;
         }
+        ret->autorelease();
         return ret;
     }
 
@@ -524,6 +525,13 @@ public:
         effect->m_opacityMod = 0.75;
         addChild(effect);
         
+        effect->addOnExitCallback([this] {
+            // if both itself and the effect exit at the same time, it will cause cocos to recurse, delay by a frame
+            runAction(CallFuncExt::create([this] {
+                removeFromParent();
+            }));
+        });
+
         return true;
     }
 
@@ -531,47 +539,22 @@ public:
         setVisible(false);
         CCNode::cleanup();
     }
-
-    void removeChild(CCNode* child, bool cleanup) override {
-        CCNode::removeChild(child, cleanup);
-        removeFromParent();
-    }
 };
-
 
 void playCircleEffectOnCmi(CreateMenuItem* cmi) {
     if (!cmi) return;
-    auto worldPoint = cmi->convertToWorldSpace(cmi->getContentSize() / 2);
-    if (auto maybeMenu = cmi->getParent()) {
-        if (auto maybeButtonPage = maybeMenu->getParent()) {
-            if (auto extendedLayer = typeinfo_cast<ExtendedLayer*>(maybeButtonPage->getParent())) {
-                auto nodePoint = extendedLayer->convertToNodeSpace(worldPoint);
-                float scale = extendedLayer->getScale() * maybeButtonPage->getScale() * maybeMenu->getScale();
-                auto effect = AutoCleanedCircleWave::create(scale);
-                extendedLayer->removeChildByID("wave"_spr);
-                extendedLayer->addChild(effect);
-                effect->setPosition(nodePoint);
-                effect->setZOrder(100);
-                effect->setID("wave"_spr);
-                return;
-            }
-        }
-    }
-    if (auto maybeMenu = cmi->getParent()) {
-        if (auto maybeGroup = maybeMenu->getParent()) {
-            if (maybeGroup->getID() == "RaZooM") {
-                auto nodePoint = maybeGroup->convertToNodeSpace(worldPoint);
-                float scale = maybeGroup->getScale() * maybeMenu->getScale();
-                auto effect = AutoCleanedCircleWave::create(scale);
-                maybeGroup->removeChildByID("wave"_spr);
-                maybeGroup->addChild(effect);
-                effect->setPosition(nodePoint);
-                effect->setZOrder(100);
-                effect->setID("wave"_spr);
-                return;
-            }
-        }
-    }
+
+    cmi->removeChildByID("wave"_spr);
+
+    // wait a frame to skip unschedule when cmi is clicked
+    queueInMainThread([cmi = Ref(cmi)] {
+        auto effect = AutoCleanedCircleWave::create(1.f);
+        effect->setPosition(cmi->getContentSize() / 2);
+        effect->setZOrder(100);
+        effect->setID("wave"_spr);
+
+        cmi->addChild(effect);
+    });
 }
 
 
