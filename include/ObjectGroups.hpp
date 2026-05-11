@@ -59,6 +59,7 @@ struct Global {
         bool m_pinGestures;
         bool m_shiftAdd;
         bool m_keepPinned;
+        bool m_appendDeleted;
 
         void update() {
             auto mod = Mod::get();
@@ -79,6 +80,7 @@ struct Global {
             m_enableGoToObject = mod->getSettingValue<bool>("enable-goto-object");
             m_shiftAdd = mod->getSettingValue<bool>("shift-add");
             m_keepPinned = mod->getSettingValue<bool>("keep-pinned");
+            m_appendDeleted = mod->getSettingValue<bool>("append-deleted");
 
             // future me: don't forget to modify it in MoreOptionsPopup.hpp
         }

@@ -1,5 +1,5 @@
 {
-	"geode": "5.6.0",
+	"geode": "5.6.1",
 	"gd": {
 		"win": "2.2081",
 		"android": "2.2081",
@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.8",
+	"version": "v2.1.9",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -69,6 +69,12 @@
 			"type": "bool",
 			"name": "Auto close groups",
 			"description": "Automatically close the group after selecting an object",
+			"default": true
+		},
+		"append-deleted": {
+			"type": "bool",
+			"name": "Append deleted to the end",
+			"description": "Object Groups restricts the removal of objects from the tabs where they're located in vanilla GD. The rule is that: <cb>each object must appear in its original tab within the group or as an ungrouped object</c>. Otherwise this object will be automatically appended to the end of the tab (on the next editor reload). \n\n<cr>This is mainly made to prevent the permanent loss of the objects after deletion. That's why I recommend keeping this option enabled</c>",
 			"default": true
 		},
 

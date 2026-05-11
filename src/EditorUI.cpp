@@ -186,10 +186,12 @@ void MyEditorUI::loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, in
 	}
 
 	// add objects, that were not used in any of the groups
-	for (auto objId : allOldIdsOrdered) {
-		if (clearedIds.contains(objId)) continue;
-		auto btn = getCustomCreateBtn(objId, getItemBtnColor(objId));
-		buttons->addObject(btn);
+	if (Global::get().m_settings.m_appendDeleted) {
+		for (auto objId : allOldIdsOrdered) {
+			if (clearedIds.contains(objId)) continue;
+			auto btn = getCustomCreateBtn(objId, getItemBtnColor(objId));
+			buttons->addObject(btn);
+		}
 	}
 
 	bar->loadFromItems(buttons, p1, p2, p3);

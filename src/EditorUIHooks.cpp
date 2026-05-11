@@ -309,7 +309,6 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 
 // class $modify(MyCreateMenuItem, CreateMenuItem) {
 // 	struct Fields {
-// 		int a;
 // 		Fields() {
 // 			log::debug("CMI+ {}", ++aaaaa);
 // 		}
@@ -320,7 +319,7 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 
 // 	static CreateMenuItem* create(CCNode* p0, CCNode* p1, CCObject* p2, SEL_MenuHandler p3) {
 // 		CreateMenuItem* ret = CreateMenuItem::create(p0, p1, p2, p3);
-// 		static_cast<MyCreateMenuItem*>(ret)->m_fields->a++;
+// 		static_cast<MyCreateMenuItem*>(ret)->m_fields.self();
 // 		return ret;
 // 	}
 // };

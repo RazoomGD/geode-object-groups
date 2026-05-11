@@ -1,3 +1,6 @@
+# 2.1.9
+- Add 'Append deleted' option
+
 # 2.1.8
 - Port to 2.2081
 - Small additions/fixes
