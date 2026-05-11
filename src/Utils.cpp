@@ -524,13 +524,6 @@ public:
         effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
         effect->m_opacityMod = 0.75;
         addChild(effect);
-        
-        effect->addOnExitCallback([this] {
-            // if both itself and the effect exit at the same time, it will cause cocos to recurse, delay by a frame
-            runAction(CallFuncExt::create([this] {
-                removeFromParent();
-            }));
-        });
 
         return true;
     }
@@ -538,6 +531,11 @@ public:
     void cleanup() override {
         setVisible(false);
         CCNode::cleanup();
+    }
+
+    void removeChild(CCNode* child, bool cleanup) override {
+        CCNode::removeChild(child, cleanup);
+        removeFromParent();
     }
 };
 
