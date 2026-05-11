@@ -96,5 +96,6 @@ class $modify(MyEditorUI, EditorUI) {
 	void toggleSearch(bool forceToggleOff=false);
 	void performSearchResult(const std::string& query);
 
+	void updateGroupItem(int id);
 	void goToObject(int id, bool openIfInGroup, bool playEffect=true);
 };

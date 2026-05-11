@@ -255,6 +255,7 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 		}
 		if (p0) { // goto object
 			goToObject(m_selectedObjectIndex, false, false);
+			updateGroupItem(m_selectedObjectIndex);
 		}
 	}
 }

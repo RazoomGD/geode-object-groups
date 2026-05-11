@@ -1,6 +1,7 @@
 #include "EditorUI.hpp"
 #include "MoreOptionsPopup.hpp"
 #include "SearchPopup.hpp"
+#include "ObjectFoundEvent.hpp"
 #include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
 
 // mathematically correct a % b
@@ -213,6 +214,7 @@ void MyEditorUI::setupExtraTabs(std::set<uint8_t> const &which) {
 		alpha::editor_tabs::addTab(tabId, alpha::editor_tabs::BUILD,
 			[this, rows, cols, i] { // Crate the tab
 				auto ret = alpha::editor_tabs::createEditButtonBar({});
+				ret->m_hasCreateItems = true;
 
 				ret->setUserObject(BAR_USER_OBJ_ID, new BarInfo(13+i));
 				loadGroups(ret, ret->m_buttonArray, 13+i, cols, rows, true);
@@ -998,6 +1000,41 @@ void MyEditorUI::onGotoObjectBtn(CCObject*) {
 	}
 }
 
+void MyEditorUI::updateGroupItem(int id) {
+
+	auto allTabs = alpha::editor_tabs::getAllTabs();
+	if (!allTabs) return;
+
+	// foreach tab
+	int barIndex = -1;
+	for (auto node : *allTabs) {
+		barIndex++;
+		if (!tryGetBarInfo(node)) continue;
+
+		auto bar = static_cast<EditButtonBar*>(node);
+		auto shortTabId = convertToEditorTabApiId(node->getID());
+		
+		// foreach item in my tab
+		int buttonIndex = -1;
+		for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
+			buttonIndex++;
+			auto group = static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
+			if (group) { // group
+				auto &matrix = group->getMatrix();
+				for (int i = 0; i < matrix.size(); i++) {
+					auto &row = matrix[i];
+					for (int j = 0; j < row.size(); j++) {
+						if (id == row[j]) {
+							setNewSelectedGroupCmi(cmi);
+							razoom::ObjectFoundEvent().send(cmi);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 
@@ -1028,6 +1065,7 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 					int currentPage = buttonIndex / pgSize;
 					alpha::editor_tabs::switchTab(shortTabId);
 					bar->goToPage(currentPage);
+					razoom::ObjectFoundEvent().send(cmi);
 					
 					if (playEffect) {
 						playCircleEffectOnCmi(cmi);
@@ -1052,6 +1090,9 @@ void MyEditorUI::goToObject(int id, bool openIfInGroup, bool playEffect) {
 								cmi->activate(); // open group
 								openedOrPinned = true;
 							}
+
+							setNewSelectedGroupCmi(cmi);
+							razoom::ObjectFoundEvent().send(cmi);
 
 							if (playEffect) {
 								if (openedOrPinned) {
