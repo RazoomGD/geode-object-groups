@@ -1,6 +1,6 @@
 #include "EditorUI.hpp"
 #include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
-#include <alphalaneous.tinker/include/ObjectTooltips.hpp>
+// #include <alphalaneous.tinker/include/ObjectTooltips.hpp>
 #include <alphalaneous.tinker/include/UIScaling.hpp>
 
 // support for Creative Mode new tab UI
