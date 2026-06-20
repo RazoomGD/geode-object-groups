@@ -42,10 +42,6 @@ struct Global {
     bool m_hasUnsavedOGChanges;
     std::unordered_map<uint16_t, CCPoint> m_pinnedGroupsStates;
 
-    // update notification related
-    bool m_isFirstEditorEnter = true;
-    bool m_isCurrentVersionSafe = true;
-
     struct OGSettings {
         std::string m_extraTabs;
         int m_groupBtnColor;
@@ -53,6 +49,7 @@ struct Global {
         bool m_showNames;
         bool m_autoClose;
         ccColor4B m_groupBgColor;
+        ccColor4B m_groupBgHoverColor;
         bool m_enableSearchTab;
         bool m_enableGoToObject;
         bool m_pinButton;
@@ -60,6 +57,8 @@ struct Global {
         bool m_shiftAdd;
         bool m_keepPinned;
         bool m_appendDeleted;
+        int m_hoverMode;
+        bool m_ignoreHoveredGroups;
 
         void update() {
             auto mod = Mod::get();
@@ -76,11 +75,15 @@ struct Global {
             int col = std::atoi(mod->getSettingValue<std::string>("group-button-color-v2").c_str());
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
+            m_groupBgHoverColor = mod->getSettingValue<ccColor4B>("hover-color-v2");
             m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
             m_enableGoToObject = mod->getSettingValue<bool>("enable-goto-object");
             m_shiftAdd = mod->getSettingValue<bool>("shift-add");
             m_keepPinned = mod->getSettingValue<bool>("keep-pinned");
             m_appendDeleted = mod->getSettingValue<bool>("append-deleted");
+            int hover = std::atoi(mod->getSettingValue<std::string>("hover-behavior").c_str());
+            m_hoverMode = (hover >= 1 && hover <= 4) ? hover : 2;
+            m_ignoreHoveredGroups = mod->getSettingValue<bool>("ignore-hovered");
 
             // future me: don't forget to modify it in MoreOptionsPopup.hpp
         }
@@ -94,6 +97,8 @@ struct BarInfo : public CCObject {
         this->autorelease();
     }
 };
+
+struct EditorScale {float commonScale; float tabScale;};
 
 
 struct {
@@ -121,7 +126,7 @@ struct {
 // --------------------------- utils --------------------------- 
 
 // shorter alert create
-inline void alert(const char* text) {FLAlertLayer::create("Object Groups", text, "ok")->show();}
+void alert(const char* text);
 void shortAlert(const char* text, float timeSec=0.5);
 void callAfterTransition(std::function<void()> func);
 
@@ -133,20 +138,18 @@ CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);
 void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 
-void getBarSize(int* rows, int* cols);
+// void getBarSize(int* rows, int* cols);
 int getItemBtnColor(short objId);
 int getGroupBtnColor();
-bool isGroupVisibleOnScreen(Group* g);
 std::string getFontFileById(int id);
-BarInfo* tryGetBarInfo(CCNode* bar);
+BarInfo* tryGetBarInfo(CCNode* editButtonBar);
+EditorScale getEditorScale();
 
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);
 std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
 CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group);
 void playCircleEffectOnCmi(CreateMenuItem* cmi);
-
-inline bool isDeveloperMode() {return Mod::get()->getSavedValue<uint64_t>("dev-pass", 0) == 291857115;} 
 
 std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 
@@ -155,5 +158,6 @@ float computeMatchRatio(const std::string& target, const std::string& query);
 // --------------------------- file --------------------------
 int readConfigFromJson(std::string filename);
 int writeConfigToJson(std::string filename);
-
-
+std::string copyGroupAsJson(CreateMenuItem* cmi);
+std::string copyTabAsJson(EditButtonBar* bar);
+void pasteGroupsFromJsonToCurrentTab(std::string data);

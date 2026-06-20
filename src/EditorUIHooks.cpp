@@ -1,87 +1,59 @@
 #include "EditorUI.hpp"
-#include "UpdateNotificationManager.hpp"
 #include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
-
-// support for BetterEdit scale factor
-inline float getBetterEditInterfaceScale() {
-	if (Loader::get()->isModInstalled("hjfod.betteredit")) {
-		auto betterEdit = Loader::get()->getInstalledMod("hjfod.betteredit");
-		if (betterEdit->isLoaded() && betterEdit->hasSetting("scale-factor")) {
-			float scale = betterEdit->getSettingValue<double>("scale-factor");
-			if (scale > 0.1) return scale;
-		}
-	}
-	return 1;
-}
-
+#include <alphalaneous.tinker/include/ObjectTooltips.hpp>
+#include <alphalaneous.tinker/include/UIScaling.hpp>
 
 // support for Creative Mode new tab UI
-inline bool isCreativeModeNewTabUI() {
-	if (Loader::get()->isModInstalled("alphalaneous.creative_mode")) {
-		auto creativeMode = Loader::get()->getInstalledMod("alphalaneous.creative_mode");
-		if (creativeMode->isLoaded() && creativeMode->hasSetting("enable-new-tab-ui")) {
-			return creativeMode->getSettingValue<bool>("enable-new-tab-ui");
-		}
-	}
-	return false;
-}
+// inline bool isCreativeModeNewTabUI() {
+// 	if (Loader::get()->isModInstalled("alphalaneous.creative_mode")) {
+// 		auto creativeMode = Loader::get()->getInstalledMod("alphalaneous.creative_mode");
+// 		if (creativeMode->isLoaded() && creativeMode->hasSetting("enable-new-tab-ui")) {
+// 			return creativeMode->getSettingValue<bool>("enable-new-tab-ui");
+// 		}
+// 	}
+// 	return false;
+// }
 
 
-// ! Note: that this is called before EditorUI::init
-inline void pinnedObjectsByViperGoofyAhhFix() {
-	// Object Pinning by Viper contains a game-crashing bug related to the custom objects. 
-	// Viper doesn't respond to me anywhere and doesn't accept my PR on GH.
-	// So to keep mods compatible I have no choice other than edit saved values of that mod 
-	// before it uses them to prevent mod from executing game-crashing code 
+// // ! Note: that this is called before EditorUI::init
+// inline void pinnedObjectsByViperGoofyAhhFix() {
+// 	// Object Pinning by Viper contains a game-crashing bug related to the custom objects. 
+// 	// Viper doesn't respond to me anywhere and doesn't accept my PR on GH.
+// 	// So to keep mods compatible I have no choice other than edit saved values of that mod 
+// 	// before it uses them to prevent mod from executing game-crashing code 
 
-	if (!Loader::get()->isModInstalled("viper.object_pinning")) return;
-	auto objPinning = Loader::get()->getInstalledMod("viper.object_pinning");
-	if (objPinning->getVersion() != VersionInfo(1, 0, 3)) return; // only v1.0.3 
+// 	if (!Loader::get()->isModInstalled("viper.object_pinning")) return;
+// 	auto objPinning = Loader::get()->getInstalledMod("viper.object_pinning");
+// 	if (objPinning->getVersion() != VersionInfo(1, 0, 3)) return; // only v1.0.3 
 
-	auto savedDataJson = objPinning->getSavedValue<std::string>("Pinned-Items");
-	std::map<std::string, bool> validIds;
-	auto gm = GameManager::get();
+// 	auto savedDataJson = objPinning->getSavedValue<std::string>("Pinned-Items");
+// 	std::map<std::string, bool> validIds;
+// 	auto gm = GameManager::get();
 
-	for (const auto &pair : matjson::parse(savedDataJson).unwrapOrDefault()) {
-		if (auto str = pair.getKey()) {
-			int id = std::atoi(str->c_str());
-			if (id > 0 || !gm->stringForCustomObject(id).empty()) {
-				validIds.insert({*str, true});
-			}
-		}
-	}
-	objPinning->setSavedValue("Pinned-Items", matjson::Value(validIds).dump(0));
-}
+// 	for (const auto &pair : matjson::parse(savedDataJson).unwrapOrDefault()) {
+// 		if (auto str = pair.getKey()) {
+// 			int id = std::atoi(str->c_str());
+// 			if (id > 0 || !gm->stringForCustomObject(id).empty()) {
+// 				validIds.insert({*str, true});
+// 			}
+// 		}
+// 	}
+// 	objPinning->setSavedValue("Pinned-Items", matjson::Value(validIds).dump(0));
+// }
+
 
 
 void MyEditorUI::showUI(bool show) {
 	EditorUI::showUI(show);
-	if (m_fields->rowMenu) {
-		if (auto children = m_fields->rowMenu->getChildren()) {
-			for (int i = 0; i < children->count(); i++) {
-				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
-				btn->setVisible(show);
-			}
+	CCNode* menus[] = {m_fields->rowMenu, m_fields->rowMenu2, m_fields->buildTabRightMenu, m_fields->buildTabLeftMenu};
+	for (auto menu : menus) {
+		if (!menu) continue;
+		for (auto ch : menu->getChildrenExt()) {
+			ch->setVisible(show);
 		}
 	}
-	if (m_fields->buildTabRightMenu) {
-		if (auto children = m_fields->buildTabRightMenu->getChildren()) {
-			for (int i = 0; i < children->count(); i++) {
-				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
-				btn->setVisible(show);
-			}
-		}
-	}
-	if (m_fields->buildTabLeftMenu) {
-		if (auto children = m_fields->buildTabLeftMenu->getChildren()) {
-			for (int i = 0; i < children->count(); i++) {
-				auto btn = static_cast<CCNode*>(children->objectAtIndex(i));
-				btn->setVisible(show);
-			}
-		}
-	}
-	if (m_fields->pinnedGroups) {
-		m_fields->pinnedGroups->setVisible(show ? m_selectedMode == 2 : false);
+	if (m_fields->pinnedGroupsNode) {
+		m_fields->pinnedGroupsNode->setVisible(show ? m_selectedMode == 2 : false);
 	}
 }
 
@@ -125,7 +97,7 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	}
 
 	// that fix
-	pinnedObjectsByViperGoofyAhhFix();
+	// pinnedObjectsByViperGoofyAhhFix();
 
 	if (!EditorUI::init(editorLayer)) return false; // ! init 
 
@@ -135,9 +107,6 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	getChildByID("layer-menu")->setZOrder(6);
 	
 	// other mods
-	const float scale = getBetterEditInterfaceScale();
-	const bool isNewTabUI = isCreativeModeNewTabUI();
-
 	if (fileOk) {
 		// re-setup tabs
 		setupVanillaTabs();
@@ -149,27 +118,28 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		}
 		setupExtraTabs(tabs);
 		setupSearchTab();
-		m_fields->rowMenu = setupRowMenu(scale);
-		m_fields->buildTabRightMenu = setupRightMenu(scale);
-		m_fields->buildTabLeftMenu = setupLeftMenu(scale);
+		setupRowMenu();
+		setupRightMenu();
+		setupLeftMenu();
 	}
 
 	// frame
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
 	// frame->setAnchorPoint({0,0}); 
-	frame->setColor(isNewTabUI ? ccc3(0, 255, 255) : ccc3(255, 255, 0));
+	// frame->setColor(isNewTabUI ? ccc3(0, 255, 255) : ccc3(255, 255, 0));
+	frame->setColor(ccc3(255, 255, 0));
 	m_fields->buttonFrame = CCNode::create();
 	m_fields->buttonFrame->addChild(frame);
 	m_fields->buttonFrame->setID("frame"_spr);
 
 	// pin layer
-	m_fields->pinnedGroups = CCNode::create();
-	m_fields->pinnedGroups->setID("pinned-groups"_spr);
-	addChild(m_fields->pinnedGroups, 15);
+	m_fields->pinnedGroupsNode = CCNodeRGBA::create();
+	m_fields->pinnedGroupsNode->setID("pinned-groups"_spr);
+	addChild(m_fields->pinnedGroupsNode, 15);
 
 	if (fileOk) {
-		toggleEditGroupsMode(nullptr);
-		toggleEditGroupsMode(nullptr);
+		onToggleEditGroupsMode(nullptr);
+		onToggleEditGroupsMode(nullptr);
 	}
 
 	Global::editor()->updateGroupUIDs();
@@ -177,44 +147,52 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	// keep pinned groups
 	if (Global::get().m_settings.m_keepPinned) {
 		Global::editor()->execForeachGroup(
-			[&states = Global::get().m_pinnedGroupsStates] (Group* g, auto) {
+			[&states = Global::get().m_pinnedGroupsStates, pinLayer = m_fields->pinnedGroupsNode] (Group* g, auto) {
 				if (!g->isSingle() && states.find(g->getGroupUID()) != states.end()) {
-					g->pinToPos(states[g->getGroupUID()]);
+					g->changeGroupState(GroupState::PINNED);
+					g->setPosition(pinLayer->convertToNodeSpace(states[g->getGroupUID()]));
 				}
 			}
 		);
 	}
 	Global::get().m_pinnedGroupsStates.clear();
 
-	if (Global::get().m_isFirstEditorEnter || !Global::get().m_isCurrentVersionSafe) {
-		// notify user about an important update
-		// UpdateNotificationManager::get()->goodMorning();
-		Global::get().m_isFirstEditorEnter = false;
-	}
-
 	// add toggleMode() callback because EditorTabAPI breaks this hook
 	alpha::editor_tabs::addModeSwitchCallback([this](auto id){
 		bool isBuildMode = id == alpha::editor_tabs::BUILD;
 		if (auto menu = m_fields->rowMenu) {
 			menu->setVisible(isBuildMode && Global::get().m_isEditMode);
+			m_fields->rowMenu2->setVisible(false);
 			m_fields->buildTabRightMenu->setVisible(isBuildMode);
 			m_fields->buildTabLeftMenu->setVisible(isBuildMode);
 		}
-		if (m_fields->pinnedGroups) {
-			m_fields->pinnedGroups->setVisible(isBuildMode);
+		if (m_fields->pinnedGroupsNode) {
+			m_fields->pinnedGroupsNode->setVisible(isBuildMode);
 		}
 	});
 
-	if (isDeveloperMode()) {
-		log::info("Developer mode enabled");
-	}
+	// add tab switch callback to hide and show groups
+	alpha::editor_tabs::addTabSwitchCallback([this](auto id) {
+		if (auto group = getOpenedOrHoveredGroupV2()) {
+			if (auto tabRes = alpha::editor_tabs::nodeForTab(id)) {
+				if (tryGetBarInfo(**tabRes)) { // make sure this is my tab
+					auto bar = static_cast<EditButtonBar*>(**tabRes);
+					if (bar->m_buttonArray->containsObject(group->getCmi())) {
+						group->setVisible(true);
+						return;
+					}
+				}
+			}
+			group->setVisible(false);
+		}
+	});
 
 	// keybinds
 	addEventListener(KeybindSettingPressedEventV3(GEODE_MOD_ID, "goto-object"), [this](const Keybind& keybind, bool down, bool repeat, double timestamp) {
 		if (down && !repeat) {
 			auto selected = getSelectedObjects();
 			if (auto obj = static_cast<GameObject*>(selected->firstObject())) {
-				goToObject(obj->m_objectID, false);
+				goToObjectV2(obj->m_objectID);
 				if (obj->m_objectID != m_selectedObjectIndex) {
 					m_selectedObjectIndex = obj->m_objectID;
 					updateCreateMenu(false);
@@ -224,6 +202,29 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 		}
 		return ListenerResult::Propagate;
 	});
+
+	addEventListener(KeybindSettingPressedEventV3(GEODE_MOD_ID, "close-all"), [this](const Keybind& keybind, bool down, bool repeat, double timestamp) {
+		if (down && !repeat) {
+			auto arr = CCArray::create();
+			arr->addObjectsFromArray(m_fields->pinnedGroupsNode->getChildren());
+			for (int i = 0; i < arr->count(); i++) {
+				static_cast<Group*>(arr->objectAtIndex(i))->changeGroupState(GroupState::CLOSED);
+			}
+			return ListenerResult::Stop;
+		}
+		return ListenerResult::Propagate;
+	});
+
+	// setup hover
+	schedule(schedule_selector(MyEditorUI::updateHover));
+
+	// ui scale setup
+	addEventListener(tinker::api::ui_scaling::UIScaleUpdated(), [this] (float scale, bool scaleToolbars, bool topAlign) {
+		updateUiScale();
+		return ListenerResult::Propagate;
+	});
+	updateUiScale();
+
 
 	return true;
 }
@@ -254,8 +255,8 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 			}
 		}
 		if (p0) { // goto object
-			goToObject(m_selectedObjectIndex, false, false);
-			updateGroupItem(m_selectedObjectIndex);
+			goToObjectV2(m_selectedObjectIndex, false);
+			// updateGroupItem(m_selectedObjectIndex);
 		}
 	}
 }
@@ -264,8 +265,8 @@ void MyEditorUI::updateCreateMenu(bool p0) {
 void MyEditorUI::clickOnPosition(CCPoint p0) {
 	int before = m_selectedObjectIndex;
 	EditorUI::clickOnPosition(p0);
-	if (before == 0 && m_selectedObjectIndex != before) { // play effect
-		goToObject(m_selectedObjectIndex, false);
+	if (before == 0 && m_selectedObjectIndex != before) {
+		goToObjectV2(m_selectedObjectIndex);
 	}
 }
 
@@ -296,9 +297,23 @@ void MyEditorUI::onCreateButton(CCObject* sender) {
 
 	if (!Global::get().m_isEditMode) {
 		if (Global::get().m_settings.m_autoClose) {
-			setNewOpenedGroup(nullptr, nullptr); // close
+			// setNewOpenedGroup(nullptr, nullptr); // close
+			if (auto opened = getOpenedOrHoveredGroupV2()) {
+				opened->changeGroupState(GroupState::CLOSED);
+			}
 		}
 	}
+}
+
+bool MyEditorUI::ccTouchBegan(CCTouch* touch, CCEvent* event) {
+	if (!EditorUI::ccTouchBegan(touch, event)) return false;
+	// close hovered group on editor touch
+	if (auto g = getOpenedOrHoveredGroupV2()) {
+		if (g->getState() == GroupState::HOVERED) {
+			g->changeGroupState(GroupState::CLOSED);
+		}
+	}
+	return true;
 }
 
 // todo: delete this

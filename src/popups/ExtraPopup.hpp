@@ -26,9 +26,7 @@ protected:
         m_closeBtn->setVisible(false);
         setTitle("Extra Group Options");
 
-        auto menu = CCMenu::create();
-        menu->setContentSize(m_mainLayer->getContentSize());
-        m_mainLayer->addChildAtPosition(menu, Anchor::Center);
+        auto menu = m_buttonMenu;
 
         auto infoSpr = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
         infoSpr->setScale(0.75);
@@ -69,7 +67,7 @@ protected:
         m_groupSizeLabel->setPosition(ccp(m_width / 2, m_height - 85));
         
         const float scale1 = 0.8, scale2 = 0.35 / scale1; // adjust button padding
-        auto spr = ButtonSprite::create("Add column right", "bigFont.fnt", "GJ_button_01.png", scale1);
+        CCSprite* spr = ButtonSprite::create("Add column right", "bigFont.fnt", "GJ_button_01.png", scale1);
         spr->setScale(scale2);
         auto btn1 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onAddColRight));
         spr = ButtonSprite::create("Add column left", "bigFont.fnt", "GJ_button_01.png", scale1);
@@ -115,15 +113,23 @@ protected:
         auto btn8 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onCreateAndAddCustomObject));
         menu->addChild(btn8);
         btn8->setPosition(m_width / 2 + btn8->getScaledContentWidth() / 2, m_height - 180);
+        // btn8->setPosition(150, m_height - 180);
+
+        // spr = CCSprite::createWithSpriteFrameName("GJ_trashBtn_001.png");
+        // spr->setScale(0.65);
+        // auto btn9 = CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::onUngroup));
+        // // menu->addChild(btn9);
+        // // btn9->setPosition(230, m_height - 180);
+        // menu->addChildAtPosition(btn9, Anchor::BottomRight, ccp(-6, 6));
 
         // secret buttons
-        if (isDeveloperMode()) {
-            // spr = ButtonSprite::create("Create in\neditor", "bigFont.fnt", "GJ_button_01.png", scale1);
-            // spr->setScale(scale2);
-            // menu->addChildAtPosition(
-            //     CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::devCreateInEditor)), 
-            //     Anchor::TopRight, ccp(50, -20));
-        }
+        // if (isDeveloperMode()) {
+        //     spr = ButtonSprite::create("Create in\neditor", "bigFont.fnt", "GJ_button_01.png", scale1);
+        //     spr->setScale(scale2);
+        //     menu->addChildAtPosition(
+        //         CCMenuItemSpriteExtra::create(spr, this, menu_selector(ExtraOptionsPopup::devCreateInEditor)), 
+        //         Anchor::TopRight, ccp(50, -20));
+        // }
 
         updateGroupInfoLabel();
         updateGroupCmiInfo();
@@ -205,7 +211,7 @@ private:
             "- <co>Add (...)</c>: creates new empty row/column at the specified location "
             "relative to the <cj>focused button</c>.\n"
             "- <co>Remove (...)</c>: removes row/column with the <cj>focused button</c>. "
-            "(If there is no <cj>focused button</c> within the group, these buttons will be inactive)\n"
+            "(If no button is <cj>focused</c> int the group, these buttons will be inactive)\n"
             "- <co>Set icon</c>: updates object(s) shown on the group button (you can use from 1 to 4 objects).\n"
             "- <co>New custom obj</c>: creates <cy>custom object</c> from selected objects and adds it to the group.\n",
 
@@ -307,8 +313,8 @@ private:
 
     void onCreateAndAddCustomObject(CCObject*) {
         auto selected = Global::editor()->getSelectedObjects();
-        if (selected->count() < 2) {
-            alert("You must select at least <cy>2</c> objects in editor to create a new <cy>custom object</c> button.");
+        if (selected->count() == 0) {
+            alert("You must select at least one object in editor to create a new <cy>custom object</c> button.");
             return;
         }
         // create and add custom
@@ -321,4 +327,5 @@ private:
 
         onClose(nullptr);
     }
+
 };

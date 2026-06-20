@@ -59,31 +59,31 @@ protected:
         if (!SettingValueNodeV3::init(setting, wid)) return false;
 
         auto set = strToSet(getValue());
-        auto menu = getButtonMenu();
+        auto menu = CCMenu::create();
 
         for (int i = 0; i < setting->m_labels.size(); i++) {
-            auto txt = CCLabelBMFont::create(setting->m_labels[i].c_str(), "bigFont.fnt");
-            txt->setScale(0.5f);
-            txt->setAnchorPoint({0,0});
-            auto txtBase = CCNode::create();
-            txtBase->setContentSize(txt->getScaledContentSize());
-            txtBase->addChild(txt);
-            auto tog = CCMenuItemToggler::createWithStandardSprites(this, menu_selector(MultiBoolSettingNodeV3::onToggle), 0.5);
+            auto txt = CCLabelBMFont::create((" " + setting->m_labels[i]).c_str(), "bigFont.fnt");
+            auto tog = CCMenuItemToggler::createWithStandardSprites(this, menu_selector(MultiBoolSettingNodeV3::onToggle), 1);
             tog->toggle(set.contains(i));
             tog->setTag(i);
-            menu->addChild(txtBase);
+            menu->addChild(txt);
             menu->addChild(tog);
             m_togglers.push_back(tog);
         }
 
-        menu->setContentWidth(setting->m_menuWidth);
-        menu->setLayout(RowLayout::create()->setGap(-5)->setAxisAlignment(AxisAlignment::End));
+        menu->setLayout(RowLayout::create()->setGap(0)->setAutoScale(false)->setAutoGrowAxis(true)->setAxisAlignment(AxisAlignment::End));
+        menu->setScale(setting->m_menuWidth / menu->getContentWidth());
+        menu->setAnchorPoint({1, 0.5});
+
+        addChild(menu);
+        menu->setPosition(getButtonMenu()->getPosition());
+        getButtonMenu()->setContentWidth(setting->m_menuWidth);
         
         updateState(nullptr);
         
         return true;
     }
-    
+
     void onResetToDefault() override {
         SettingValueNodeV3::onResetToDefault();
         auto set = strToSet(getValue());

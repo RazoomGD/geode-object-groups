@@ -9,16 +9,19 @@ class GroupDragLayer;
 
 // static int groupCountAAA = 0;
 
+enum class GroupState {CLOSED = 0, OPENED, HOVERED, PINNED};
+
 class Group : public CCNode {
 private:
     std::string m_groupName;
     std::array<short, 4> m_objectIds = {0};
-    bool m_isUserCreated;
+    bool m_isUserCreated; // false - means that it was added as missing object (append deleted option)
     std::vector<std::vector<short>> m_matrix;
     bool m_isSingle; // single object or group
     bool m_isUpdateRequired;
     bool m_isInEditMode; // is menu setup for edit mode
     uint16_t m_groupUID; // id that is kept between editor re-entries
+    GroupState m_groupState = GroupState::CLOSED;
 
     CCMenu* m_menu = nullptr; // there must be only buttons and nothing else
     CCMenuItemToggler* m_pinBtn = nullptr;
@@ -26,6 +29,7 @@ private:
     CCScale9Sprite* m_bgSprite = nullptr;
     CCLabelBMFont* m_textNode = nullptr;
     CCMenu* m_topMenu = nullptr;
+    CCMenu* m_pinMenu = nullptr;
     CCMenu* m_rightMenu = nullptr;
     CCMenu* m_leftMenu = nullptr;
     CreateMenuItem* m_cmi = nullptr;
@@ -63,6 +67,8 @@ public:
     static Group* createFromJsonValue(matjson::Value json, bool validateIds=false); // always check for null!
     static Group* create() = delete;
 
+    static Group* get(CreateMenuItem* cmi);
+
     // the most important methods here
     CreateMenuItem* getCmi();
     void updateMenu(bool preserveSelectedCmi=true);
@@ -71,11 +77,12 @@ public:
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     CreateMenuItem* getCmiByPosition(uint32_t col, uint32_t row);
     matjson::Value toJson(std::set<short> &custom);
-    void pinToPos(CCPoint worldPos);
 
     void remapCustomObjects(std::map<int, std::string> const &customObjects);
 
     void clearAllCreateMenuItems(); // from editorUI button array
+
+    void changeGroupState(GroupState state);
 
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
@@ -88,14 +95,14 @@ public:
     // getters, setters
     std::string getName() const {return m_groupName;}
     bool isSingle() const {return m_isSingle;}
-    bool isPinned() const {return m_pinBtn ? m_pinBtn->m_toggled : false;}
+    GroupState getState() const {return m_groupState;}
     bool isUserCreated() const {return m_isUserCreated;}
     void setUserCreated(bool val) {m_isUserCreated = val;}
     const std::array<short,4>& getObjIds() const {return m_objectIds;}
     const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
-    void switchPinState() {onPinButton(nullptr);}
-    uint16_t getGroupUID() {return m_groupUID;}
+    uint16_t getGroupUID() const {return m_groupUID;}
     void setGroupUID(uint16_t groupUID) {m_groupUID = groupUID;}
+
 };
     

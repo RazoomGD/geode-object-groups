@@ -124,3 +124,104 @@ int readConfigFromJson(std::string filename) {
     return 0;
 }
 
+static std::string writeFormatted(matjson::Value const &groupsArray, std::set<short> const &customIds) {
+    auto custom = Global::editor()->getCustomObjects(customIds);
+    if (custom.empty()) {
+        return matjson::makeObject({
+            {"config", groupsArray}
+        }).dump();
+    } else {
+        return matjson::makeObject({
+            {"config", groupsArray},
+            {"custom", custom}
+        }).dump();
+    }
+}
+
+std::string copyGroupAsJson(CreateMenuItem* cmi) {
+    std::set<short> custom;
+    if (auto group = Group::get(cmi)) {
+        if (!group->isSingle()) {
+            auto json = matjson::Value(std::vector<matjson::Value>{group->toJson(custom)});
+            return writeFormatted(json, custom);
+        }
+    }
+    if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
+    auto json = matjson::Value(std::vector<matjson::Value>{matjson::makeObject({{"obj", cmi->m_objectID}})});
+    return writeFormatted(json, custom);
+}
+
+std::string copyTabAsJson(EditButtonBar* bar) {
+    auto editor = Global::editor();
+    std::set<short> custom;
+    auto json = editor->barToJsonValue(bar, custom);
+    return writeFormatted(json, custom);
+}
+
+void pasteGroupsFromJsonToCurrentTab(std::string data) {
+    auto parsed = matjson::parse(data);
+
+    if (parsed.isErr()) {
+        alert("Couldn't paste!\n<cr>INCORRECT JSON FORMAT</c>");
+        return;
+    }
+
+    if (!Global::editor()->getCurrentTabIfAllowed()) {
+        alert("You can't create a button in this tab");
+        return;
+    }
+
+    auto json = *parsed;
+
+    std::map<int, std::string> customAll;
+    auto custom = json["custom"];
+    if (custom.isObject()) {
+        for (auto& [key, value] : custom) {
+            customAll.insert({std::atoi(key.c_str()), value.asString().unwrapOr("")});
+        }
+    }
+
+    auto newGroups = CCArray::create();
+    int groupCount = 0;
+
+    auto fgroups = json["config"];
+    if (fgroups.isArray()) {
+        for (auto& val : fgroups) {
+            if (auto group = Group::createFromJsonValue(val, true)) {
+                newGroups->addObject(group);
+                group->setUserCreated(true);
+                if (!group->isSingle()) groupCount++;
+            }
+        }
+    }
+
+    int total = newGroups->count();
+    if (total == 0) {
+        alert("<cj>Nothing was found :(</c>\nCheck that there are no mistakes in json. "
+            "(You can copy other groups as json to see the expected json format)");
+        return;
+    }
+
+    createQuickPopup("Object Groups", 
+        fmt::format("Are you sure you want to paste <cy>{}</c> buttons\n"
+                    "(<cy>{}</c> groups and <cy>{}</c> objects)?", 
+                    total, groupCount, total - groupCount),
+        "No", "Yes", 
+        [newGroups = Ref(newGroups), customAll] (auto, bool isBtn2) {
+            if (isBtn2) {
+                auto buttons = CCArray::create();
+                for (auto *group : CCArrayExt<Group*>(newGroups)) {
+                    group->remapCustomObjects(customAll);
+                    buttons->addObject(group->getCmi());
+                }
+                if (!buttons->count()) return;
+                Global::editor()->addButtonsAndReloadButtonBar(buttons);
+                Global::editor()->goToPageWithCmi(static_cast<CreateMenuItem*>(buttons->lastObject()), true);
+                Global::get().m_hasUnsavedOGChanges = true;
+                shortAlert(fmt::format("Pasted {} buttons!", buttons->count()).c_str());
+            } else {
+                shortAlert("Nothing happened!");
+            }
+        }
+    );  
+}

@@ -1,3 +1,17 @@
+# 2.2.0
+- Allow the creation of custom objects from a single object
+- Add group preview options
+  - By hovering over it
+  - By holding and dragging in the menu 
+- Add simpler way to add custom objects (using standard 'new object' button)
+- Allow adding focused objects from group to the tab
+- Add 2 more arrow buttons to move objects in menus vertically
+- Group deletion now suggests you to return buttons back to the tab
+- Increase the maximum amount of extra tabs from 5 to 8
+- Add options to save/load objects, groups and tabs to files
+- Allow moving objects and groups to other tabs using arrow buttons
+- Add a keybind to close all groups
+
 # 2.1.9
 - Add 'Append deleted' option
 

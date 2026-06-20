@@ -27,9 +27,9 @@ class $modify(EditorPauseLayer) {
     void updatePinnedGroupsState() {
         Global::get().m_pinnedGroupsStates.clear();
         if (Global::get().m_settings.m_keepPinned && Global::editor()) {
-            if (auto pg = Global::editor()->m_fields->pinnedGroups) {
+            if (auto pg = Global::editor()->m_fields->pinnedGroupsNode) {
                 for (auto group : CCArrayExt<Group*>(pg->getChildren())) {
-                    auto worldPos = group->convertToWorldSpace(ccp(0,0));
+                    auto worldPos = group->convertToWorldSpace(ccp(group->getContentWidth() / 2, 0));
                     Global::get().m_pinnedGroupsStates[group->getGroupUID()] = worldPos;
                 }
             }

@@ -1,7 +1,8 @@
 #include "Group.hpp"
 #include "EditorUI.hpp"
-#include "ExtraPopup.hpp"
-#include "DragLayer.hpp"
+#include "popups/ExtraPopup.hpp"
+#include "popups/AddObjectActionPopup.hpp"
+#include "DragLayer.cpp"
 
 #include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
 
@@ -36,16 +37,22 @@ short getIdForOpenedTab() {
 
 // absolute scale for cmi-s
 float getTabScale() {
+    static float lastValue = 0.8;
 	if (auto someBar = Global::editor()->getChildByID("pixel-tab-bar")) {
         if (auto pgs = static_cast<EditButtonBar*>(someBar)->m_scrollLayer->m_pages) {
+            if (auto menu = someBar->getChildByIDRecursive("alphalaneous.tinker/items-menu")) {
+                lastValue = someBar->getScale() * menu->getScale();
+                return lastValue;
+            }
             if (auto p = static_cast<CCNode*>(pgs->firstObject())) {
                 if (auto menu = static_cast<ButtonPage*>(p)->getChildByType<CCMenu>(0)) {
-                    return someBar->getScale() * menu->getScale();
+                    lastValue = someBar->getScale() * menu->getScale();
+                    return lastValue;
                 }
             }
         }
     }
-	return 0.8; // idk
+	return lastValue; // idk
 }
 
 
@@ -94,16 +101,18 @@ Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vec
     ret->m_textNode->setAnchorPoint({0.5, 0});
 
     // pin button
-    auto pinMenu = CCMenu::create();
-    ret->addChild(pinMenu);
-    pinMenu->setPosition({0,0});
-    pinMenu->setContentSize({0,0});
-    pinMenu->setTouchPriority(-502);
+    ret->m_pinMenu = CCMenu::create();
+    ret->addChild(ret->m_pinMenu);
+    ret->m_pinMenu->setTouchPriority(-502);
     ret->m_pinBtn = CCMenuItemToggler::create(
         CCSprite::create("OG_pin1.png"_spr), CCSprite::create("OG_pin0.png"_spr), 
         ret, menu_selector(Group::onPinButton));
     ret->m_pinBtn->toggle(false);
-    pinMenu->addChild(ret->m_pinBtn);
+    ret->m_pinMenu->setAnchorPoint({0.5, 0});
+    ret->m_pinMenu->addChild(ret->m_pinBtn);
+    ret->m_pinMenu->setContentSize(ret->m_pinBtn->getContentSize());
+    ret->m_pinBtn->setPosition(ret->m_pinMenu->getContentSize() / 2);
+    ret->m_pinMenu->ignoreAnchorPointForPosition(false);
 
     // drag zone (layer)
     ret->m_dragLayer = GroupDragLayer::create(ret);
@@ -318,6 +327,10 @@ void Group::remapCustomObjects(std::map<int, std::string> const &customObjects) 
 //     }
 // }
 
+Group* Group::get(CreateMenuItem* cmi) {
+    return static_cast<Group*>(cmi->getUserObject(CMI_USER_OBJ_ID));
+}
+
 
 void Group::clearAllCreateMenuItems() {
     if (m_menu != nullptr) {
@@ -325,14 +338,93 @@ void Group::clearAllCreateMenuItems() {
             for (int i = 0; i < buttons->count(); i++) {
                 auto cmi = static_cast<CreateMenuItem*>(buttons->objectAtIndex(i));
                 Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
-                // if (cmi->m_objectID > 0) {
-                //     Global::editor()->m_createButtonArray->fastRemoveObject(cmi);
-                // } else if (cmi->m_objectID < 0) {
-                //     Global::editor()->m_fields->myCustomObjectButtons->fastRemoveObject(cmi);
-                // }
             }
         }
     }
+}
+
+void Group::changeGroupState(GroupState state) {
+    if (state == m_groupState) return;
+
+    const auto updateGroupUI = [this, state] {
+        ccColor4B col;
+        if (m_groupState == GroupState::HOVERED) col = Global::get().m_settings.m_groupBgHoverColor;
+        else col = Global::get().m_settings.m_groupBgColor;
+        if (m_bgSprite) {
+            m_bgSprite->setColor(ccc3(col.r, col.g, col.b));
+            m_bgSprite->setOpacity(col.a);
+        }
+        if (m_pinBtn) m_pinBtn->setVisible(state != GroupState::HOVERED);
+    };
+
+    if (state == GroupState::OPENED && m_groupState == GroupState::HOVERED ||
+            state == GroupState::HOVERED && m_groupState == GroupState::OPENED) {
+        m_groupState = state;
+        updateGroupUI();
+        return;
+    }
+
+    auto myCmi = getCmi();
+    myCmi->removeChildByID("pin"_spr);
+    if (m_pinBtn) {
+        m_pinBtn->toggle(false);
+        m_pinBtn->m_offButton->setScale(m_pinBtn->m_offButton->m_baseScale);
+        m_pinBtn->m_onButton->setScale(m_pinBtn->m_onButton->m_baseScale);
+    }
+    
+    if (state == GroupState::CLOSED) {
+        setVisible(true);
+        removeEventListener("enter"_spr);
+        removeEventListener("exit"_spr);
+        removeFromParent();
+        m_groupState = state;
+        updateGroupUI();
+        return;
+    }
+
+    auto pinLayer = Global::editor()->m_fields->pinnedGroupsNode;
+    pinLayer->setScale(getTabScale());
+    
+    if (!getParent()) {
+        pinLayer->addChild(this);
+    }
+    
+    setVisible(true);
+    removeEventListener("enter"_spr);
+    removeEventListener("exit"_spr);
+    
+    if (state == GroupState::OPENED || state == GroupState::HOVERED) {
+        if (auto opened = Global::editor()->getOpenedOrHoveredGroupV2()) {
+            opened->changeGroupState(GroupState::CLOSED);
+        }
+        CCPoint pos = myCmi->convertToWorldSpace({myCmi->getContentWidth() / 2, myCmi->getContentHeight()});
+        setPosition(pinLayer->convertToNodeSpace(pos));
+        addEventListener("exit"_spr, NodeEvent(myCmi, NodeEventType::OnExit), [this]{
+            this->setVisible(false);
+        });
+        addEventListener("enter"_spr, NodeEvent(myCmi, NodeEventType::OnEnter), [this]{
+            this->setVisible(true);
+        });
+    }
+
+    if (state == GroupState::PINNED) {
+        auto mark = CCSprite::create("OG_pin2.png"_spr);
+        mark->setID("pin"_spr);
+        mark->setAnchorPoint({1,1});
+        mark->setScale(1.3);
+        mark->setRotation(20);
+        myCmi->addChildAtPosition(mark, Anchor::TopRight, ccp(11,-2));
+        mark->setZOrder(5);
+
+        if (m_pinBtn) m_pinBtn->toggle(true);
+    }
+    
+    if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
+        updateMenu();
+    }
+
+    m_groupState = state;
+    updateGroupUI();
 }
 
 
@@ -345,7 +437,6 @@ CreateMenuItem* Group::getCmi() {
         m_cmi->m_pfnSelector = menu_selector(Group::onGroupBtnClick);
         m_cmi->m_pListener = this;
         m_cmi->m_objectID = 0;
-        m_cmi->setTag(0); // compat with creative mode
         updateName(m_groupName, m_cmi); // update cmi user obj
     }
     m_cmi->setUserObject(CMI_USER_OBJ_ID, this); // set group
@@ -460,19 +551,37 @@ bool Group::containsButton(CreateMenuItem* cmi) {
 
 
 void Group::onAddObjectButton(CCObject* sender) {
+    // try focused object
     if (auto cmi = Global::editor()->getFocusedCmi()) {
         if (cmi->m_objectID != 0 && !this->containsButton(cmi)) {
             addObjects({(short)cmi->m_objectID});
             return;
         }
     }
+    // try selected in editor
     auto selected = Global::editor()->getSelectedObjects();
-    if (selected->count() > 0) {
-        addObjects(getUniqueIds(selected));
-        return;
+
+    if (selected->count() == 0) {
+        alert("To add new object to the group you must select at least <cy>1</c> object "
+            "in editor <cy>or</c> have a <cy>focused</c> button in the editor tabs");
+    } else if (selected->count() == 1) {
+        addObjects(getUniqueIds(selected), true);
+    } else {
+        auto tmp = Ref(CCArray::create());
+        tmp->addObjectsFromArray(selected);
+
+        AddObjectActionPopup::create([group = Ref(this), tmp]{ // add multi
+            group->addObjects(getUniqueIds(*tmp), true);
+        },
+        [group = Ref(this), tmp]{ // add custom
+            std::string str;
+            for (auto obj : CCArrayExt<GameObject*>(*tmp)) {
+                str = str.append(obj->getSaveString(LevelEditorLayer::get())).append(";");
+            }
+            short newId = Global::editor()->registerNewCustomObject(str);
+            group->addObjects({newId}, true);
+        },selected->count())->show();
     }
-    alert("To add new object to the group you must select at least <cy>1</c> object "
-        "in editor <cy>or</c> have a <cy>focused</c> button in the editor tabs");
 }
 
 
@@ -537,7 +646,7 @@ void Group::addObjects(std::vector<short> ids, bool setFocused) {
         std::vector<short> remaining(iter, ids.end());
         createQuickPopup("Object Groups", 
             fmt::format("<cy> Group is full! </c>Do you want to extend the\n"
-                " group to fit the remaining <cy>{}</c> objects?", remaining.size()),
+                "group to fit the remaining <cy>{}</c> objects?", remaining.size()),
             "Extend", "No", 
             [this, remaining, setFocused] (auto, bool isBtn2) {
                 if (!isBtn2) {
@@ -553,24 +662,14 @@ void Group::addObjects(std::vector<short> ids, bool setFocused) {
 // selector for group button (not for single object).
 void Group::onGroupBtnClick(CCObject* sender) {
     auto cmi = static_cast<CreateMenuItem*>(sender);
-    auto editor = Global::editor();
 
-    if (this == editor->getOpenedGroup()) { // close
-        editor->setNewOpenedGroup(nullptr, nullptr);
-
-    } else { // open
-
-        if (isPinned()) {
-            switchPinState(); // unpin
-
-        } else {
-            editor->setNewOpenedGroup(this, cmi);
-            if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
-                updateMenu();
-            }
-        }
+    if (m_groupState == GroupState::CLOSED || m_groupState == GroupState::HOVERED) {
+        changeGroupState(GroupState::OPENED);
+    } else if (m_groupState == GroupState::OPENED || m_groupState == GroupState::PINNED) {
+        changeGroupState(GroupState::CLOSED);
     }
-    editor->setNewFocusedCmi(cmi);
+    
+    Global::editor()->setNewFocusedCmi(cmi);
 }
 
 
@@ -582,7 +681,7 @@ void Group::onInnerCreateButton(CCObject* sender) {
 
     bool thisIsNowSelected = (btn->m_objectID == editor->m_selectedObjectIndex);
     if (thisIsNowSelected) {
-        editor->setNewSelectedGroupCmi(m_cmi);
+        editor->setNewSelectedGroupCmi(getCmi());
 
     } else {
         editor->setNewSelectedGroupCmi(nullptr);
@@ -603,53 +702,62 @@ void Group::onExtraButton(CCObject*) {
 
 
 void Group::onPinButton(CCObject* maybeButton) {
+
+    if (m_groupState == GroupState::PINNED) {
+        changeGroupState(GroupState::CLOSED);
+    } else {
+        changeGroupState(GroupState::PINNED);
+        setPosition(getPosition() + ccp(0, 25));
+        if (m_pinBtn) m_pinBtn->toggle(false); // bugfix
+    }
     
-    if (isPinned()) { // unpin
-        removeFromParent();
-        if (m_cmi) {
-            m_cmi->removeChildByID("pin"_spr);
-        }
+    // if (isPinned()) { // unpin
+    //     removeFromParent();
+    //     if (m_cmi) {
+    //         m_cmi->removeChildByID("pin"_spr);
+    //     }
 
-    } else { // pin
-        auto pinLayer = Global::editor()->m_fields->pinnedGroups;
-        float tabScale = getTabScale();
-        if (pinLayer->getScale() != tabScale) {
-            pinLayer->setScale(tabScale);
-        }
+    // } else { // pin
+    //     auto pinLayer = Global::editor()->m_fields->pinnedGroups;
+    //     float tabScale = getTabScale();
+    //     if (pinLayer->getScale() != tabScale) {
+    //         pinLayer->setScale(tabScale);
+    //     }
 
-        auto worldPos = this->convertToWorldSpace(ccp(0,0));
-        Global::editor()->setNewOpenedGroup(nullptr, nullptr);
-        pinLayer->addChild(this);
+    //     auto worldPos = this->convertToWorldSpace(ccp(0,0));
+    //     Global::editor()->setNewOpenedGroup(nullptr, nullptr);
+    //     pinLayer->addChild(this);
 
-        auto shift = maybeButton ? ccp(0, 25) : ccp(0,0);
-        setPosition(pinLayer->convertToNodeSpace(worldPos) + shift);
+    //     auto shift = maybeButton ? ccp(0, 25) : ccp(0,0);
+    //     setPosition(pinLayer->convertToNodeSpace(worldPos) + shift);
 
-        if (m_cmi) {
-            auto mark = CCSprite::create("OG_pin2.png"_spr);
-            mark->setID("pin"_spr);
-            mark->setAnchorPoint({1,1});
-            mark->setScale(1.3);
-            mark->setRotation(20);
-            m_cmi->addChildAtPosition(mark, Anchor::TopRight, ccp(11,-2));
-            mark->setZOrder(5);
-        }
-    }
+    //     if (m_cmi) {
+    //         auto mark = CCSprite::create("OG_pin2.png"_spr);
+    //         mark->setID("pin"_spr);
+    //         mark->setAnchorPoint({1,1});
+    //         mark->setScale(1.3);
+    //         mark->setRotation(20);
+    //         m_cmi->addChildAtPosition(mark, Anchor::TopRight, ccp(11,-2));
+    //         mark->setZOrder(5);
+    //     }
+    // }
 
-    if (!maybeButton) { // activated not by button
-        if (m_pinBtn) m_pinBtn->toggle(!m_pinBtn->m_toggled);
-    }
+    // if (!maybeButton) { // activated not by button
+    //     if (m_pinBtn) m_pinBtn->toggle(!m_pinBtn->m_toggled);
+    // }
 }
 
 
-void Group::pinToPos(CCPoint worldPos) {
-    if (isSingle() || isPinned()) return;
-    if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
-        updateMenu();
-    }
-    onPinButton(nullptr);
-    auto pinLayer = Global::editor()->m_fields->pinnedGroups;
-    setPosition(pinLayer->convertToNodeSpace(worldPos));
-}
+// void Group::pinToPos(CCPoint worldPos) {
+//     // if (isSingle() || isPinned()) return;
+//     // if (m_isUpdateRequired || Global::get().m_isEditMode != m_isInEditMode) {
+//     //     updateMenu();
+//     // }
+//     // onPinButton(nullptr);
+//     changeGroupState(GroupState::PINNED);
+//     auto pinLayer = Global::editor()->m_fields->pinnedGroupsNode;
+//     setPosition(pinLayer->convertToNodeSpace(worldPos));
+// }
 
 
 bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
@@ -708,20 +816,20 @@ CreateMenuItem* Group::getPlusButton() {
 
 
 void Group::updateObjId(std::array<short,4> newObjIds) {
-    if (!m_cmi) return;
+    auto cmi = getCmi();
     m_objectIds = newObjIds;
     auto otherCmi = getCustomCreateBtn(newObjIds, getGroupBtnColor(), false);
     bool selected = false; // preserve selected
-    if (auto spr = m_cmi->getChildByType<ButtonSprite>(0)) {
+    if (auto spr = cmi->getChildByType<ButtonSprite>(0)) {
         if (spr->m_subBGSprite) {
             auto col = spr->m_subBGSprite->getColor(); // button bg sprite
             selected = (col == ccc3(127, 127, 127));
         }
     }
-    m_cmi->setNormalImage(otherCmi->getNormalImage());
-    m_cmi->updateSprite();
+    cmi->setNormalImage(otherCmi->getNormalImage());
+    cmi->updateSprite();
     if (selected) {
-        setColorToCreateBtnNew(m_cmi, false);
+        setColorToCreateBtnNew(cmi, false);
     }
     // otherCmi will be autoreleased
 }
@@ -868,56 +976,57 @@ void Group::updateGroupView() {
     }
     
     const float oneDistance = 45; // distance between two button centers
-    const float shiftY = 57.5;
-    const float border = 0.4f * oneDistance;
+    const float shiftY = 2.5;
+    const float padding = 0.2f * oneDistance;
+    const float spaceBottom = 5;
+    const float margin = 5;
 
     const int rowCount = m_matrix.size();
     const int columnCount = m_matrix[0].size();
-    const float centerShiftX = (columnCount - 1) * oneDistance * 0.5f;
 
-    const float top = shiftY + (float)(rowCount - 1) * oneDistance;
-    const float left = -centerShiftX;
-    const float bottom = shiftY;
-    const float right = (float)(columnCount - 1) * oneDistance - centerShiftX;
+    CCPoint contentSize = ccp(columnCount * oneDistance + 2 * padding, rowCount * oneDistance + 2 * padding);
 
+    // update main menu buttons
     for (int i = 0; i < buttonArray->count(); i++) {
         auto btn = static_cast<CreateMenuItem*>(buttonArray->objectAtIndex(i));
         auto uObj = static_cast<GroupItemInfo*>(btn->getUserObject(INNER_CMI_USER_OBJ_ID));
-        float x = left + (float)uObj->m_col * oneDistance;
-        float y = top - (float)uObj->m_row * oneDistance;
-        btn->setPosition(ccp(x, y));
+        float x = padding + uObj->m_col * oneDistance - contentSize.x / 2 + oneDistance / 2;
+        float y = contentSize.y - padding - uObj->m_row * oneDistance - oneDistance / 2;
+        btn->setPosition(x, y);
     }
+    m_menu->setPosition(contentSize.x / 2, shiftY);
 
     // update name text
-    float spaceOnTop = 0;
     if (m_textNode) {
         if (Global::get().m_settings.m_showNames && !m_groupName.empty()) {
             m_textNode->setFntFile(getFontFileById(Global::get().m_settings.m_font).c_str());
             m_textNode->setString(m_groupName.c_str());
-            float availableSpace = right - left + oneDistance;
+            float availableSpace = contentSize.x - 2 * padding - 2;
             float takenSpace = m_textNode->getContentWidth();
             m_textNode->setScale(std::min(22.f / m_textNode->getContentHeight(), availableSpace / takenSpace));
-            spaceOnTop = m_textNode->getScaledContentHeight();
-            m_textNode->setPosition({0, top + oneDistance * 0.63f});
+            m_textNode->setPosition(contentSize.x / 2, contentSize.y + oneDistance * 0.13f - padding + shiftY);
+            contentSize.y += m_textNode->getScaledContentHeight();
         } else {
             m_textNode->setString("");
         }
     }
 
+    // update Group node
+    setContentSize(contentSize + ccp(0, shiftY));
+    setAnchorPoint(ccp(0.5, 0));
+
     // update drag zone
     if (m_dragLayer) {
-        m_dragLayer->setContentSize({right - left + oneDistance + border + 5, 
-            top + spaceOnTop - bottom + oneDistance + border + 5});
-        m_dragLayer->setPosition({0, (top + spaceOnTop + bottom) / 2});
+        m_dragLayer->setContentSize(contentSize + ccp(5,5));
+        m_dragLayer->setPosition(contentSize / 2 + ccp(0, shiftY));
     }
     
     // update bg
     if (m_bgSprite) {
         const float scaleFactor = 2; // for CCScale9Sprite not to be destroyed
-        m_bgSprite->setContentSize({(right - left + oneDistance + border) * scaleFactor, 
-            (top + spaceOnTop - bottom + oneDistance + border) * scaleFactor});
-        m_bgSprite->setPosition({0, (top + spaceOnTop + bottom) / 2});
+        m_bgSprite->setPosition(contentSize / 2 + ccp(0, shiftY));
         m_bgSprite->setScale(1 / scaleFactor);
+        m_bgSprite->setScaledContentSize(contentSize);
         
         auto bgCol = Global::get().m_settings.m_groupBgColor;
         m_bgSprite->setColor(ccc3(bgCol.r, bgCol.g, bgCol.b));
@@ -933,20 +1042,18 @@ void Group::updateGroupView() {
         }
         
         m_topMenu->setVisible(true);
-        m_topMenu->setPosition({0, top + spaceOnTop + oneDistance * 0.8f});
-        m_topMenu->setContentWidth(right - left + oneDistance * 2);
+        m_topMenu->setPosition(contentSize.x / 2, contentSize.y + margin + shiftY);
+        m_topMenu->setContentWidth(contentSize.x + oneDistance);
         m_topMenu->updateLayout();
         
         m_rightMenu->setVisible(true);
-        m_rightMenu->setPosition({right + oneDistance * 0.8f, 
-            top + spaceOnTop + oneDistance / 2});
-        m_rightMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance + border);
+        m_rightMenu->setPosition(contentSize.x + margin, contentSize.y + shiftY);
+        m_rightMenu->setContentHeight(contentSize.y);
         m_rightMenu->updateLayout();
 
         m_leftMenu->setVisible(true);
-        m_leftMenu->setPosition({left - oneDistance * 0.8f, 
-            top + spaceOnTop + oneDistance / 2});
-        m_leftMenu->setContentHeight(top + spaceOnTop - bottom + oneDistance * 2);
+        m_leftMenu->setPosition(-margin, contentSize.y + shiftY);
+        m_leftMenu->setContentHeight(contentSize.y);
         m_leftMenu->updateLayout();
     } else {
         if (menusSet) {
@@ -957,16 +1064,16 @@ void Group::updateGroupView() {
     }
 
     // update pin button
-    if (m_pinBtn) {
+    if (m_pinMenu) {
         if (!Global::get().m_settings.m_pinButton) {
-            m_pinBtn->setVisible(false);
+            m_pinMenu->setVisible(false);
         } else {
-            m_pinBtn->setVisible(true);
+            m_pinMenu->setVisible(true);
             float extra = m_isInEditMode ? m_leftMenu->getPositionX() - 10 : 0;
             if (m_isInEditMode) {
-                m_pinBtn->setPosition({0, m_topMenu->getPositionY() + m_topMenu->getScaledContentHeight() + 25});
+                m_pinMenu->setPosition(contentSize.x / 2, m_topMenu->getPositionY() + m_topMenu->getScaledContentHeight() + margin);
             } else {
-                m_pinBtn->setPosition({0, (top + spaceOnTop + oneDistance / 2 + 25)});
+                m_pinMenu->setPosition(contentSize.x / 2, contentSize.y + margin + shiftY);
             }
         }
     }

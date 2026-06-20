@@ -17,12 +17,41 @@ static const char* bgIdToName[12] = {
     "OG_button_11.png"_spr,
 };
 
-BarInfo* tryGetBarInfo(CCNode* bar) {
-    if (auto uo = bar->getUserObject(BAR_USER_OBJ_ID)) {
+BarInfo* tryGetBarInfo(CCNode* editButtonBar) {
+    if (auto uo = editButtonBar->getUserObject(BAR_USER_OBJ_ID)) {
         return static_cast<BarInfo*>(uo);
     }
     return nullptr;
 }
+
+// support for BetterEdit scale factor
+EditorScale getEditorScale() {
+    EditorScale ret {1.f, 1.f};
+    if (auto betterEdit = Loader::get()->getInstalledMod("hjfod.betteredit")) {
+        if (betterEdit->isLoaded() && betterEdit->hasSetting("scale-factor")) {
+			double scale = betterEdit->getSettingValue<double>("scale-factor");
+			if (scale > 0.1 && scale < 1.0) {
+                ret.commonScale = ret.tabScale = scale;
+                return ret;
+            }
+		}
+    }
+    if (auto tinker = Loader::get()->getInstalledMod("alphalaneous.tinker")) {
+        if (tinker->isLoaded() && tinker->hasSetting("UIScaling-enabled") && tinker->getSettingValue<bool>("UIScaling-enabled")) {
+            if (tinker->hasSetting("UIScaling-scale")) {
+                double scale = tinker->getSettingValue<double>("UIScaling-scale");
+                if (scale > 0.1 && scale < 1.0) {
+                    ret.commonScale = ret.tabScale = scale;
+                }
+            }
+            if (tinker->hasSetting("UIScaling-scale-toolbar") && tinker->getSettingValue<bool>("UIScaling-scale-toolbar")) {
+                ret.tabScale = ret.commonScale;
+            }
+        }
+    }
+    return ret;
+}
+
 
 // fix color sprite bad position bug
 void adjustGameObjectScaleAndPosition(GameObject* obj, CCPoint deltaPos, float scaleMultiplier) {
@@ -212,16 +241,10 @@ LAB_14010dac2:
 // }
 
 
-bool isGroupVisibleOnScreen(Group* g) {
-	auto posX = g->convertToWorldSpace(ccp(0,0)).x;
-    return nodeIsVisible(g) && posX > 0 && posX < CCDirector::get()->getWinSize().width;
-}
-
-
-void getBarSize(int* rows, int* cols) {
-    *cols = GameManager::sharedState()->getIntGameVariable("0049");
-    *rows = GameManager::sharedState()->getIntGameVariable("0050");
-}
+// void getBarSize(int* rows, int* cols) {
+//     *cols = GameManager::sharedState()->getIntGameVariable("0049");
+//     *rows = GameManager::sharedState()->getIntGameVariable("0050");
+// }
 
 // lol these numbers are really hardcoded in RobTop's code
 static const std::set<short> darkerButtonBgObjIds = {
@@ -280,6 +303,10 @@ std::string toValidString(const char* txt) {
 void shortAlert(const char* text, float timeSec) {
     auto alert = TextAlertPopup::create(text, timeSec, 0.6, 150, "bigFont.fnt");
     EditorUI::get()->addChild(alert, 199);
+}
+
+void alert(const char* text) {
+    FLAlertLayer::create("Object Groups", text, "ok")->show();
 }
 
 static std::list<std::function<void()>> tatQueue;
@@ -502,10 +529,10 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
 }
 
 
-class AutoCleanedCircleWave : public CCNode {
+class CircleWavePlus : public CCNode {
 public:
-    static AutoCleanedCircleWave* create(float scale) {
-        auto ret = new AutoCleanedCircleWave();
+    static CircleWavePlus* create(float scale) {
+        auto ret = new CircleWavePlus();
         if (!ret || !ret->init(scale)) {
             CC_SAFE_DELETE(ret);
             return nullptr;
@@ -517,20 +544,36 @@ public:
     bool init(float scale) {
         if (!CCNode::init()) return false;
 
-        auto effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
-        effect->m_circleMode = CircleMode::Outline;
-        addChild(effect);
+        addEventListener("wave", NodeEvent(this, NodeEventType::OnEnter), [this, scale] {
+            queueInMainThread([this, _ = Ref(this), scale] {
+                bool startWave = true;
+                if (auto old = static_cast<CCCircleWave*>(getChildByID("wave_1"))) {
+                    startWave = old->m_radius < 15 * scale;
+                }
 
-        effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
-        effect->m_opacityMod = 0.75;
-        addChild(effect);
+                for(auto ch : getChildrenExt()) {
+                    ch->setVisible(false);
+                    ch->setID("");
+                }
+    
+                if (startWave) {
+                    auto effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
+                    effect->m_circleMode = CircleMode::Outline;
+                    effect->setID("wave_1");
+                    // effect->m_delegate = this;
+                    addChild(effect);
+    
+                    effect = CCCircleWave::create(0, 45 * scale, 1.6, false, true);
+                    effect->m_opacityMod = 0.75;
+                    effect->setID("wave_2");
+                    addChild(effect);
+                } else {
+                    removeFromParent();
+                }
+            });
+        });
 
         return true;
-    }
-
-    void cleanup() override {
-        setVisible(false);
-        CCNode::cleanup();
     }
 
     void removeChild(CCNode* child, bool cleanup) override {
@@ -539,20 +582,15 @@ public:
     }
 };
 
+
 void playCircleEffectOnCmi(CreateMenuItem* cmi) {
     if (!cmi) return;
-
     cmi->removeChildByID("wave"_spr);
-
-    // wait a frame to skip unschedule when cmi is clicked
-    queueInMainThread([cmi = Ref(cmi)] {
-        auto effect = AutoCleanedCircleWave::create(1.f);
-        effect->setPosition(cmi->getContentSize() / 2);
-        effect->setZOrder(100);
-        effect->setID("wave"_spr);
-
-        cmi->addChild(effect);
-    });
+    auto effect = CircleWavePlus::create(1);
+    effect->setPosition(cmi->getContentSize() / 2);
+    effect->setZOrder(100);
+    effect->setID("wave"_spr);
+    cmi->addChild(effect);
 }
 
 

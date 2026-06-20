@@ -1,5 +1,5 @@
 {
-	"geode": "5.6.1",
+	"geode": "5.7.1",
 	"gd": {
 		"win": "2.2081",
 		"android": "2.2081",
@@ -9,7 +9,7 @@
 
 	"id": "razoom.object_groups",
 	"name": "Object Groups",
-	"version": "v2.1.9",
+	"version": "v2.2.0",
 	"developer": "RaZooM",
 	"description": "A mod for grouping objects in the editor tabs",
 
@@ -17,7 +17,8 @@
 
 	"links": {
 		"source": "https://github.com/RazoomGD/geode-object-groups",
-		"community": "https://discord.gg/wcWvtKHP8n"
+		"community": "https://discord.gg/wcWvtKHP8n", 
+		"homepage": "https://github.com/RazoomGD/geode-object-groups/blob/v2/Configuring%20Object%20Groups%20v2.md"
 	},
 
 	"dependencies": {
@@ -27,6 +28,11 @@
 
 		"razoom.omfni": {
 			"version": ">=1.0.1",
+			"required": false
+		},
+
+		"alphalaneous.tinker": {
+			"version": ">=1.0.18",
 			"required": false
 		}
 	},
@@ -54,7 +60,7 @@
 		"extra-tabs": {
 			"type": "custom:razoom.object_groups/multi-bool",
 			"name": "Extra tabs",
-			"labels": [" 1", " 2", " 3", " 4", " 5"],
+			"labels": ["1", "2", "3", "4", "5", "6", "7", "8"],
 			"default": "0,1",
 			"menu-width": 200,
 			"description": "Which extra tabs should enabled\n\n(extra tabs are the extra space for your <cg>objects</c> and <cg>groups</c>)\n\nAll tabs are equivalent, but you can use them for different purposes"
@@ -83,7 +89,7 @@
 			"type": "custom:razoom.object_groups/multi-bool",
 			"name": "Group pinning",
 			"description": "<co>Allows you to pin groups so that they stay on the screen. This also allows you to DRAG groups across the screen</c>\n\n- <cy>Button</c>: press the button to <cg>pin</c>/<cr>unpin</c> the group (then you'll be able to drag it across the screen)\n\n- <cy>Gestures</c>: group is <cg>pinned</c> automatically when you start dragging it, drag it to the edge of the screen to <cr>unpin</c>",
-			"labels": [" Button", " Gestures"],
+			"labels": ["Button", "Gestures"],
 			"menu-width": 180,
 			"default": "0,1"
 		},
@@ -94,6 +100,24 @@
 			"default": false
 		},
 
+		"hover-behavior": {
+			"type": "string",
+			"name": "Group preview behavior",
+			"description": "Group preview is designed to simplify interaction with groups by reducing the number of clicks you need to make to open the group and select the object.\n\n <cp>Click + Hover</c> - click on any group to open, then you can hover over other groups with your mouse to preview them\n\n<cp>Hover</c> - hover over the groups with your mouse to preview them\n\n<cp>Touch</c> - you can preview groups by holding the group button and dragging your touch across the menu (<co>note:</c> the only working option on mobile, will not work with tinker's scrollable menus)",
+			"default": {
+				"android": "4: Touch",
+				"ios": "4: Touch",
+				"mac": "3: Hover",
+				"win": "3: Hover"
+			},
+			"one-of": ["1: Disable", "2: Click + hover", "3: Hover", "4: Touch"]
+		},
+		"ignore-hovered": {
+			"type": "bool",
+			"name": "Ignore previewed groups",
+			"description": "Makes previewed groups uninteractable until you legitimately open them",
+			"default": false
+		},
 
 		"title-03": {
 			"type": "title",
@@ -137,6 +161,12 @@
 			"description": "Color and opacity of menu background",
 			"default": [0, 0, 0, 150]
 		},
+		"hover-color-v2": {
+			"type": "rgba",
+			"name": "Background color (preview)",
+			"description": "Color and opacity of menu background when you preview the group (see: 'group preview behavior' setting",
+			"default": [0, 0, 0, 75]
+		},
 		"used-font": {
 			"type": "int",
 			"name": "Used font",
@@ -160,6 +190,13 @@
 			"name": "Go-to object",
 			"description": "Find and highlight selected object in the build tab",
 			"default": "Ctrl+F",
+			"category": "editor"
+		},
+		"close-all": {
+			"type": "keybind",
+			"name": "Close all groups",
+			"description": "Close all opened and pinned groups",
+			"default": "",
 			"category": "editor"
 		}
 	}

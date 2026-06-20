@@ -48,10 +48,10 @@ public:
         if (!Global::get().m_settings.m_pinGestures) {
             return false;
         }
-        if (!static_cast<MyEditorUI*>(EditorUI::get())->m_fields->pinnedGroups->isVisible()) {
+        if (!Global::editor()->m_fields->pinnedGroupsNode->isVisible()) {
             return false;
         }
-        if (!isGroupVisibleOnScreen(m_group)) {
+        if (!nodeIsVisible(m_group)) {
             return false;
         }
         auto const point = m_group->convertToNodeSpace(touch->getLocation());
@@ -59,6 +59,12 @@ public:
             m_overlay->setOpacity(100);
             m_overlay->setColor(ccc3(250, 250, 250));
             m_relativeCursorPos = point;
+            // reorder
+            auto parent = m_group->getParent();
+            m_group->retain();
+            parent->removeChild(m_group);
+            parent->addChild(m_group);
+            m_group->release();
             return true;
         }
         return false;
@@ -83,8 +89,8 @@ public:
         auto const delta = m_relativeCursorPos - point;
         m_group->setPosition(m_group->getPosition() - delta);
 
-        if (!m_group->isPinned()) {
-            m_group->switchPinState(); // pin
+        if (m_group->getState() != GroupState::PINNED) {
+            m_group->changeGroupState(GroupState::PINNED);
         }
 
         if (isOutOfWindow()) {
@@ -99,7 +105,7 @@ public:
         if (!m_group->getParent()) return;
         m_overlay->setOpacity(0);
         if (isOutOfWindow()) {
-            m_group->switchPinState(); // unpin
+            m_group->changeGroupState(GroupState::CLOSED);
         }
     }
 };
