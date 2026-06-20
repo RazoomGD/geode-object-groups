@@ -50,7 +50,7 @@ struct Global {
         bool m_autoClose;
         ccColor4B m_groupBgColor;
         ccColor4B m_groupBgHoverColor;
-        bool m_enableSearchTab;
+        // bool m_enableSearchTab;
         bool m_enableGoToObject;
         bool m_pinButton;
         bool m_pinGestures;
@@ -76,7 +76,7 @@ struct Global {
             m_groupBtnColor = (col >= 1 && col <= 11) ? col : 1;
             m_groupBgColor = mod->getSettingValue<ccColor4B>("bg-color-v2");
             m_groupBgHoverColor = mod->getSettingValue<ccColor4B>("hover-color-v2");
-            m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
+            // m_enableSearchTab = mod->getSettingValue<bool>("enable-search");
             m_enableGoToObject = mod->getSettingValue<bool>("enable-goto-object");
             m_shiftAdd = mod->getSettingValue<bool>("shift-add");
             m_keepPinned = mod->getSettingValue<bool>("keep-pinned");

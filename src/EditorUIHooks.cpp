@@ -266,7 +266,9 @@ void MyEditorUI::clickOnPosition(CCPoint p0) {
 	int before = m_selectedObjectIndex;
 	EditorUI::clickOnPosition(p0);
 	if (before == 0 && m_selectedObjectIndex != before) {
-		goToObjectV2(m_selectedObjectIndex);
+		runAction(CallFuncExt::create([this]{
+			goToObjectV2(m_selectedObjectIndex);
+		}));
 	}
 }
 

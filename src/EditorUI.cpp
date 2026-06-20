@@ -279,7 +279,7 @@ void MyEditorUI::loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, in
 void MyEditorUI::setupExtraTabs(std::set<uint8_t> const &which) {
 	auto sz = getBarSize();
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 16; i++) {
 		if (!which.contains(i)) continue;
 
 		std::string tabId = fmt::format("extra-tab-{}"_spr, i+1);
@@ -329,30 +329,29 @@ void MyEditorUI::setupVanillaTabs() {
 	}
 }
 
-// todo: make sure it's no broken
 void MyEditorUI::setupSearchTab() {
-	if (!Global::get().m_settings.m_enableSearchTab) return;
+	// if (!Global::get().m_settings.m_enableSearchTab) return;
 
-	alpha::editor_tabs::addTab("search-tab"_spr, alpha::editor_tabs::BUILD,
-		[this] { // Crate the tab
-			auto ret = alpha::editor_tabs::createEditButtonBar({});
-			m_fields->searchTabBar = ret;
-			return ret;
-		},
-		[] { // crate tab icon
-			auto icon = CCSprite::create("OG_search_icon.png"_spr);
-			icon->setScale(0.4);
-			return icon;
-		},
-		[this] (bool state, auto) { // do something when the tab is entered and exited
-			// log::info("ts {}", state);
-			if (!state) { // means other tab was opened
-				toggleSearch(true);
-				return;
-			};
-			toggleSearch();
-		}
-	);
+	// alpha::editor_tabs::addTab("search-tab"_spr, alpha::editor_tabs::BUILD,
+	// 	[this] { // Crate the tab
+	// 		auto ret = alpha::editor_tabs::createEditButtonBar({});
+	// 		m_fields->searchTabBar = ret;
+	// 		return ret;
+	// 	},
+	// 	[] { // crate tab icon
+	// 		auto icon = CCSprite::create("OG_search_icon.png"_spr);
+	// 		icon->setScale(0.4);
+	// 		return icon;
+	// 	},
+	// 	[this] (bool state, auto) { // do something when the tab is entered and exited
+	// 		// log::info("ts {}", state);
+	// 		if (!state) { // means other tab was opened
+	// 			toggleSearch(true);
+	// 			return;
+	// 		};
+	// 		toggleSearch();
+	// 	}
+	// );
 
 	// keybinds
 	// todo: callbacks are broken
@@ -805,12 +804,22 @@ void MyEditorUI::onMoveButton(CCObject* sender) {
 
 	// amount of indexes in this function is crazy
 	int newIndex = index;
-	int cols = getBarSize().cols;
-	switch (sender->getTag()) {
-		case 'f': newIndex += 1; break;
-		case 'b': newIndex += -1; break;
-		case 'd': newIndex += cols; break;
-		case 'u': newIndex += -cols; break;
+	auto sz = getBarSize();
+
+	if (currentTab->getChildByID("alphalaneous.tinker/buttons-scroll-layer")) {
+		switch (sender->getTag()) {
+			case 'f': newIndex += sz.rows; break;
+			case 'b': newIndex += -sz.rows; break;
+			case 'd': newIndex += 1; break;
+			case 'u': newIndex += -1; break;
+		}
+	} else {
+		switch (sender->getTag()) {
+			case 'f': newIndex += 1; break;
+			case 'b': newIndex += -1; break;
+			case 'd': newIndex += sz.cols; break;
+			case 'u': newIndex += -sz.cols; break;
+		}
 	}
 
 	// overflow
@@ -1257,9 +1266,8 @@ void MyEditorUI::addButtonsAndReloadButtonBar(CCArrayExt<CreateMenuItem*> button
 	for (auto* cmi : buttons) {
 		tab->m_buttonArray->insertObject(cmi, firstIndex++);
 		// select (or set frame to) newly created button
-		if (cmi->m_objectID != 0 || Group::get(cmi)) {
-			if (m_selectedObjectIndex == cmi->m_objectID)
-				setColorToCreateBtnNew(cmi, false);
+		if (cmi->m_objectID != 0 && m_selectedObjectIndex == cmi->m_objectID) {
+			setColorToCreateBtnNew(cmi, false);
 		}
 	}
 	
@@ -1458,7 +1466,7 @@ void MyEditorUI::goToObjectV2(int id, bool playEffect) {
 
 							alpha::editor_tabs::switchTab(shortTabId);
 							bar->goToPage(btnIdx / pgSize);
-							razoom::ObjectFoundEvent().send(targetCmi);
+							razoom::ObjectFoundEvent().send(cmi);
 							if (playEffect) playCircleEffectOnCmi(targetCmi);
 							return;
 						}

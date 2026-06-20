@@ -131,7 +131,7 @@ protected:
         bool editorReloadReq = (
             old.m_groupBtnColor != _new.m_groupBtnColor||
             old.m_extraTabs != _new.m_extraTabs ||
-            old.m_enableSearchTab != _new.m_enableSearchTab ||
+            // old.m_enableSearchTab != _new.m_enableSearchTab ||
             old.m_enableGoToObject != _new.m_enableGoToObject ||
             old.m_appendDeleted != _new.m_appendDeleted
         );
