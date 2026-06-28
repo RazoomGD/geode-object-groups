@@ -45,11 +45,10 @@ public:
 
 
     bool ccTouchBegan(CCTouch* touch, CCEvent* event) override {
-        if (!Global::get().m_settings.m_pinGestures) {
-            return false;
-        }
-        if (!Global::editor()->m_fields->pinnedGroupsNode->isVisible()) {
-            return false;
+        if (m_group->getState() != GroupState::PINNED) {
+            if (!Global::get().m_settings.m_pinGestures) {
+                return false;
+            }
         }
         if (!nodeIsVisible(m_group)) {
             return false;

@@ -35,27 +35,6 @@ short getIdForOpenedTab() {
 }
 
 
-// absolute scale for cmi-s
-float getTabScale() {
-    static float lastValue = 0.8;
-	if (auto someBar = Global::editor()->getChildByID("pixel-tab-bar")) {
-        if (auto pgs = static_cast<EditButtonBar*>(someBar)->m_scrollLayer->m_pages) {
-            if (auto menu = someBar->getChildByIDRecursive("alphalaneous.tinker/items-menu")) {
-                lastValue = someBar->getScale() * menu->getScale();
-                return lastValue;
-            }
-            if (auto p = static_cast<CCNode*>(pgs->firstObject())) {
-                if (auto menu = static_cast<ButtonPage*>(p)->getChildByType<CCMenu>(0)) {
-                    lastValue = someBar->getScale() * menu->getScale();
-                    return lastValue;
-                }
-            }
-        }
-    }
-	return lastValue; // idk
-}
-
-
 Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix) {
     auto ret = new Group();
     if (!ret || !ret->init()) {

@@ -1,3 +1,9 @@
+# 2.2.1
+- Add custom scale for opened and pinned groups
+- GroupPinning/Gestures setting now only prevents pinning the group by dragging
+- Coloring for custom objects
+- Optimize rendering custom objects
+
 # 2.2.0
 - Allow the creation of custom objects from a single object
 - Add group preview options

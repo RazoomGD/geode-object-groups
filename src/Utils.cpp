@@ -53,6 +53,28 @@ EditorScale getEditorScale() {
 }
 
 
+// absolute scale for cmi-s
+float getTabScale() {
+    static float lastValue = 0.8;
+	if (auto someBar = Global::editor()->getChildByID("pixel-tab-bar")) {
+        if (auto pgs = static_cast<EditButtonBar*>(someBar)->m_scrollLayer->m_pages) {
+            float customOGScale = Global::get().m_settings.m_groupCustomScale;
+            if (auto menu = someBar->getChildByIDRecursive("alphalaneous.tinker/items-menu")) {
+                lastValue = someBar->getScale() * menu->getScale() * customOGScale;
+                return lastValue;
+            }
+            if (auto p = static_cast<CCNode*>(pgs->firstObject())) {
+                if (auto menu = static_cast<ButtonPage*>(p)->getChildByType<CCMenu>(0)) {
+                    lastValue = someBar->getScale() * menu->getScale() * customOGScale;
+                    return lastValue;
+                }
+            }
+        }
+    }
+	return lastValue; // idk
+}
+
+
 // fix color sprite bad position bug
 void adjustGameObjectScaleAndPosition(GameObject* obj, CCPoint deltaPos, float scaleMultiplier) {
     auto pos = obj->getPosition() + deltaPos;
@@ -80,23 +102,156 @@ CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister, float fixS
     return cmi;
 }
 
+struct ObjectColorInfo {
+    GJSpriteColor* m_baseColor;
+    GJSpriteColor* m_detailColor;
+    bool m_detailColorIsMain;
+    bool m_glowDisabled;
+};
+
+static ObjectColorInfo getObjectColorInfo(GameObject *gameObj) {
+    // ! Decompiled code from some unnamed function of CustomizeObjectLayer
+    short sVar1;
+    int iVar2;
+    GJSpriteColor *pGVar5;
+    char cVar11;
+    ObjectColorInfo ret{};
+   
+    sVar1 = gameObj->m_customColorType;
+    if (sVar1 == 0x0) {
+        cVar11 = gameObj->m_maybeNotColorable;
+    }
+    else {
+        cVar11 = sVar1 == 0x1;
+    }
+    if (((cVar11 == '\0') && (gameObj->m_colorSprite == nullptr)) &&
+       ((iVar2 = gameObj->m_baseColor->m_defaultColorID, iVar2 != 0x3ec && (iVar2 != 0x0))))  {
+        pGVar5 = nullptr;
+    }
+    else {
+        pGVar5 = gameObj->m_baseColor;
+    }
+    ret.m_baseColor = pGVar5;
+    sVar1 = gameObj->m_customColorType;
+    if (sVar1 == 0x0) {
+        cVar11 = gameObj->m_maybeNotColorable;
+    }
+    else {
+        cVar11 = sVar1 == 0x1;
+    }
+    if ((cVar11 == '\0') && (gameObj->m_colorSprite == nullptr)) {
+        pGVar5 = gameObj->m_baseColor;
+        if ((pGVar5->m_defaultColorID != 0x3ec) && (pGVar5->m_defaultColorID != 0x0)) goto LAB_1400a80fb;
+    }
+    pGVar5 = gameObj->m_detailColor;
+LAB_1400a80fb:
+    ret.m_glowDisabled = gameObj->m_hasNoGlow;
+    ret.m_detailColor = pGVar5;
+    ret.m_detailColorIsMain = pGVar5 && pGVar5 == gameObj->m_baseColor;
+    return ret;
+}
+
+void colorCustomObjectAdvanced(CCArrayExt<GameObject*> gameObjects) {
+    struct ObjectInfo {
+        float posX;
+        int colID;
+        ccColor3B col3b;
+        float opacity;
+        bool m_blending;
+    };
+
+    std::vector<ObjectInfo> colorTriggers;
+    for (auto obj : gameObjects) {
+        if (obj->isColorTrigger()) {
+            auto effObj = static_cast<EffectGameObject*>(obj);
+            ObjectInfo info {
+                .posX = effObj->getPositionX(),
+                .colID = effObj->getTargetColorIndex(),
+                .col3b = effObj->m_triggerTargetColor,
+                .opacity = effObj->m_opacity,
+                .m_blending = effObj->m_usesBlending,
+            };
+            colorTriggers.push_back(info);
+        }
+    }
+
+    std::sort(colorTriggers.begin(), colorTriggers.end(), [](auto &a, auto &b){
+        return a.posX < b.posX;
+    });
+
+    std::unordered_map<int, ObjectInfo> objectInfos;
+    for (auto &info : colorTriggers) {
+        objectInfos[info.colID] = info;
+    }
+    objectInfos[1010] = ObjectInfo{.col3b = ccc3(0,0,0), .opacity = 255, .m_blending = false};
+    objectInfos.erase(0);
+
+    for (auto obj : gameObjects) {
+        auto objColorInfo = getObjectColorInfo(obj);
+        if (auto baseColor = objColorInfo.m_baseColor) {
+            ccColor3B col = ccc3(255, 255, 255);
+            auto it = objectInfos.find(baseColor->m_colorID);
+            if (it != objectInfos.end()) {
+                col = it->second.col3b;
+            }
+            if (baseColor->m_usesHSV) {
+                col = GameToolbox::transformColor(col, baseColor->m_hsv);
+            }
+            obj->updateMainColor(col);
+        }
+        if (auto detailColor = objColorInfo.m_detailColor) {
+            ccColor3B col = ccc3(255, 255, 255);
+            auto it = objectInfos.find(detailColor->m_colorID);
+            if (it != objectInfos.end()) {
+                col = it->second.col3b;
+            }
+            if (detailColor->m_usesHSV) {
+                col = GameToolbox::transformColor(col, detailColor->m_hsv);
+            }
+            if (objColorInfo.m_detailColorIsMain) {
+                obj->updateMainColor(col);
+            } else {
+                obj->updateSecondaryColor(col);
+            }
+        }
+    }
+}
+
 // negative id is id used by object groups, not by the game
 CreateMenuItem* getCustomObjectCreateBtn(EditorUI* editor, short negativeId, int validBg) {
     
+    // create sprite
     auto objStr = GameManager::get()->stringForCustomObject(negativeId); // call my hook
     if (objStr.empty()) {
         objStr = "1,914,2,0,3,105,31,SSB1c2Vk;1,914,2,0,3,75,31,dG8gYmUgYQ==;1,914,2,0,3,45,31,Y3VzdG9t;1,914,2,0,3,15,31,b2JqZWN0;";
     }
 
     auto arr = CCArray::create();
-    auto spr = editor->spriteFromObjectString(objStr, false, false, 0, arr, nullptr, nullptr);
-
-    for (auto* el : CCArrayExt<GameObject*>(arr)) {
-        setColorToGameObjectNew(el, true);
-    }
+    auto spr = editor->spriteFromObjectString(objStr, true, false, 0, arr, nullptr, nullptr);
 
     spr->setScale(std::min(32.f / spr->getContentHeight(), 32.f / spr->getContentWidth()));
 
+    // color objects
+    if (Global::get().m_settings.m_coloredCustomObjects) {
+        colorCustomObjectAdvanced(arr);
+    } else {
+        for (auto el : CCArrayExt<GameObject*>(arr)) {
+            setColorToGameObjectNew(el, true);
+        }
+    }
+
+    // optimize performance
+    auto contentSize = spr->getContentSize();
+    spr->setPosition(contentSize / 2);
+    auto tex = CCRenderTexture::create(contentSize.width, contentSize.height);
+    tex->beginWithClear(0,0,0,0);
+    spr->visit();
+    tex->end();
+    spr = CCSprite::create();
+    spr->setContentSize(contentSize);
+    spr->addChildAtPosition(tex, Anchor::Center);
+
+    // create button
     auto cmi = editor->getCreateBtn(1, validBg);
     auto buttonSpr = static_cast<ButtonSprite*>(cmi->getNormalImage());
     if (auto obj = buttonSpr->m_subSprite) {

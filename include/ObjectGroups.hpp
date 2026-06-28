@@ -59,6 +59,8 @@ struct Global {
         bool m_appendDeleted;
         int m_hoverMode;
         bool m_ignoreHoveredGroups;
+        bool m_coloredCustomObjects;
+        float m_groupCustomScale;
 
         void update() {
             auto mod = Mod::get();
@@ -84,6 +86,8 @@ struct Global {
             int hover = std::atoi(mod->getSettingValue<std::string>("hover-behavior").c_str());
             m_hoverMode = (hover >= 1 && hover <= 4) ? hover : 2;
             m_ignoreHoveredGroups = mod->getSettingValue<bool>("ignore-hovered");
+            m_coloredCustomObjects = mod->getSettingValue<bool>("colored-custom-objects");
+            m_groupCustomScale = mod->getSettingValue<double>("group-custom-scale");
 
             // future me: don't forget to modify it in MoreOptionsPopup.hpp
         }
@@ -144,6 +148,7 @@ int getGroupBtnColor();
 std::string getFontFileById(int id);
 BarInfo* tryGetBarInfo(CCNode* editButtonBar);
 EditorScale getEditorScale();
+float getTabScale();
 
 std::string toValidString(const char* txt);
 bool isObjIdExistsFast(short id);

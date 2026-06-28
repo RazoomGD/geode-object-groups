@@ -133,7 +133,8 @@ protected:
             old.m_extraTabs != _new.m_extraTabs ||
             // old.m_enableSearchTab != _new.m_enableSearchTab ||
             old.m_enableGoToObject != _new.m_enableGoToObject ||
-            old.m_appendDeleted != _new.m_appendDeleted
+            old.m_appendDeleted != _new.m_appendDeleted || 
+            old.m_coloredCustomObjects != _new.m_coloredCustomObjects
         );
         if (editorReloadReq) {
             alert("Some of the changed settings <co>require editor reload</c>");
@@ -150,6 +151,12 @@ protected:
             old.m_font = _new.m_font;
             old.m_pinButton = _new.m_pinButton;
             Global::editor()->execForeachGroup([](Group* g, int){g->setUpdateRequired(true);});
+        }
+
+        // pin layer reload is required
+        if (old.m_groupCustomScale != _new.m_groupCustomScale) {
+            old.m_groupCustomScale = _new.m_groupCustomScale;
+            Global::editor()->m_fields->pinnedGroupsNode->setScale(getTabScale());
         }
         
         // nothing is required
