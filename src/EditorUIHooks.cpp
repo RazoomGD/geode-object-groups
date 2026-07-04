@@ -76,9 +76,8 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	
 	// try to load saved configuration
 	auto file = Mod::get()->getConfigDir(true).append("OGv2_config.json");
-	bool fileOk = false;
 	switch (readConfigFromJson(file.string())) {
-		case 0: {fileOk = true; break;}; // ok
+		case 0: break; // ok
 		case -1: { // file error
 			callAfterTransition([](){
 				alert("<cr>ERROR</c>: couldn't load <cy>Object Groups</c> "
@@ -106,22 +105,19 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	getChildByID("editor-buttons-menu")->setZOrder(6);
 	getChildByID("layer-menu")->setZOrder(6);
 	
-	// other mods
-	if (fileOk) {
-		// re-setup tabs
-		setupVanillaTabs();
-		std::string tmp;
-		std::set<uint8_t> tabs;
-		std::istringstream ss(Global::get().m_settings.m_extraTabs);
-		while (std::getline(ss, tmp, ',')) {
-			tabs.insert(std::atoi(tmp.c_str()));
-		}
-		setupExtraTabs(tabs);
-		setupSearchTab();
-		setupRowMenu();
-		setupRightMenu();
-		setupLeftMenu();
+	// re-setup tabs
+	setupVanillaTabs();
+	std::string tmp;
+	std::set<uint8_t> tabs;
+	std::istringstream ss(Global::get().m_settings.m_extraTabs);
+	while (std::getline(ss, tmp, ',')) {
+		tabs.insert(std::atoi(tmp.c_str()));
 	}
+	setupExtraTabs(tabs);
+	setupSearchTab();
+	setupRowMenu();
+	setupRightMenu();
+	setupLeftMenu();
 
 	// frame
 	auto frame = CCSprite::create("OG_button_frame.png"_spr);
@@ -137,10 +133,8 @@ bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	m_fields->pinnedGroupsNode->setID("pinned-groups"_spr);
 	addChild(m_fields->pinnedGroupsNode, 15);
 
-	if (fileOk) {
-		onToggleEditGroupsMode(nullptr);
-		onToggleEditGroupsMode(nullptr);
-	}
+	onToggleEditGroupsMode(nullptr);
+	onToggleEditGroupsMode(nullptr);
 
 	Global::editor()->updateGroupUIDs();
 

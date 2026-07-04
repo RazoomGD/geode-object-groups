@@ -1,3 +1,6 @@
+# 2.2.2
+- Fix crash when config file is empty or damaged
+
 # 2.2.1
 - Add custom scale for opened and pinned groups
 - GroupPinning/Gestures setting now only prevents pinning the group by dragging
