@@ -17,10 +17,10 @@ struct GroupItemInfo : public CCObject {
 
 
 // (feature) set thumbnail object depending on the current tab
-short getIdForOpenedTab() {
-    static const short defaultObjectForTab[] = 
+int getIdForOpenedTab() {
+    static const int defaultObjectForTab[] = 
         {83, 467, 1743, 8, 506, 36, 1327, 4065, 1587, 3910, 107, 1707, 899};
-    short id = 3823; // :)
+    int id = 3823; // :)
     if (auto tabId = alpha::editor_tabs::getCurrentTab()) {
         if (auto node = alpha::editor_tabs::nodeForTab(*tabId)) {
             if (auto uObj = tryGetBarInfo(*node)) {
@@ -35,7 +35,7 @@ short getIdForOpenedTab() {
 }
 
 
-Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix) {
+Group* Group::createGroup(std::string name, std::array<int,4> objIds, std::vector<std::vector<int>>&& matrix) {
     auto ret = new Group();
     if (!ret || !ret->init()) {
         CC_SAFE_DELETE(ret);
@@ -113,22 +113,22 @@ Group* Group::createGroup(std::string name, std::array<short,4> objIds, std::vec
 
 
 Group* Group::createDefault() {
-    short id = getIdForOpenedTab();
-    std::vector<std::vector<short>> matrix = {{0, 0}, {0, 0}};
+    int id = getIdForOpenedTab();
+    std::vector<std::vector<int>> matrix = {{0, 0}, {0, 0}};
     return Group::createGroup("New Group", {id,0,0,0}, std::move(matrix));
 }
 
 
-Group* Group::createFromArray(std::string name, std::array<short,4> objIds, std::vector<short>&& array) {
+Group* Group::createFromArray(std::string name, std::array<int,4> objIds, std::vector<int>&& array) {
     int total = array.size();
     if (total == 0) return Group::createDefault();
     
     int rowCount = (total < 5) ? total : ((total < 7 || total == 9) ? 3 : 4);
     int columnCount = ceil(total / (float)rowCount);
     
-    std::vector<std::vector<short>> matrix;
+    std::vector<std::vector<int>> matrix;
     for (int objIter = 0; objIter < total;) {
-        std::vector<short> newRow;
+        std::vector<int> newRow;
         for (int j = 0; j < columnCount; j++) {
             newRow.push_back(array[objIter++]);
             if (objIter == total) break;
@@ -139,7 +139,7 @@ Group* Group::createFromArray(std::string name, std::array<short,4> objIds, std:
 }
 
 
-Group* Group::createSingle(short objId, bool isUserCreated) {
+Group* Group::createSingle(int objId, bool isUserCreated) {
     auto ret = new Group();
     if (!ret || !ret->init()) {
         CC_SAFE_DELETE(ret);
@@ -157,7 +157,7 @@ Group* Group::createSingle(short objId, bool isUserCreated) {
 
 Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
     matjson::Value obj = json["obj"];
-    std::array<short,4> objIds = {0};
+    std::array<int,4> objIds = {0};
     bool isThumbnailIncorrect = false;
 
     if (obj.isNumber()) {
@@ -170,7 +170,7 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
         int iter = 0;
         for (matjson::Value& el : obj) {
             if (el.isNumber()) {
-                short tmp = el.asInt().unwrap();
+                int tmp = el.asInt().unwrap();
                 if (tmp <= 0) continue;
                 if (validateIds && !isObjIdExistsFast(tmp)) continue;
                 objIds[iter] = tmp;    
@@ -191,12 +191,12 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
         name = aName.asString().unwrap();
     }
 
-    std::vector<std::vector<short>> matrix;
+    std::vector<std::vector<int>> matrix;
     matjson::Value aMatrix = json["group"];
     if (aMatrix.isArray()) {
         for (matjson::Value& row : aMatrix) {
             if (row.isArray()) {
-                std::vector<short> vec;
+                std::vector<int> vec;
                 for (matjson::Value& el : row) {
                     if (el.isNumber()) {
                         vec.push_back(el.asInt().unwrap());
@@ -229,10 +229,10 @@ Group* Group::createFromJsonValue(matjson::Value json, bool validateIds) {
 }
 
 
-matjson::Value Group::toJson(std::set<short> &custom) {
+matjson::Value Group::toJson(std::set<int> &custom) {
     matjson::Value jsonGroup;
     if (!m_isSingle) { // group
-        std::vector<short> idsVec;
+        std::vector<int> idsVec;
         for (int i = 0; i < 4 && m_objectIds[i] > 0; i++) {
             idsVec.push_back(m_objectIds[i]);
         }
@@ -243,8 +243,8 @@ matjson::Value Group::toJson(std::set<short> &custom) {
         }
         jsonGroup.set("group", m_matrix);
         for (auto &row : m_matrix) {
-            for (short objId : row) {
-                if (objId < 0) custom.insert(objId);
+            for (int objId : row) {
+                if (isMyCustomObject(objId)) custom.insert(objId);
             }
         }
         
@@ -256,7 +256,7 @@ matjson::Value Group::toJson(std::set<short> &custom) {
         if (m_isUserCreated) {
             jsonGroup.set("isUsr", m_isUserCreated);
         }
-        if (m_objectIds[0] < 0) {
+        if (isMyCustomObject(m_objectIds[0])) {
             custom.insert(m_objectIds[0]);
         }
     }
@@ -273,11 +273,11 @@ void Group::remapCustomObjects(std::map<int, std::string> const &customObjects) 
         return;
     }
     for (auto &row : m_matrix) {
-        for (short &el : row) {
+        for (int &el : row) {
             if (el >= 0) continue;
             auto it = customObjects.find(el);
             if (it != customObjects.end()) {
-                short newId = Global::editor()->registerNewCustomObject(it->second);
+                int newId = Global::editor()->registerNewCustomObject(it->second);
                 el = newId;
             }
         }
@@ -533,7 +533,7 @@ void Group::onAddObjectButton(CCObject* sender) {
     // try focused object
     if (auto cmi = Global::editor()->getFocusedCmi()) {
         if (cmi->m_objectID != 0 && !this->containsButton(cmi)) {
-            addObjects({(short)cmi->m_objectID});
+            addObjects({cmi->m_objectID});
             return;
         }
     }
@@ -557,7 +557,7 @@ void Group::onAddObjectButton(CCObject* sender) {
             for (auto obj : CCArrayExt<GameObject*>(*tmp)) {
                 str = str.append(obj->getSaveString(LevelEditorLayer::get())).append(";");
             }
-            short newId = Global::editor()->registerNewCustomObject(str);
+            int newId = Global::editor()->registerNewCustomObject(str);
             group->addObjects({newId}, true);
         },selected->count())->show();
     }
@@ -584,7 +584,7 @@ inline void extendGroupInSomeWay(Group* g, int objCount) {
 }
 
 
-void Group::addObjects(std::vector<short> ids, bool setFocused) {
+void Group::addObjects(std::vector<int> ids, bool setFocused) {
     uint32_t colSt, rowSt;
     if (!getSelectedItemPosition(&colSt, &rowSt)) {
         colSt = rowSt = 0;
@@ -596,16 +596,11 @@ void Group::addObjects(std::vector<short> ids, bool setFocused) {
     const uint32_t colEnd = m_matrix[0].size();
     do {
         if (m_matrix[row][col] == 0) {
-            short newId = *iter;
-            if (newId < 0 && newId > CUSTOM_OBJECT_ID_OFFSET) {
-                // add from vanilla custom objects
-                auto cuStr = GameManager::get()->stringForCustomObject(newId);
-                if (!cuStr.empty()) { 
-                    newId = Global::editor()->registerNewCustomObject(cuStr);
-                }
+            int newId = *iter;
+            if (newId > 0 || isMyCustomObject(newId)) {
+                m_matrix[row][col] = newId;
+                if (++iter == ids.end()) break;
             }
-            m_matrix[row][col] = newId;
-            if (++iter == ids.end()) break;
         }
         if (++col == colEnd) {
             col = 0;
@@ -622,7 +617,7 @@ void Group::addObjects(std::vector<short> ids, bool setFocused) {
     }
 
     if (iter != ids.end()) {
-        std::vector<short> remaining(iter, ids.end());
+        std::vector<int> remaining(iter, ids.end());
         createQuickPopup("Object Groups", 
             fmt::format("<cy> Group is full! </c>Do you want to extend the\n"
                 "group to fit the remaining <cy>{}</c> objects?", remaining.size()),
@@ -742,7 +737,7 @@ void Group::onPinButton(CCObject* maybeButton) {
 bool Group::exchangeItems(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
     if (y1 >= m_matrix.size() || y2 >= m_matrix.size()) return false;
     if (x1 >= m_matrix[0].size() || x2 >= m_matrix[0].size()) return false;
-    short tmp = m_matrix[y1][x1];
+    int tmp = m_matrix[y1][x1];
     m_matrix[y1][x1] = m_matrix[y2][x2];
     m_matrix[y2][x2] = tmp;
     return true;
@@ -760,7 +755,7 @@ void Group::addColumn(uint32_t index) {
 void Group::addRow(uint32_t index) {
     if (index > m_matrix.size()) index = m_matrix.size();
     int rowLen = m_matrix[0].size();
-    std::vector<short> newRow(rowLen, 0);
+    std::vector<int> newRow(rowLen, 0);
     m_matrix.insert(m_matrix.begin() + index, newRow);
 }
 
@@ -794,7 +789,7 @@ CreateMenuItem* Group::getPlusButton() {
 }
 
 
-void Group::updateObjId(std::array<short,4> newObjIds) {
+void Group::updateObjId(std::array<int,4> newObjIds) {
     auto cmi = getCmi();
     m_objectIds = newObjIds;
     auto otherCmi = getCustomCreateBtn(newObjIds, getGroupBtnColor(), false);
@@ -895,7 +890,7 @@ void Group::updateMenu(bool preserveSelectedCmi) {
     // prepare new buttons
     for (uint32_t i = 0; i < szY; i++) {
         for (uint32_t j = 0; j < szX; j++) {
-            const short id = m_matrix[i][j];
+            const int id = m_matrix[i][j];
 
             if (id == 0 && !m_isInEditMode) {
                 continue; // we need plus buttons only in edit mode

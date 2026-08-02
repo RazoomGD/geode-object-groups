@@ -301,7 +301,7 @@ private:
                 "(Now selected <cy>{}</c>)", selected->count()).c_str()
             );
         } else {
-            std::array<short, 4> ids = {0};
+            std::array<int, 4> ids = {0};
             for (int i = 0; i < selected->count(); i++) {
                 ids[i] = static_cast<GameObject*>(selected->objectAtIndex(i))->m_objectID;
             }
@@ -322,7 +322,7 @@ private:
         for (auto* obj : CCArrayExt<GameObject*>(selected)) {
             str = str.append(obj->getSaveString(LevelEditorLayer::get())).append(";");
         }
-        short newId = Global::editor()->registerNewCustomObject(str);
+        int newId = Global::editor()->registerNewCustomObject(str);
         m_myGroup->addObjects({newId}, true);
 
         onClose(nullptr);

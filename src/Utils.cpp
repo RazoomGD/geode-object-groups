@@ -91,8 +91,8 @@ void adjustGameObjectScaleAndPosition(GameObject* obj, CCPoint deltaPos, float s
     }
 }
 
-CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister, float fixScale) {
-    std::array<short,4> a = {id, 0, 0, 0};
+CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister, float fixScale) {
+    std::array<int,4> a = {id, 0, 0, 0};
     auto cmi = getCustomCreateBtn(a, bg, doRegister);
     if (fixScale != 1.f) {
         auto newSize = cmi->getContentSize() * fixScale;
@@ -218,7 +218,7 @@ void colorCustomObjectAdvanced(CCArrayExt<GameObject*> gameObjects) {
 }
 
 // negative id is id used by object groups, not by the game
-CreateMenuItem* getCustomObjectCreateBtn(EditorUI* editor, short negativeId, int validBg) {
+CreateMenuItem* getCustomObjectCreateBtn(EditorUI* editor, int negativeId, int validBg) {
     
     // create sprite
     auto objStr = GameManager::get()->stringForCustomObject(negativeId); // call my hook
@@ -266,7 +266,7 @@ CreateMenuItem* getCustomObjectCreateBtn(EditorUI* editor, short negativeId, int
 }
 
 // colors: 1-green, 2-cyan, 3-pink, 4-gray, 5-darker gray, 6-red
-CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister) {
+CreateMenuItem* getCustomCreateBtn(std::array<int, 4> const &ids, int bg, bool doRegister) {
     auto editor = Global::editor();
     int validBg = (bg <= 6) ? bg : 1;
     CreateMenuItem* btn;
@@ -286,7 +286,7 @@ CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool
 
     // handle extra objects
     GameObject* objects[4];
-    short objCount = 1;
+    int objCount = 1;
     if (ids[1] != 0) objects[objCount++] = static_cast<GameObject*>(
         static_cast<ButtonSprite*>(getCustomCreateBtn(ids[1], 1, false)->getNormalImage())->m_subSprite);
     if (ids[2] != 0) objects[objCount++] = static_cast<GameObject*>(
@@ -402,7 +402,7 @@ LAB_14010dac2:
 // }
 
 // lol these numbers are really hardcoded in RobTop's code
-static const std::set<short> darkerButtonBgObjIds = {
+static const std::set<int> darkerButtonBgObjIds = {
     146, 147, 204, 206, 673, 674, 1340, 1340, 1341, 1342, 1343, 1344, 1345,
     144, 145, 205, 459, 
     498, 499, 500, 501, 277, 278, 719, 721, 990, 992, 1120, 1122, 1123, 1124, 1125, 1126, 1127, 1132, 1133,
@@ -411,7 +411,7 @@ static const std::set<short> darkerButtonBgObjIds = {
     740, 741, 742
 };
 
-int getItemBtnColor(short objId) {
+int getItemBtnColor(int objId) {
     if (objId < 0) return 5;
     return darkerButtonBgObjIds.contains(objId) ? 5 : 4;
 }
@@ -483,12 +483,12 @@ void callAfterTransition(std::function<void()> func) {
     GameManager::get()->schedule(schedule_selector(WaitTransitionObject::checkScene), 0);
 }
 
-std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {
+std::vector<std::vector<int>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects) {
     const float minGap = 15.0;
     const float maxWidth = 30.0;
 
-    std::vector<std::vector<short>> result;
-    const std::vector<std::vector<short>> emptyVector;
+    std::vector<std::vector<int>> result;
+    const std::vector<std::vector<int>> emptyVector;
     std::map<GameObject*, std::pair<int, int>> objInfo; // <obj, <rowIdx, columnIdx>>
 
     // divide into rows
@@ -547,7 +547,7 @@ std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*>
 
     // find intersections => put into matrix
     for (int i = 0; i < rowIdx+1; i++) {
-        std::vector<short> newRow(columnIdx+1, 0);
+        std::vector<int> newRow(columnIdx+1, 0);
         result.push_back(newRow);
     }
 
@@ -639,23 +639,27 @@ static const uint64_t isIdExists[] = {
 };
 
 // true, if you can have this object in editor
-bool isObjIdExistsFast(short id) {
+bool isObjIdExistsFast(int id) {
     if (id < 0) return true;
     if (id > 4539) return false;
-    short index = id % 64;
-    short row = id / 64;
+    int index = id % 64;
+    int row = id / 64;
     uint64_t num = isIdExists[row];
     uint64_t mask = 0b1000000000000000000000000000000000000000000000000000000000000000ULL >> index;
     bool exists = (num & mask);
     return exists;
 }
 
+bool isMyCustomObject(int id) {
+    return id < CUSTOM_OBJECT_ID_OFFSET;
+}
+
 // get ids without duplicates preserving their order
-std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects) {
-    std::set<short> idsOnce;
-    std::vector<short> ids;
+std::vector<int> getUniqueIds(CCArrayExt<GameObject*> objects) {
+    std::set<int> idsOnce;
+    std::vector<int> ids;
     for (auto* obj : objects) {
-        short id = obj->m_objectID;
+        int id = obj->m_objectID;
         if (!idsOnce.contains(id)) {
             idsOnce.insert(id);
             ids.push_back(id);
@@ -683,6 +687,20 @@ CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group) {
     return ret;
 }
 
+
+void updatePinnedGroupsState() {
+    Global::get().m_pinnedGroupsStates.clear();
+    if (Global::get().m_settings.m_keepPinned && Global::editor()) {
+        if (auto pg = Global::editor()->m_fields->pinnedGroupsNode) {
+            for (auto group : CCArrayExt<Group*>(pg->getChildren())) {
+                if (group->getState() == GroupState::PINNED) {
+                    auto worldPos = group->convertToWorldSpace(ccp(group->getContentWidth() / 2, 0));
+                    Global::get().m_pinnedGroupsStates[group->getGroupUID()] = worldPos;
+                }
+            }
+        }
+    }
+}
 
 class CircleWavePlus : public CCNode {
 public:

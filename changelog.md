@@ -1,3 +1,8 @@
+# 2.2.3
+- Fix weird IOS crash when exiting editor
+- Work on compatibility with Object Collab mod
+- Fixed bug when objects moved to another tab were save incorrectly
+
 # 2.2.2
 - Fix crash when config file is empty or damaged
 

@@ -19,7 +19,7 @@ using namespace geode::prelude;
 #define CMI_USER_OBJ_ID "OG-cmi"_spr
 #define INNER_CMI_USER_OBJ_ID "OG-coord"_spr
 #define CMI_GROUP_NAME_USER_OBJ_ID "OG-name"_spr
-#define CUSTOM_OBJECT_ID_OFFSET -15000
+#define CUSTOM_OBJECT_ID_OFFSET -15000 // my objects are -15001, -15002, -15003, ...
 
 
 struct MyEditorUI;
@@ -135,28 +135,30 @@ void shortAlert(const char* text, float timeSec=0.5);
 void callAfterTransition(std::function<void()> func);
 
 // replacement for getCreateBtn
-CreateMenuItem* getCustomCreateBtn(short id, int bg, bool doRegister=true, float fixScale=1.f);
-CreateMenuItem* getCustomCreateBtn(std::array<short, 4> const &ids, int bg, bool doRegister=true);
+CreateMenuItem* getCustomCreateBtn(int id, int bg, bool doRegister=true, float fixScale=1.f);
+CreateMenuItem* getCustomCreateBtn(std::array<int, 4> const &ids, int bg, bool doRegister=true);
 
 // brighten or darken the CreateMenuItem (decompiled function)
 void setColorToCreateBtnNew(CreateMenuItem* cmi, bool isBright);
 void setColorToGameObjectNew(GameObject* gameObj, bool isBright);
 
 // void getBarSize(int* rows, int* cols);
-int getItemBtnColor(short objId);
+int getItemBtnColor(int objId);
 int getGroupBtnColor();
 std::string getFontFileById(int id);
 BarInfo* tryGetBarInfo(CCNode* editButtonBar);
 EditorScale getEditorScale();
 float getTabScale();
+void updatePinnedGroupsState();
+bool isMyCustomObject(int id);
 
 std::string toValidString(const char* txt);
-bool isObjIdExistsFast(short id);
-std::vector<short> getUniqueIds(CCArrayExt<GameObject*> objects);
+bool isObjIdExistsFast(int id);
+std::vector<int> getUniqueIds(CCArrayExt<GameObject*> objects);
 CreateMenuItem* cloneGroupCmi(CreateMenuItem* cmi, Group* group);
 void playCircleEffectOnCmi(CreateMenuItem* cmi);
 
-std::vector<std::vector<short>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
+std::vector<std::vector<int>> divideGridAlignedObjects(CCArrayExt<GameObject*> objects);
 
 float computeMatchRatio(const std::string& target, const std::string& query);
 

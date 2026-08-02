@@ -33,7 +33,7 @@ int writeConfigToJson(std::string filename) {
 
     Value config;
     std::set<uint8_t> savedTabs;
-    std::set<short> custom;
+    std::set<int> custom;
     
     // foreach bar with my user object
     auto allTabs = alpha::editor_tabs::getAllTabs();
@@ -124,7 +124,7 @@ int readConfigFromJson(std::string filename) {
     return 0;
 }
 
-static std::string writeFormatted(matjson::Value const &groupsArray, std::set<short> const &customIds) {
+static std::string writeFormatted(matjson::Value const &groupsArray, std::set<int> const &customIds) {
     auto custom = Global::editor()->getCustomObjects(customIds);
     if (custom.empty()) {
         return matjson::makeObject({
@@ -139,21 +139,21 @@ static std::string writeFormatted(matjson::Value const &groupsArray, std::set<sh
 }
 
 std::string copyGroupAsJson(CreateMenuItem* cmi) {
-    std::set<short> custom;
+    std::set<int> custom;
     if (auto group = Group::get(cmi)) {
         if (!group->isSingle()) {
             auto json = matjson::Value(std::vector<matjson::Value>{group->toJson(custom)});
             return writeFormatted(json, custom);
         }
     }
-    if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
+    if (isMyCustomObject(cmi->m_objectID)) custom.insert(cmi->m_objectID);
     auto json = matjson::Value(std::vector<matjson::Value>{matjson::makeObject({{"obj", cmi->m_objectID}})});
     return writeFormatted(json, custom);
 }
 
 std::string copyTabAsJson(EditButtonBar* bar) {
     auto editor = Global::editor();
-    std::set<short> custom;
+    std::set<int> custom;
     auto json = editor->barToJsonValue(bar, custom);
     return writeFormatted(json, custom);
 }

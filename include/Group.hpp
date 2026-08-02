@@ -14,9 +14,9 @@ enum class GroupState {CLOSED = 0, OPENED, HOVERED, PINNED};
 class Group : public CCNode {
 private:
     std::string m_groupName;
-    std::array<short, 4> m_objectIds = {0};
+    std::array<int, 4> m_objectIds = {0};
     bool m_isUserCreated; // false - means that it was added as missing object (append deleted option)
-    std::vector<std::vector<short>> m_matrix;
+    std::vector<std::vector<int>> m_matrix;
     bool m_isSingle; // single object or group
     bool m_isUpdateRequired;
     bool m_isInEditMode; // is menu setup for edit mode
@@ -60,10 +60,10 @@ private:
 
 public:
     // create method variants
-    static Group* createGroup(std::string name, std::array<short,4> objIds, std::vector<std::vector<short>>&& matrix);
-    static Group* createSingle(short objId, bool isUserCreated);
+    static Group* createGroup(std::string name, std::array<int,4> objIds, std::vector<std::vector<int>>&& matrix);
+    static Group* createSingle(int objId, bool isUserCreated);
     static Group* createDefault();
-    static Group* createFromArray(std::string name, std::array<short,4> objIds, std::vector<short>&& array);
+    static Group* createFromArray(std::string name, std::array<int,4> objIds, std::vector<int>&& array);
     static Group* createFromJsonValue(matjson::Value json, bool validateIds=false); // always check for null!
     static Group* create() = delete;
 
@@ -76,7 +76,7 @@ public:
     bool getSelectedItemPosition(uint32_t* col, uint32_t* row);
     bool setSelectedCmiWithPosition(uint32_t col, uint32_t row);
     CreateMenuItem* getCmiByPosition(uint32_t col, uint32_t row);
-    matjson::Value toJson(std::set<short> &custom);
+    matjson::Value toJson(std::set<int> &custom);
 
     void remapCustomObjects(std::map<int, std::string> const &customObjects);
 
@@ -86,10 +86,10 @@ public:
 
     void addColumn(uint32_t index);
     void addRow(uint32_t index);
-    void addObjects(std::vector<short> ids, bool setFocused=false);
+    void addObjects(std::vector<int> ids, bool setFocused=false);
     void deleteColumn(uint32_t index);
     void deleteRow(uint32_t index);
-    void updateObjId(std::array<short,4> newObjIds);
+    void updateObjId(std::array<int,4> newObjIds);
     void updateName(std::string name, CreateMenuItem* cmi);
 
     // getters, setters
@@ -98,8 +98,8 @@ public:
     GroupState getState() const {return m_groupState;}
     bool isUserCreated() const {return m_isUserCreated;}
     void setUserCreated(bool val) {m_isUserCreated = val;}
-    const std::array<short,4>& getObjIds() const {return m_objectIds;}
-    const std::vector<std::vector<short>>& getMatrix() const {return m_matrix;}
+    const std::array<int,4>& getObjIds() const {return m_objectIds;}
+    const std::vector<std::vector<int>>& getMatrix() const {return m_matrix;}
     void setUpdateRequired(bool required) {m_isUpdateRequired = required;}
     uint16_t getGroupUID() const {return m_groupUID;}
     void setGroupUID(uint16_t groupUID) {m_groupUID = groupUID;}

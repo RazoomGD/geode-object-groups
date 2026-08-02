@@ -312,6 +312,14 @@ bool MyEditorUI::ccTouchBegan(CCTouch* touch, CCEvent* event) {
 	return true;
 }
 
+void MyEditorUI::onPause(CCObject* sender) {
+	// do it here because of IOS EditorPauseLayer crash
+	#ifdef GEODE_IS_IOS
+		updatePinnedGroupsState();
+	#endif
+	EditorUI::onPause(sender);
+}
+
 // todo: delete this
 
 // #include <Geode/modify/CreateMenuItem.hpp>

@@ -219,13 +219,13 @@ void MyEditorUI::loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, in
 
 	Global::editor()->m_createButtonArray->removeObjectsInArray(oldButtons);
 
-	std::vector<short> allOldIdsOrdered;
+	std::vector<int> allOldIdsOrdered;
 	for (auto* btn : CCArrayExt<CreateMenuItem*>(oldButtons)) {
 		allOldIdsOrdered.push_back(btn->m_objectID);
 	}
 
-	std::set<short> allOldIds(allOldIdsOrdered.begin(), allOldIdsOrdered.end());
-	std::set<short> clearedIds;
+	std::set<int> allOldIds(allOldIdsOrdered.begin(), allOldIdsOrdered.end());
+	std::set<int> clearedIds;
 
 	auto buttons = CCArray::create();
 	auto config = allGroups[tab];
@@ -249,7 +249,7 @@ void MyEditorUI::loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, in
 		if (!group->isSingle() || group->isUserCreated()) {
 			buttons->addObject(group->getCmi());
 		} else {
-			short id = group->getObjIds()[0];
+			auto id = group->getObjIds()[0];
 			if (allOldIds.contains(id) && !clearedIds.contains(id)) {
 				buttons->addObject(group->getCmi());
 				clearedIds.insert(id);
@@ -647,10 +647,10 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 	}
 
 	// function to create new buttons
-	const auto addObjects = [this](std::vector<short> ids, bool focus=false) {
+	const auto addObjects = [this](std::vector<int> ids, bool focus=false) {
 		auto arr = CCArray::create();
 		if (!ids.size()) return;
-		for (short id : ids) {
+		for (int id : ids) {
 			auto newBtn = Group::createSingle(id, true)->getCmi();
 			arr->addObject(newBtn);
 		}
@@ -665,7 +665,7 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 		for (auto ch : m_fields->pinnedGroupsNode->getChildrenExt<Group*>()) {
 			if (ch->containsButton(cmi)) { // found in group
 				if (!nodeIsVisible(ch)) break;
-				addObjects({short(cmi->m_objectID)});
+				addObjects({cmi->m_objectID});
 				return;
 			}
 		}
@@ -696,7 +696,7 @@ void MyEditorUI::onNewObjectButton(CCObject*) {
 				for (auto* obj : CCArrayExt<GameObject*>(tmp)) {
 					str = str.append(obj->getSaveString(lel)).append(";");
 				}
-				short newId = registerNewCustomObject(str);
+				int newId = registerNewCustomObject(str);
 				addObjects({newId}, true);
 			},
 			objects->count()
@@ -725,7 +725,7 @@ void MyEditorUI::onAddAsSingleCustomObjectButton(CCObject*) {
 	for (auto* obj : CCArrayExt<GameObject*>(selected)) {
 		str = str.append(obj->getSaveString(levelLayer)).append(";");
 	}
-	short newId = registerNewCustomObject(str);
+	int newId = registerNewCustomObject(str);
 
 	// create item on EditButtonBar for this obj
 	auto newBtn = Group::createSingle(newId, true)->getCmi();
@@ -844,6 +844,9 @@ void MyEditorUI::onMoveButton(CCObject* sender) {
 							reloadBarItems(newTab);
 							goToPageWithCmi(btn);
 							Global::get().m_hasUnsavedOGChanges = true;
+							if (auto singleGroup = Group::get(btn)) {
+								singleGroup->setUserCreated(true);
+							}
 							break;
 						}
 					}
@@ -1022,7 +1025,7 @@ bool MyEditorUI::addItemToActiveGroupByCmi(CreateMenuItem* cmi) {
 	// this function is used in "shift-add" feature
 	if (cmi->m_objectID == 0) return false;
 
-	const std::vector<short> objId = {(short)cmi->m_objectID};
+	const std::vector<int> objId = {cmi->m_objectID};
 	const auto pinned = m_fields->pinnedGroupsNode->getChildren();
 	const auto focusedCmi = getFocusedCmi();
 	std::vector<Group*> candidates;
@@ -1067,7 +1070,7 @@ bool MyEditorUI::addItemToActiveGroupByCmi(CreateMenuItem* cmi) {
 }
 
 
-short MyEditorUI::registerNewCustomObject(std::string oldStr) {
+int MyEditorUI::registerNewCustomObject(std::string oldStr) {
 	// get next free id
 	int id = CUSTOM_OBJECT_ID_OFFSET - 1;
 	auto &custom = m_fields->myCustomObjects;
@@ -1081,9 +1084,9 @@ short MyEditorUI::registerNewCustomObject(std::string oldStr) {
 }
 
 
-std::map<std::string, std::string> MyEditorUI::getCustomObjects(std::set<short> const &which) {
+std::map<std::string, std::string> MyEditorUI::getCustomObjects(std::set<int> const &which) {
 	std::map<std::string, std::string> ret;
-	for (short id : which) {
+	for (int id : which) {
 		ret.insert({std::to_string(id), GameManager::get()->stringForCustomObject(id)});
 	}
 	return ret;
@@ -1111,7 +1114,7 @@ void MyEditorUI::onNewGroupFromLayoutButton(CCObject*) {
 	}
 	// try to detect the grid-alignment
 	auto res = divideGridAlignedObjects(selected);
-	short firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
+	int firstId = static_cast<GameObject*>(selected->objectAtIndex(0))->m_objectID;
 
 	if (!res.empty()) {
 		auto group = Group::createGroup("New Group", {firstId,0,0,0}, std::move(res));
@@ -1203,7 +1206,7 @@ bool MyEditorUI::setSpiteToTabByIndexFromString(const std::string& objectString,
 }
 
 // return json array
-matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<short> &custom) {
+matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<int> &custom) {
 	matjson::Value jsonArray(std::vector<int>{});
 	// foreach item in my tab
 	for (auto* cmi : CCArrayExt<CreateMenuItem*>(bar->m_buttonArray)) {
@@ -1213,7 +1216,7 @@ matjson::Value MyEditorUI::barToJsonValue(EditButtonBar* bar, std::set<short> &c
 			// single not user-created object without any info
 			auto unkObj = matjson::makeObject({{"obj", cmi->m_objectID}});
 			jsonArray.push(unkObj);
-			if (cmi->m_objectID < 0) custom.insert(cmi->m_objectID);
+			if (isMyCustomObject(cmi->m_objectID)) custom.insert(cmi->m_objectID);
 		}
 	}
 	return jsonArray;

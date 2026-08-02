@@ -59,7 +59,8 @@ class $modify(MyEditorUI, EditorUI) {
 	void showUI(bool show);
 	void clickOnPosition(CCPoint p0);
 	bool ccTouchBegan(CCTouch* touch, CCEvent* event);
-	
+	void onPause(CCObject* sender);
+
 	// handlers for my menus 
 	void onToggleEditGroupsMode(CCObject*);
 	void onNewObjectButton(CCObject*);
@@ -79,11 +80,11 @@ class $modify(MyEditorUI, EditorUI) {
 	void deleteButtonFromTab(EditButtonBar* bar, int idx, bool ungroup);
 	void createIconForTheTabFromSelectedObjects();
 	bool setSpiteToTabByIndexFromString(const std::string& objectString, CCMenuItemToggler* tab, uint8_t tabIdx);
-	matjson::Value barToJsonValue(EditButtonBar* bar, std::set<short> &custom);
+	matjson::Value barToJsonValue(EditButtonBar* bar, std::set<int> &custom);
 	void execForeachGroup(std::function<void(Group*, int tabIndex)> func, int whatTab=-1);
 	bool addItemToActiveGroupByCmi(CreateMenuItem* cmi);
-	short registerNewCustomObject(std::string oldStr);
-	std::map<std::string, std::string> getCustomObjects(std::set<short> const &which);
+	int registerNewCustomObject(std::string oldStr);
+	std::map<std::string, std::string> getCustomObjects(std::set<int> const &which);
 	void loadGroups(EditButtonBar* bar, CCArray* oldButtons, int tab, int p1, int p2, bool p3);
 	EditButtonBar* getCurrentTabIfAllowed();
 	void updateHover(float);

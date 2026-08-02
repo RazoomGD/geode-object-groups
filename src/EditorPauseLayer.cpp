@@ -2,6 +2,8 @@
 
 #include <Geode/modify/EditorPauseLayer.hpp>
 
+#ifndef GEODE_IS_IOS // on IOS see MyEditorUI::onPause
+
 class $modify(EditorPauseLayer) {
 
     struct Fields {
@@ -22,18 +24,6 @@ class $modify(EditorPauseLayer) {
                 }
             }, true, true
         );
-    }
-
-    void updatePinnedGroupsState() {
-        Global::get().m_pinnedGroupsStates.clear();
-        if (Global::get().m_settings.m_keepPinned && Global::editor()) {
-            if (auto pg = Global::editor()->m_fields->pinnedGroupsNode) {
-                for (auto group : CCArrayExt<Group*>(pg->getChildren())) {
-                    auto worldPos = group->convertToWorldSpace(ccp(group->getContentWidth() / 2, 0));
-                    Global::get().m_pinnedGroupsStates[group->getGroupUID()] = worldPos;
-                }
-            }
-        }
     }
 
     void onExitEditor(CCObject* sender) {
@@ -71,3 +61,5 @@ class $modify(EditorPauseLayer) {
     }
 
 };
+
+#endif

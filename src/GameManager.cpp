@@ -3,7 +3,7 @@
 
 class $modify(GameManager) {
     gd::string stringForCustomObject(int customObjectID) {
-        if (customObjectID <= CUSTOM_OBJECT_ID_OFFSET) {
+        if (isMyCustomObject(customObjectID)) {
             if (auto editor = Global::editor()) {
                 auto &cuObjs = editor->m_fields->myCustomObjects;
                 auto iter = cuObjs.find(std::to_string(customObjectID));
