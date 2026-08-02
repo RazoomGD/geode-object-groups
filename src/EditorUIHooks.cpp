@@ -1,7 +1,7 @@
 #include "EditorUI.hpp"
 #include <alphalaneous.editortab_api/include/EditorTabAPI.hpp>
 // #include <alphalaneous.tinker/include/ObjectTooltips.hpp>
-#include <alphalaneous.tinker/include/UIScaling.hpp>
+// #include <alphalaneous.tinker/include/UIScaling.hpp>
 
 // support for Creative Mode new tab UI
 // inline bool isCreativeModeNewTabUI() {
@@ -63,6 +63,14 @@ void MyEditorUI::showUI(bool show) {
 // 	log::debug("ret");
 // 	return ret;
 // }
+
+// copied this from Tinker instead of importing because Tinker 
+// is not in the index anymore, but I should keep compatibility
+namespace tinker::api::ui_scaling {
+	struct UIScaleUpdated final : geode::Event<UIScaleUpdated, bool(float scale, bool scaleToolbars, bool topAlign)> {
+		using Event::Event;
+	};
+};
 
 bool MyEditorUI::init(LevelEditorLayer* editorLayer) {
 	Global::get().m_editorUI = this;
